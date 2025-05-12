@@ -1,0 +1,13 @@
+# Alembic Uses
+
+## Generate Auto-Migrations
+
+```bash
+cd backend
+uv run alembic -c ./alembic.ini revision --autogenerate -m "..."
+```
+
+## Run Migrations
+
+Migrations are run automatically when Financeer is booted. See
+`backend/app/main.py:lifespan` for specifics.

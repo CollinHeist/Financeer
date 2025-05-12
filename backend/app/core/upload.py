@@ -1,0 +1,173 @@
+from csv import reader as csv_reader
+from datetime import datetime
+from io import StringIO
+
+from fastapi.datastructures import UploadFile
+import pandas as pd
+from sqlalchemy.orm.session import Session
+
+from app.models.transaction import Transaction
+from app.models.upload import Upload
+from app.schemas.transaction import NewTransactionSchema
+from app.utils.logging import log
+
+
+def create_upload(file: UploadFile, account_id: int, db: Session) -> Upload:
+    """
+    Create a new Upload from a file. This new Upload will be added to
+    the database, but will not have any Transactions associated with it.
+
+    Args:
+        file: The file to create the Upload from.
+        account_id: The ID of the Account that the Upload belongs to.
+        db: The database session.
+
+    Returns:
+        The created Upload.
+    """
+
+    upload = Upload(
+        filename=file.filename,
+        data=file.file.read(),
+        upload_date=datetime.now(),
+        account_id=account_id,
+    )
+    db.add(upload)
+    db.commit()
+
+    return upload
+
+
+def parse_generic_upload(upload: Upload) -> list[NewTransactionSchema]:
+    """
+    Parse a generic upload into a list of NewTransactionSchemas.
+
+    Args:
+        upload: The Upload to parse.
+
+    Returns:
+        A list of NewTransactionSchemas.
+    """
+
+    # Parse the raw Upload data into a CSV stream
+    file_stream = StringIO(upload.data.decode('utf-8'))
+    reader = csv_reader(file_stream)
+
+    return [
+        NewTransactionSchema(
+            date=datetime.strptime(line[0], '%Y-%m-%d'),
+            description=line[1],
+            note=line[2],
+            amount=line[3],
+            expense_id=line[4] or None,
+            income_id=line[5] or None,
+            account_id=upload.account_id,
+        )
+        for line in reader
+        if line and line[0] and line[0].lower() != 'date'
+    ]
+
+
+def parse_iccu_upload(upload: Upload) -> list[NewTransactionSchema]:
+    """
+    Parse an ICCU upload into a list of NewTransactionSchemas.
+
+    Args:
+        upload: The Upload to parse.
+
+    Returns:
+        A list of NewTransactionSchemas.
+    """
+
+    # Parse the raw Upload data into a CSV stream
+    file_stream = StringIO(upload.data.decode('utf-8'))
+    df = pd.read_csv(file_stream)
+
+    # Convert the posting date column to a datetime object
+    df['Posting Date'] = pd.to_datetime(df['Posting Date'], format='%m/%d/%Y')
+
+    return [
+        NewTransactionSchema(
+            date=row['Posting Date'],
+            description=row['Description'],
+            note=row['Extended Description'],
+            amount=row['Amount'],
+            account_id=upload.account_id,
+        )
+        for _, row in df.iterrows()
+    ]
+
+
+def remove_redundant_transactions(
+        transactions: list[NewTransactionSchema],
+        db: Session,
+    ) -> list[NewTransactionSchema]:
+    """
+    Remove any transactions which already exist in the database from the
+    list of transactions.
+
+    Args:
+        transactions: The list of NewTransactionSchemas to remove
+            redundant transactions from.
+        db: The database session.
+
+    Returns:
+        A list of NewTransactionSchemas with the redundant transactions
+        removed.
+    """
+
+    def is_redundant(transaction: NewTransactionSchema) -> bool:
+        """Check if a transaction is redundant."""
+
+        redundant = db.query(Transaction).filter(
+            Transaction.date == transaction.date,
+            Transaction.amount == transaction.amount,
+            Transaction.account_id == transaction.account_id,
+        ).first()
+
+        if redundant:
+            log.debug(f'Redundant transaction: {redundant}')
+        return redundant
+
+    return [
+        transaction
+        for transaction in transactions
+        if not is_redundant(transaction)
+    ]
+
+
+def add_transactions_to_database(
+    transactions: list[NewTransactionSchema],
+    upload_id: int,
+    db: Session,
+) -> list[Transaction]:
+    """
+    Add the list of NewTransactionSchemas to the database.
+
+    Args:
+        transactions: The list of NewTransactionSchemas to add.
+        upload_id: The ID of the Upload that the Transactions belong to.
+        db: The database session.
+
+    Returns:
+        A list of Transactions.
+    """
+
+    db_transactions = []
+    for transaction in remove_redundant_transactions(transactions, db):
+        new_transaction = Transaction(
+            date=transaction.date,
+            description=transaction.description,
+            note=transaction.note,
+            amount=transaction.amount,
+            account_id=transaction.account_id,
+            expense_id=transaction.expense_id,
+            income_id=transaction.income_id,
+            upload_id=upload_id,
+        )
+        db.add(new_transaction)
+        db_transactions.append(new_transaction)
+
+    db.commit()
+
+    return db_transactions
