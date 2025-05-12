@@ -1,5 +1,7 @@
 from app.models.transaction import Transaction
 from fastapi import APIRouter, Body, Depends
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
@@ -73,3 +75,11 @@ def delete_transaction(
     transaction = require_transaction(db, transaction_id)
     db.delete(transaction)
     db.commit()
+
+
+@transaction_router.get('/')
+def get_transactions(
+    db: Session = Depends(get_database),
+) -> Page[ReturnTransactionSchema]:
+
+    return paginate(db.query(Transaction))

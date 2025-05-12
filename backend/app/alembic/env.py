@@ -14,12 +14,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-from app.models.account import Account
-from app.models.expense import Expense
-from app.models.income import Income
-from app.models.transaction import Transaction
-from app.models.upload import Upload
+
+from app.models import *
 from app.db.base import Base
 target_metadata = Base.metadata
 

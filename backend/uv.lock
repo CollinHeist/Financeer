@@ -44,6 +44,7 @@ source = { editable = "." }
 dependencies = [
     { name = "alembic" },
     { name = "fastapi" },
+    { name = "fastapi-pagination" },
     { name = "loguru" },
     { name = "pandas" },
     { name = "pydantic" },
@@ -58,6 +59,7 @@ dependencies = [
 requires-dist = [
     { name = "alembic", specifier = "==1.15.2" },
     { name = "fastapi", specifier = "==0.115.12" },
+    { name = "fastapi-pagination", specifier = "==0.13.1" },
     { name = "loguru", specifier = "==0.7.3" },
     { name = "pandas", specifier = "==2.2.3" },
     { name = "pydantic", specifier = "==2.11.4" },
@@ -101,6 +103,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f4/55/ae499352d82338331ca1e28c7f4a63bfd09479b16395dce38cf50a39e2c2/fastapi-0.115.12.tar.gz", hash = "sha256:1e2c2a2646905f9e83d32f04a3f86aff4a286669c6c950ca95b5fd68c2602681", size = 295236 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/50/b3/b51f09c2ba432a576fe63758bddc81f78f0c6309d9e5c10d194313bf021e/fastapi-0.115.12-py3-none-any.whl", hash = "sha256:e94613d6c05e27be7ffebdd6ea5f388112e5e430c8f7d6494a9d1d88d43e814d", size = 95164 },
+]
+
+[[package]]
+name = "fastapi-pagination"
+version = "0.13.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d3/9c/a00e8916ca700fe7278cc4861e6958bcbd174a1157b3b4133c583dc5576c/fastapi_pagination-0.13.1.tar.gz", hash = "sha256:f7ca4f4bdcd1a82eb8ee6e5788d9c158e913bba2e013c261946267ee9d79143a", size = 542600 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/16/c27cd97f9030215533447855c7169c407bd2a362c5e3239de35a8fb40265/fastapi_pagination-0.13.1-py3-none-any.whl", hash = "sha256:36eebcc7dd388d64c095dafbf02838c462e73180115ad8b72f6d2d5baadb6c62", size = 49636 },
 ]
 
 [[package]]
