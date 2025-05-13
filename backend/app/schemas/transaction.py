@@ -22,6 +22,9 @@ class ReturnTransactionSchemaNoAccount(BaseModel):
     description: str
     note: str
     amount: float
+    account_id: int
+    expense_id: int | None
+    income_id: int | None
 
 class ReturnTransactionSchema(ReturnTransactionSchemaNoAccount):
     account: ReturnAccountSchema
