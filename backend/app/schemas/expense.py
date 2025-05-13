@@ -8,9 +8,8 @@ from pydantic.main import BaseModel
 ExpenseType = Literal['one_time', 'recurring', 'monthly']
 FrequencyUnit = Literal['days', 'weeks', 'months', 'years', 'decades']
 
-
 class Frequency(BaseModel):
-    value: int
+    value: int = Field(ge=1)
     unit: FrequencyUnit
 
 class FrequencyDict(TypedDict):
