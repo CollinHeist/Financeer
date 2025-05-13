@@ -1,4 +1,3 @@
-from app.models.transaction import Transaction
 from fastapi import APIRouter, Body, Depends
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
@@ -11,6 +10,7 @@ from app.db.query import (
     require_income,
     require_transaction,
 )
+from app.models.transaction import Transaction
 from app.schemas.transaction import (
     NewTransactionSchema,
     ReturnTransactionSchema
@@ -57,6 +57,14 @@ def create_transaction(
     return transaction
 
 
+@transaction_router.get('/all')
+def get_transactions(
+    db: Session = Depends(get_database),
+) -> Page[ReturnTransactionSchema]:
+
+    return paginate(db.query(Transaction))
+
+
 @transaction_router.get('/{transaction_id}')
 def get_transaction_by_id(
     transaction_id: int,
@@ -76,10 +84,3 @@ def delete_transaction(
     db.delete(transaction)
     db.commit()
 
-
-@transaction_router.get('/')
-def get_transactions(
-    db: Session = Depends(get_database),
-) -> Page[ReturnTransactionSchema]:
-
-    return paginate(db.query(Transaction))
