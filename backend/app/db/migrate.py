@@ -16,6 +16,8 @@ from app.utils.logging import log
 
 
 APP_DIRECTORY = Path(__file__).parent.parent
+CONFIG_DIRECTORY = APP_DIRECTORY.parent.parent / 'config'
+CONFIG_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
 def perform_db_migrations() -> None:
