@@ -78,13 +78,40 @@ def delete_expense(
     db.commit()
 
 
-@expense_router.get('/account/{account_id}')
+@expense_router.get('/account/{account_id}/all')
+def get_all_expenses_for_account(
+    account_id: int,
+    db: Session = Depends(get_database),
+) -> list[ReturnExpenseSchema]:
+
+    return (
+        db.query(Expense)
+            .filter(
+                or_(
+                    Expense.from_account_id == account_id,
+                    Expense.to_account_id == account_id,
+                ),
+            )
+            .all()
+     ) # type: ignore
+
+
+@expense_router.get('/account/{account_id}/from')
 def get_expenses_from_account(
     account_id: int,
     db: Session = Depends(get_database),
 ) -> list[ReturnExpenseSchema]:
 
     return db.query(Expense).filter(Expense.from_account_id == account_id).all() # type: ignore
+
+
+@expense_router.get('/account/{account_id}/to')
+def get_expenses_to_account(
+    account_id: int,
+    db: Session = Depends(get_database),
+) -> list[ReturnExpenseSchema]:
+
+    return db.query(Expense).filter(Expense.to_account_id == account_id).all() # type: ignore
 
 
 @expense_router.get('/account/{account_id}/upcoming')
