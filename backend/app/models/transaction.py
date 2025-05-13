@@ -34,3 +34,21 @@ class Transaction(Base):
 
     upload_id: Mapped[int | None] = mapped_column(ForeignKey('uploads.id'))
     upload: Mapped['Upload | None'] = relationship(back_populates='transactions')
+
+    # Related transactions (for transfers, reconciliations, etc.)
+    related_transactions: Mapped[list['Transaction']] = relationship(
+        'Transaction',
+        secondary='transaction_relationships',
+        primaryjoin='Transaction.id==transaction_relationships.c.transaction_id',
+        secondaryjoin='Transaction.id==transaction_relationships.c.related_transaction_id',
+        backref='related_to_transactions'
+    )
+
+
+# Association table for many-to-many relationship between transactions
+class TransactionRelationship(Base):
+    __tablename__ = 'transaction_relationships'
+
+    transaction_id: Mapped[int] = mapped_column(ForeignKey('transactions.id'), primary_key=True)
+    related_transaction_id: Mapped[int] = mapped_column(ForeignKey('transactions.id'), primary_key=True)
+    relationship_type: Mapped[str] = mapped_column(String)  # e.g., 'transfer', 'reconciliation', 'split'

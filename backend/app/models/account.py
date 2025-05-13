@@ -7,7 +7,6 @@ from app.db.base import Base
 from app.schemas.account import AccountType
 
 if TYPE_CHECKING:
-    from app.models.expense import Expense
     from app.models.income import Income
     from app.models.transaction import Transaction
     from app.models.upload import Upload
