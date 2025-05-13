@@ -23,6 +23,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/accounts/[account_id]/page.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/accounts/[account_id]/page.jsx", "components/expenses-by-account.jsx", "components/expense-table.jsx"],
   "exclude": ["node_modules"]
 }
