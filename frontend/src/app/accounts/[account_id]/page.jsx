@@ -67,7 +67,7 @@ export default function AccountPage() {
             variant="outline"
             onClick={() => setTimeFilter('week')}
             className={`px-3 py-1.5 text-sm rounded-md ${timeFilter === 'week' 
-              ? 'bg-primary text-primary-foreground' 
+              ? 'bg-blue-500 text-white' 
               : 'bg-default-100 text-foreground/60'}`}
           >
             Next Week
@@ -76,7 +76,7 @@ export default function AccountPage() {
             variant="outline"
             onClick={() => setTimeFilter('month')}
             className={`px-3 py-1.5 text-sm rounded-md ${timeFilter === 'month' 
-              ? 'bg-primary text-primary-foreground' 
+              ? 'bg-blue-500 text-white' 
               : 'bg-default-100 text-foreground/60'}`}
           >
             Next Month
@@ -85,7 +85,7 @@ export default function AccountPage() {
             variant="outline"
             onClick={() => setTimeFilter('threeMonths')}
             className={`px-3 py-1.5 text-sm rounded-md ${timeFilter === 'threeMonths' 
-              ? 'bg-primary text-primary-foreground' 
+              ? 'bg-blue-500 text-white' 
               : 'bg-default-100 text-foreground/60'}`}
           >
             Next 3 Months
