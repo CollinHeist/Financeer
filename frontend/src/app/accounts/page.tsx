@@ -10,9 +10,8 @@ export const metadata = {
 export default function AccountPage() {
   return (
     <div>
-      <h1 className={title()}>Accounts</h1>
-      <div className="space-y-8"></div>
-
+      <h1 className="text-2xl font-bold mb-4">Account Summary</h1>
+      
       <Suspense fallback={<div>Loading...</div>}>
         <AccountList />
       </Suspense>
