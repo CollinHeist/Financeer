@@ -5,14 +5,18 @@ from sqlalchemy import (
     Date,
     Float,
     ForeignKey,
-    Integer,
+    JSON,
     String,
 )
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, JSONWithDates
-from app.schemas.expense import ExpenseType, ExpenseChangeItemDict
+from app.schemas.expense import (
+    ExpenseType,
+    ExpenseChangeItemDict,
+    FrequencyDict,
+)
 
 if TYPE_CHECKING:
     from app.models.account import Account
@@ -28,8 +32,8 @@ class Expense(Base):
     description: Mapped[str] = mapped_column(String)
     amount: Mapped[float] = mapped_column(Float)
     type: Mapped[ExpenseType] = mapped_column(String, index=True)
-    frequency: Mapped[int | None] = mapped_column(
-        Integer,
+    frequency: Mapped[FrequencyDict | None] = mapped_column(
+        JSON,
         nullable=True,
         default=None,
     )
@@ -95,12 +99,39 @@ class Expense(Base):
                 return self.amount
             return 0.0
 
-        # If a monthly expense on this day of the month, return the amount
+        # If a monthly expense not on this day of the month, return 0.0
         if self.type == 'monthly' and self.start_date.day != date.day:
             return 0.0
 
-        if (date - self.start_date).days % (self.frequency or 1) != 0:
-            return 0.0
+        # If a recurring expense, check if the date aligns with the
+        # indicated frequency
+        if self.type == 'recurring' and self.frequency:
+            unit, frequency = self.frequency['unit'], self.frequency['value']
+            if unit == 'days' and (date - self.start_date).days % frequency != 0:
+                return 0.0
+            if (unit == 'weeks'
+                and (date - self.start_date).days % (frequency * 7) != 0):
+                return 0.0
+            if (unit == 'months'
+                and (
+                    date.day != self.start_date.day
+                    or (date.month - self.start_date.month) % frequency != 0
+                )):
+                return 0.0
+            if (unit == 'years'
+                and (
+                    date.day != self.start_date.day
+                    or date.month != self.start_date.month
+                    or (date.year - self.start_date.year) % frequency != 0
+                )):
+                return 0.0
+            if (unit == 'decades'
+                and (
+                    date.day != self.start_date.day
+                    or date.month != self.start_date.month
+                    or (date.year - self.start_date.year) % (frequency * 10) != 0
+                )):
+                return 0.0
 
         # Apply the change schedule to the amount
         amount = self.amount

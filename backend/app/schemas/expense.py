@@ -4,8 +4,18 @@ from typing import Literal, Self, TypedDict
 from pydantic import Field, model_validator
 from pydantic.main import BaseModel
 
-ExpenseType = Literal['one_time', 'recurring', 'monthly']
 
+ExpenseType = Literal['one_time', 'recurring', 'monthly']
+FrequencyUnit = Literal['days', 'weeks', 'months', 'years', 'decades']
+
+
+class Frequency(BaseModel):
+    value: int
+    unit: FrequencyUnit
+
+class FrequencyDict(TypedDict):
+    value: int
+    unit: FrequencyUnit
 
 class ExpenseChangeItem(BaseModel):
     type: Literal['bonus', 'raise']
@@ -36,7 +46,7 @@ class NewExpenseSchema(BaseModel):
     description: str
     amount: float
     type: ExpenseType
-    frequency: int | None
+    frequency: Frequency | None
     start_date: date
     end_date: date | None
     change_schedule: list[ExpenseChangeItem] = []
@@ -64,7 +74,7 @@ class ReturnExpenseSchema(BaseModel):
     description: str
     amount: float
     type: ExpenseType
-    frequency: int | None
+    frequency: Frequency | None
     start_date: date
     end_date: date | None
     change_schedule: list[dict]
