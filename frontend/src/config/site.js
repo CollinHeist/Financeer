@@ -1,5 +1,3 @@
-export type SiteConfig = typeof siteConfig;
-
 export const siteConfig = {
   name: "Financeer",
   description: "Comprehensive financial management tool",
@@ -19,6 +17,10 @@ export const siteConfig = {
     {
       label: "Transactions",
       href: "/transactions",
+    },
+    {
+      label: "Income",
+      href: "/income",
     },
   ],
   links: {},
