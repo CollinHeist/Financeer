@@ -114,7 +114,7 @@ def get_upcoming_expenses_to_and_from_account(
             if (amount := expense.get_effective_amount(date_)) != 0.0:
                 upcoming_expenses.append(ReturnUpcomingExpenseSchema(
                     name=expense.name,
-                    amount=amount,
+                    amount=-amount if expense.to_account_id == account_id else amount,
                     date=date_,
                     expense_id=expense.id,
                 ))
