@@ -1,10 +1,15 @@
 'use client';
+
+import { Suspense } from 'react';
+import { Skeleton } from "@/components/ui/skeleton"
+import { IconConfetti } from "@tabler/icons-react";
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import AccountSummary from "@/components/AccountSummary";
 import { getAccount, getUpcomingAccountExpenses } from '@/lib/api';
+import AccountSummary from "@/components/AccountSummary";
 import ExpenseTable from '@/components/ExpenseTable';
+
 
 export default function AccountPage() {
   const { account_id } = useParams();
@@ -27,7 +32,7 @@ export default function AccountPage() {
     enabled: !!account_id,
   });
 
-  // Fetch expenses data
+  // Fetch upcoming expense data
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
     queryKey: ['expenses', account_id, timeFilter],
     queryFn: () => getUpcomingAccountExpenses(account_id, getDays()),
@@ -39,7 +44,21 @@ export default function AccountPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Account Details</h1>
-      <AccountSummary data={accountData} />
+      <Suspense fallback={<div>Loading...</div>}>
+        {accountLoading ? (
+          <div className="flex flex-col space-y-3">
+            <Skeleton className="h-[125px] w-[250px] rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-[250px]" />
+              <Skeleton className="h-4 w-[200px]" />
+            </div>
+          </div>
+        ) : accountData ? (
+          <AccountSummary data={accountData} />
+        ) : (
+          <div>No account data available</div>
+        )}
+      </Suspense>
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Upcoming Expenses</h2>
@@ -79,7 +98,10 @@ export default function AccountPage() {
       ) : expenses.length > 0 ? (
         <ExpenseTable expenses={expenses} />
       ) : (
-        <p className="text-gray-500">No upcoming expenses found for the selected time period.</p>
+        <p className="flex items-center gap-2 text-blue-400">
+          <IconConfetti className="size-4" />
+          <span>Great news! No upcoming expenses!</span>
+        </p>
       )}
     </div>
   );
