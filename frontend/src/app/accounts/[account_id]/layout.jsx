@@ -1,8 +1,4 @@
-export default function TransactionsLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AccountDetailsLayout({ children }) {
   return (
     <section className="flex flex-col md:py-10 w-full">
       <div className="w-full">
