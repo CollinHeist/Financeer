@@ -43,7 +43,7 @@ def upgrade() -> None:
         sa.Column('frequency', sa.Integer(), nullable=True),
         sa.Column('start_date', sa.Date(), nullable=False),
         sa.Column('end_date', sa.Date(), nullable=True),
-        sa.Column('growth_schedule', sa.JSON(), nullable=False),
+        sa.Column('change_schedule', sa.JSON(), nullable=False),
         sa.Column('transaction_filters', sa.JSON(), nullable=False),
         sa.Column('from_account_id', sa.Integer(), nullable=False),
         sa.Column('to_account_id', sa.Integer(), nullable=True),

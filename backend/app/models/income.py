@@ -6,13 +6,12 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
-    JSON,
     String,
 )
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, JSONWithDates
 from app.schemas.income import IncomeType
 
 if TYPE_CHECKING:
@@ -42,7 +41,7 @@ class Income(Base):
     )
 
     change_schedule: Mapped[list[dict]] = mapped_column(
-        MutableList.as_mutable(JSON),
+        MutableList.as_mutable(JSONWithDates),
         default=[],
     )
 

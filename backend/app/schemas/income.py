@@ -13,7 +13,7 @@ class IncomeChangeItem(BaseModel):
     amount: float
     is_percentage: bool
     start_date: date
-    end_date: date | None
+    end_date: date | None = None
     frequency: int | None = Field(ge=0) # How many days between successive occurrences
 
     @model_validator(mode='after')

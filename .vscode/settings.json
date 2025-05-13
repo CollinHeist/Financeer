@@ -2,5 +2,6 @@
     "python.analysis.extraPaths": [
         "./budget/backend/.venv/lib/python3.13/site-packages",
         "./backend/.venv/lib/python3.13/site-packages"
-    ]
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 }

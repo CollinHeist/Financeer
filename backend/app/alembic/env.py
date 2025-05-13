@@ -2,6 +2,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy.orm import sessionmaker
 
 from alembic import context
 
@@ -15,7 +16,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-from app.models import *
+from app.models import Account, Expense, Income, Transaction, Upload
 from app.db.base import Base
 target_metadata = Base.metadata
 

@@ -1,6 +1,6 @@
 import { title } from "@/components/primitives";
 import { Suspense } from "react";
-import AccountList from "@/components/account";
+import AccountList from "@/components/AccountList";
 
 export const metadata = {
   title: 'Accounts',

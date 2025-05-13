@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 
-AccountType = Literal["debit", "credit", "checking", "saving", "investment"]
+AccountType = Literal['debit', 'credit', 'checking', 'saving', 'investment']
 
 
 class NewAccountSchema(BaseModel):

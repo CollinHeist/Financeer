@@ -9,7 +9,9 @@ from alembic.script import ScriptDirectory
 from rich.console import Console
 from rich.traceback import Traceback
 
+from app.api.deps import get_database
 from app.db.base import SQLALCHEMY_DATABASE_URL, engine
+from app.db.test import initialize_test_data
 from app.utils.logging import log
 
 
@@ -17,7 +19,7 @@ APP_DIRECTORY = Path(__file__).parent.parent
 
 
 def perform_db_migrations() -> None:
-    """Perform any necessarydatabase migrations."""
+    """Perform any necessar database migrations."""
 
     # Initialize Alembic config (simulating config.ini)
     alembic_config = Config()
@@ -55,3 +57,8 @@ def perform_db_migrations() -> None:
             log.info('Restoring from backup..')
             # restore_backup(backup, log=log)
         sys_exit(1)
+
+    # Perform database seeding
+    if current is None:
+        with next(get_database()) as db:
+            initialize_test_data(db)

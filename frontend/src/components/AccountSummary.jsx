@@ -13,7 +13,7 @@ export default function AccountSummary({ data }) {
   return (
     <Card className="@container/card">
       <CardHeader className="relative">
-      <CardDescription>{ data.name }</CardDescription>
+      <CardDescription>{ data.name || "Account" }</CardDescription>
         <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
           ${ data.balance || "999.99"}
         </CardTitle>
