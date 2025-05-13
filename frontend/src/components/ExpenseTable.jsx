@@ -41,7 +41,7 @@ export default function ExpenseTable({ expenses }) {
               })()}
             </TableCell>
             <TableCell className={expense.amount < 0 ? 'text-red-400/80' : 'text-green-400/80'}>
-              {expense.amount < 0 ? '-' : ''}${Math.abs(expense.amount).toFixed(2)}
+              {expense.amount < 0 ? '-' : ''}${Math.abs(expense.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </TableCell>
           </TableRow>
         ))}
@@ -54,7 +54,7 @@ export default function ExpenseTable({ expenses }) {
               const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
               return (
                 <span className={`font-bold ${total < 0 ? 'text-red-400/80' : 'text-green-400/80'}`}>
-                  {total < 0 ? '-' : ''}${Math.abs(total).toFixed(2)}
+                  {total < 0 ? '-' : ''}${Math.abs(total).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </span>
               );
             })()}
