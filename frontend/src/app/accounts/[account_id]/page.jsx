@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAccount, getUpcomingAccountExpenses } from '@/lib/api';
 import AccountSummary from "@/components/AccountSummary";
 import ExpenseTable from '@/components/ExpenseTable';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 export default function AccountPage() {
@@ -96,12 +97,26 @@ export default function AccountPage() {
       {loading ? (
         <p>Loading...</p>
       ) : expenses.length > 0 ? (
-        <ExpenseTable expenses={expenses} />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={timeFilter}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ExpenseTable expenses={expenses} />
+          </motion.div>
+        </AnimatePresence>
       ) : (
-        <p className="flex items-center gap-2 text-blue-400">
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex items-center gap-2 text-blue-400"
+        >
           <IconConfetti className="size-4" />
           <span>Great news! No upcoming expenses!</span>
-        </p>
+        </motion.p>
       )}
     </div>
   );
