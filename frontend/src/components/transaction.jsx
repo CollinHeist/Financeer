@@ -1,51 +1,56 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import {Card, CardHeader, CardBody, Link} from "@heroui/react";
-import { getAccounts } from '@/lib/api';
+import { Table, TableHeader, TableBody, TableColumn, TableRow, TableCell } from "@heroui/react";
+import { getTransactions } from '@/lib/api';
 
 // This is a Client Component that fetches data using React Query
 export default function TransactionList() {
-  const { data: accounts, isLoading, error } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: getAccounts
+  const { data: transactions, isLoading, error } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: getTransactions
   });
 
   if (isLoading) {
-    return <div className="text-center p-4">Loading accounts...</div>;
+    return <div className="text-center p-4">Loading transactions...</div>;
   }
 
   if (error) {
-    return <div className="text-center p-4 text-red-500">Error loading accounts: {error.message}</div>;
+    return <div className="text-center p-4 text-red-500">Error loading transactions: {error.message}</div>;
   }
 
-  if (!accounts || accounts.length === 0) {
+  if (!transactions || transactions.length === 0) {
     return (
       <div className="text-center p-4">
-        <p className="text-gray-500">No accounts found.</p>
-        <Link href="/accounts/new" className="mt-4 inline-block text-blue-600 hover:underline">
-          Create a new Account
-        </Link>
+        <p className="text-gray-500">No transactions found.</p>
       </div>
     );
   }
   
   return (
-    <div className="space-y-4">
-      {accounts.map((account) => {
-        return (
-          <Card key={account.id} className="py-4">
-            <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-              <p className="text-tiny uppercase font-bold">{account.type}</p>
-              <small className="text-default-500">Account #{account.account_number}</small>
-              <h4 className="font-bold text-large">{account.name}</h4>
-            </CardHeader>
-            <CardBody className="overflow-visible py-2">
-              <p className="text-sm">Interest Rate: {account.interest}%</p>
-            </CardBody>
-          </Card>
-        );
-      })}
+    <div className="w-full">
+      <Table aria-label="Recent transactions">
+        <TableHeader>
+          <TableColumn>DATE</TableColumn>
+          <TableColumn>DESCRIPTION</TableColumn>
+          <TableColumn>ACCOUNT</TableColumn>
+          <TableColumn>AMOUNT</TableColumn>
+          <TableColumn>TYPE</TableColumn>
+        </TableHeader>
+        <TableBody>
+          {transactions.items.map((transaction) => (
+            <TableRow key={transaction.id}>
+              <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
+              <TableCell>{transaction.description}</TableCell>
+              <TableCell>{transaction.account_name}</TableCell>
+              <TableCell className={transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
+                ${Math.abs(transaction.amount).toFixed(2)}
+              </TableCell>
+              <TableCell>{transaction.type}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
