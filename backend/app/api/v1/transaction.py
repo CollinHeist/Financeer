@@ -41,16 +41,7 @@ def create_transaction(
         _ = require_income(db, new_transaction.income_id)
 
     # Create and add to the database
-    transaction = Transaction(
-        date=new_transaction.date,
-        description=new_transaction.description,
-        note=new_transaction.note,
-        amount=new_transaction.amount,
-        account_id=new_transaction.account_id,
-        expense_id=new_transaction.expense_id,
-        income_id=new_transaction.income_id,
-        upload_id=None,
-    )
+    transaction = Transaction(**new_transaction.model_dump())
     db.add(transaction)
     db.commit()
 

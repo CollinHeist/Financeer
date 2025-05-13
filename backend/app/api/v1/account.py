@@ -18,13 +18,7 @@ def create_account(
     db: Session = Depends(get_database),
 ) -> ReturnAccountSchema:
 
-    account = Account(
-        name=new_account.name,
-        type=new_account.type,
-        account_number=new_account.account_number,
-        routing_number=new_account.routing_number,
-        interest=new_account.interest,
-    )
+    account = Account(**new_account.model_dump())
     db.add(account)
     db.commit()
 

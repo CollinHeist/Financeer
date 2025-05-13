@@ -31,19 +31,7 @@ def create_expense(
     if new_expense.to_account_id is not None:
         _ = require_account(db, new_expense.to_account_id, raise_exception=True)
 
-    expense = Expense(
-        name=new_expense.name,
-        description=new_expense.description,
-        amount=new_expense.amount,
-        type=new_expense.type,
-        frequency=new_expense.frequency,
-        start_date=new_expense.start_date,
-        end_date=new_expense.end_date,
-        change_schedule=[c.model_dump() for c in new_expense.change_schedule],
-        transaction_filters=new_expense.transaction_filters,
-        from_account_id=new_expense.from_account_id,
-        to_account_id=new_expense.to_account_id,
-    )
+    expense = Expense(**new_expense.model_dump())
     db.add(expense)
     db.commit()
 
