@@ -33,7 +33,7 @@ def json_deserializer(obj: Any):
         for key, value in obj.items():
             if isinstance(value, str):
                 try:
-                    obj[key] = datetime.date.fromisoformat(value)
+                    obj[key] = date.fromisoformat(value)
                 except ValueError:
                     pass
     return obj
