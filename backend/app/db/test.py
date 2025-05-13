@@ -162,11 +162,10 @@ def initialize_test_data(db: Session) -> None:
     db.add(spotify)
 
     # Add test incomes
-    ipco_income = Income(
-        name='IPC Salary',
+    base_income = Income(
+        name='Salary',
         amount=2950,
-        type='recurring',
-        frequency=14,
+        frequency={'value': 2, 'unit': 'weeks'},
         start_date=date(2021, 1, 14),
         end_date=date(2045, 1, 14),
         account_id=account.id,
@@ -177,7 +176,7 @@ def initialize_test_data(db: Session) -> None:
                 'amount': 0.05,
                 'is_percentage': True,
                 'start_date': date(2021, 3, 14),
-                'frequency': 365,
+                'frequency': {'value': 1, 'unit': 'years'},
             },
             # COLA
             {
@@ -185,7 +184,7 @@ def initialize_test_data(db: Session) -> None:
                 'amount': 1.05,
                 'is_percentage': True,
                 'start_date': date(2022, 1, 28),
-                'frequency': 365,
+                'frequency': {'value': 1, 'unit': 'years'},
             },
             # Raises
             {
@@ -193,17 +192,17 @@ def initialize_test_data(db: Session) -> None:
                 'amount': 1.0349,
                 'is_percentage': True,
                 'start_date': date(2022, 7, 14),
-                'frequency': 7 * 4 * 6,
+                'end_date': date(2032, 7, 14),
+                'frequency': {'value': 6, 'unit': 'months'},
             },
         ],
     )
-    db.add(ipco_income)
+    db.add(base_income)
 
     github_income = Income(
         name='Github Salary',
         amount=425,
-        type='monthly',
-        frequency=None,
+        frequency={'value': 1, 'unit': 'months'},
         start_date=date(2023, 6, 15),
         account_id=account.id,
         change_schedule=[],
