@@ -59,7 +59,6 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('amount', sa.Float(), nullable=False),
-        sa.Column('type', sa.String(), nullable=False),
         sa.Column('frequency', sa.JSON(), nullable=True),
         sa.Column('start_date', sa.Date(), nullable=False),
         sa.Column('end_date', sa.Date(), nullable=True),
@@ -71,7 +70,6 @@ def upgrade() -> None:
     op.create_index(op.f('ix_incomes_id'), 'incomes', ['id'], unique=False)
     op.create_index(op.f('ix_incomes_name'), 'incomes', ['name'], unique=False)
     op.create_index(op.f('ix_incomes_start_date'), 'incomes', ['start_date'], unique=False)
-    op.create_index(op.f('ix_incomes_type'), 'incomes', ['type'], unique=False)
     op.create_table('uploads',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('filename', sa.String(), nullable=False),

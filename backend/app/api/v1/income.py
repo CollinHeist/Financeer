@@ -22,16 +22,7 @@ def create_income(
     # Verify the destination Account exists
     _ = require_account(db, new_income.account_id, raise_exception=True)
 
-    income = Income(
-        name=new_income.name,
-        type=new_income.type,
-        amount=new_income.amount,
-        frequency=new_income.frequency,
-        start_date=new_income.start_date,
-        end_date=new_income.end_date,
-        account_id=new_income.account_id,
-        change_schedule=new_income.change_schedule,
-    )
+    income = Income(**new_income.model_dump())
     db.add(income)
     db.commit()
 

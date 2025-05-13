@@ -5,14 +5,14 @@ from sqlalchemy import (
     Date,
     Float,
     ForeignKey,
-    Integer,
+    JSON,
     String,
 )
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, JSONWithDates
-from app.schemas.income import IncomeType
+from app.schemas.income import FrequencyDict
 
 if TYPE_CHECKING:
     from app.models.account import Account
@@ -26,9 +26,8 @@ class Income(Base):
 
     name: Mapped[str] = mapped_column(String, index=True)
     amount: Mapped[float] = mapped_column(Float)
-    type: Mapped[IncomeType] = mapped_column(String, index=True)
-    frequency: Mapped[int | None] = mapped_column(
-        Integer,
+    frequency: Mapped[FrequencyDict | None] = mapped_column(
+        JSON,
         nullable=True,
     )
     start_date: Mapped[date] = mapped_column(Date, index=True)

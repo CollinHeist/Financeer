@@ -1,12 +1,19 @@
-from typing import Any, Literal, Self
+from typing import Literal, Self, TypedDict
 from datetime import date
 
 from pydantic.main import BaseModel
 from pydantic import Field, model_validator
 
 
-IncomeType = Literal['recurring', 'monthly']
+FrequencyUnit = Literal['days', 'weeks', 'months', 'years', 'decades']
 
+class Frequency(BaseModel):
+    value: int = Field(ge=1)
+    unit: FrequencyUnit
+
+class FrequencyDict(TypedDict):
+    value: int
+    unit: FrequencyUnit
 
 class IncomeChangeItem(BaseModel):
     type: Literal['bonus', 'raise']
@@ -14,7 +21,7 @@ class IncomeChangeItem(BaseModel):
     is_percentage: bool
     start_date: date
     end_date: date | None = None
-    frequency: int | None = Field(ge=0) # How many days between successive occurrences
+    frequency: Frequency | None = None
 
     @model_validator(mode='after')
     def validate_dates(self) -> Self:
@@ -27,12 +34,11 @@ class IncomeChangeItem(BaseModel):
 class NewIncomeSchema(BaseModel):
     name: str
     amount: float
-    type: IncomeType
-    frequency: int | None = Field(ge=0)
+    frequency: Frequency | None
     start_date: date
     end_date: date | None = None
     account_id: int
-    change_schedule: list[IncomeChangeItem] = Field(default=[])
+    change_schedule: list[IncomeChangeItem] = []
 
     @model_validator(mode='after')
     def validate_dates(self) -> Self:
@@ -46,8 +52,7 @@ class ReturnIncomeSchema(BaseModel):
     id: int
     name: str
     amount: float
-    type: IncomeType
-    frequency: int | None
+    frequency: Frequency | None
     start_date: date
     end_date: date | None
     account_id: int
