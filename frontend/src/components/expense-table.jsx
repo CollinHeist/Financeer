@@ -63,7 +63,7 @@ export function ExpenseTable({ accountId }) {
                     <PopoverTrigger asChild>
                       <span className="text-red-500 ml-2 cursor-help">→</span>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80">
+                    <PopoverContent className="w-60">
                       <div className="space-y-2">
                         <h4 className="font-medium">Outgoing Transfer</h4>
                         <p className="text-sm text-muted-foreground">
@@ -78,7 +78,7 @@ export function ExpenseTable({ accountId }) {
                     <PopoverTrigger asChild>
                       <span className="text-green-500 ml-2 cursor-help">←</span>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80">
+                    <PopoverContent className="w-60">
                       <div className="space-y-2">
                         <h4 className="font-medium">Incoming Transfer</h4>
                         <p className="text-sm text-muted-foreground">
