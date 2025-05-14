@@ -5,7 +5,7 @@ from pydantic import Field, model_validator
 from pydantic.main import BaseModel
 
 
-ExpenseType = Literal['one_time', 'recurring', 'monthly']
+ExpenseType = Literal['one_time', 'recurring']
 FrequencyUnit = Literal['days', 'weeks', 'months', 'years']
 
 class Frequency(BaseModel):

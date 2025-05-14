@@ -97,11 +97,9 @@ export function ExpenseTable({ accountId }) {
                 {expense.start_date ? (
                   expense.type === 'one_time' ? (
                     `On ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  ) : expense.type === 'recurring' ? (
+                  ) : (
                     `Every ${expense.frequency.value} ${expense.frequency.unit} starting ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  ) : expense.type === 'monthly' ? (
-                    `Every month starting ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  ) : new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  )
                 ) : '-'}
               </TableCell>
               <TableCell className="text-left">

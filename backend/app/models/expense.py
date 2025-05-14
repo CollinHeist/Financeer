@@ -100,10 +100,6 @@ class Expense(Base):
                 return self.amount
             return 0.0
 
-        # If a monthly expense not on this day of the month, return 0.0
-        if self.type == 'monthly' and self.start_date.day != date.day:
-            return 0.0
-
         # If a recurring expense, check if the date aligns with the
         # indicated frequency
         if self.type == 'recurring' and self.frequency:
