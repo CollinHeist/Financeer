@@ -76,6 +76,7 @@ class ReturnIncomeSchema(BaseModel):
     id: int
     name: str
     amount: float
+    effective_amount: float
     frequency: Frequency | None
     start_date: date
     end_date: date | None
