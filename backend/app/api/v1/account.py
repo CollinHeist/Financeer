@@ -1,5 +1,6 @@
+from app.db.query import require_account
 from fastapi import APIRouter, Body, Depends, HTTPException
-from sqlalchemy import or_, select
+from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
@@ -62,11 +63,7 @@ def get_account_by_id(
     db: Session = Depends(get_database),
 ) -> ReturnAccountSchema:
 
-    account = db.query(Account).filter(Account.id == account_id).first()
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
-
-    return account
+    return require_account(db, account_id, raise_exception=True)
 
 
 @account_router.delete('/{account_id}')
@@ -75,10 +72,8 @@ def delete_account(
     db: Session = Depends(get_database),
 ) -> None:
 
-    account = db.query(Account).filter(Account.id == account_id).first()
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
+    account = require_account(db, account_id, raise_exception=True)
     db.delete(account)
     db.commit()
 
-    return account
+    return None
