@@ -30,3 +30,10 @@ class ReturnTransactionSchema(ReturnTransactionSchemaNoAccount):
     account: ReturnAccountSchema
     expense: ReturnExpenseSchema | None
     income: ReturnIncomeSchema | None    
+
+class ReturnUpcomingTransactionSchema(BaseModel):
+    name: str
+    amount: float
+    date: date
+    expense_id: int | None = None
+    income_id: int | None = None

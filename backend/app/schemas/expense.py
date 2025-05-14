@@ -40,6 +40,34 @@ class ExpenseChangeItemDict(TypedDict):
     end_date: date | None
     frequency: int | None
 
+class UpdateExpenseSchema(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    amount: float | None = None
+    type: ExpenseType | None = None
+    frequency: Frequency | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    change_schedule: list[ExpenseChangeItem] | None = None
+    transaction_filters: list[dict] | None = None
+    from_account_id: int | None = None
+    to_account_id: int | None = None
+
+    @model_validator(mode='after')
+    def validate_dates(self) -> Self:
+        """Validate that the end date is after the start date"""
+
+        if (self.start_date is not None and self.end_date is not None
+            and self.start_date >= self.end_date):
+            raise ValueError('End date must be after start date')
+        return self
+
+    @model_validator(mode='after')
+    def validate_frequency(self) -> Self:
+        if self.type == 'recurring' and self.frequency is None:
+            raise ValueError('Frequency is required for recurring expenses')
+        return self
+
 class NewExpenseSchema(BaseModel):
     name: str
     description: str
@@ -80,9 +108,3 @@ class ReturnExpenseSchema(BaseModel):
     transaction_filters: list[dict]
     from_account_id: int
     to_account_id: int | None
-
-class ReturnUpcomingExpenseSchema(BaseModel):
-    name: str
-    amount: float
-    date: date
-    expense_id: int
