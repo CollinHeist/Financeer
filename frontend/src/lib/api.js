@@ -74,23 +74,25 @@ export const getAccount = async (accountID) => {
  * @returns {Promise<Array>} Array of upcoming expense data
  * @throws {Error} If the API request fails
  */
-export const getUpcomingAccountExpenses = async (accountID, days = 14) => {
+export const getUpcomingAccountTransactions = async (accountID, days = 14) => {
   try {
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + days);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + days);
     
-    const { data } = await api.get(`/expense/account/${accountID}/upcoming`, {
+    const { data } = await api.get(`/transaction/upcoming/account/${accountID}`, {
       params: {
-        start: new Date().toISOString().split('T')[0],
+        start: today.toISOString().split('T')[0],
         end: endDate.toISOString().split('T')[0]
       }
     });
     return data;
   } catch (error) {
-    console.error('Error fetching expenses:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to fetch expenses');
+    console.error(error.response?.data?.detail || 'Error fetching transactions:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to fetch transactions');
   }
-};
+}
 
 /**
  * Fetches all transactions from the API
@@ -119,6 +121,71 @@ export const getAllAccountExpenses = async (accountId) => {
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching expenses:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a new expense record
+ * @param {Object} expenseData The expense data to create
+ * @returns {Promise<Object>} The created expense data
+ * @throws {Error} If the API request fails
+ */
+export const createExpense = async (expenseData) => {
+  try {
+    const response = await api.post('/expense/new', expenseData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error creating expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Updates an expense record
+ * @param {number} expenseId The ID of the expense to update
+ * @param {Object} expenseData The updated expense data
+ * @returns {Promise<Object>} The updated expense data
+ * @throws {Error} If the API request fails
+ */
+export const updateExpense = async (expenseId, expenseData) => {
+  try {
+    const response = await api.put(`/expense/${expenseId}`, expenseData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error updating expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Partially updates an expense record
+ * @param {number} expenseId The ID of the expense to patch
+ * @param {Object} expenseData The partial expense data to update
+ * @returns {Promise<Object>} The updated expense data
+ * @throws {Error} If the API request fails
+ */
+export const patchExpense = async (expenseId, expenseData) => {
+  try {
+    const response = await api.patch(`/expense/${expenseId}`, expenseData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error patching expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Deletes an expense record
+ * @param {number} expenseId The ID of the expense to delete
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
+export const deleteExpense = async (expenseId) => {
+  try {
+    await api.delete(`/expense/${expenseId}`);
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error deleting expense:', error);
     throw error;
   }
 }
