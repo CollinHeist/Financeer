@@ -66,6 +66,59 @@ def delete_expense(
     db.commit()
 
 
+@expense_router.put('/{expense_id}')
+def update_expense(
+    expense_id: int,
+    expense_update: NewExpenseSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnExpenseSchema:
+
+    # Get the existing expense
+    expense = require_expense(db, expense_id, raise_exception=True)
+
+    # Verify the source and destination Accounts exist
+    require_account(db, expense_update.from_account_id, raise_exception=True)
+    if expense_update.to_account_id is not None:
+        require_account(db, expense_update.to_account_id, raise_exception=True)
+
+    # Update all attributes
+    for key, value in expense_update.model_dump().items():
+        setattr(expense, key, value)
+
+    db.commit()
+
+    return expense
+
+
+@expense_router.patch('/{expense_id}')
+def partial_update_expense(
+    expense_id: int,
+    expense_update: UpdateExpenseSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnExpenseSchema:
+
+    # Get the existing expense
+    expense = require_expense(db, expense_id, raise_exception=True)
+    
+    # Verify account IDs if they're being updated
+    if ('from_account_id' in expense_update.model_fields_set
+        and expense_update.from_account_id is not None):
+        require_account(db, expense_update.from_account_id, raise_exception=True)
+
+    if ('to_account_id' in expense_update.model_fields_set
+        and expense_update.to_account_id is not None):
+        require_account(db, expense_update.to_account_id, raise_exception=True)
+
+    # Update only the provided fields
+    for key, value in expense_update.model_dump().items():
+        if key in expense_update.model_fields_set:
+            setattr(expense, key, value)
+
+    db.commit()
+
+    return expense
+
+
 @expense_router.get('/account/{account_id}/all')
 def get_all_expenses_for_account(
     account_id: int,
