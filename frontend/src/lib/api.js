@@ -150,7 +150,40 @@ export const updateIncome = async (incomeId, incomeData) => {
     const response = await api.put(`/income/${incomeId}`, incomeData);
     return response.data;
   } catch (error) {
-    console.error('Error updating income:', error);
+    console.error(error.response?.data?.detail || 'Error updating income:', error);
+    throw error;
+  }
+}
+
+/**
+ * Partially updates an income record
+ * @param {number} incomeId The ID of the income to patch
+ * @param {Object} incomeData The partial income data to update
+ * @returns {Promise<Object>} The updated income data
+ * @throws {Error} If the API request fails
+ */
+export const patchIncome = async (incomeId, incomeData) => {
+  try {
+    console.log(incomeData);
+    const response = await api.patch(`/income/${incomeId}`, incomeData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error patching income:', error);
+    throw error;
+  }
+}
+
+/**
+ * Deletes an income record
+ * @param {number} incomeId The ID of the income to delete
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
+export const deleteIncome = async (incomeId) => {
+  try {
+    await api.delete(`/income/${incomeId}`);
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error deleting income:', error);
     throw error;
   }
 }
