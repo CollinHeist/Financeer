@@ -187,3 +187,34 @@ export const deleteIncome = async (incomeId) => {
   }
 }
 
+/**
+ * Creates a new account
+ * @param {Object} accountData The account data to create
+ * @returns {Promise<Object>} The created account data
+ * @throws {Error} If the API request fails
+ */
+export const createAccount = async (accountData) => {
+  try {
+    const response = await api.post('/account', accountData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error creating account:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a new income record
+ * @param {Object} incomeData The income data to create
+ * @returns {Promise<Object>} The created income data
+ * @throws {Error} If the API request fails
+ */
+export const createIncome = async (incomeData) => {
+  try {
+    const response = await api.post('/income/new', incomeData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error creating income:', error);
+    throw error;
+  }
+}

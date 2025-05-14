@@ -10,7 +10,6 @@ import {
 
 
 export default function ExpenseTable({ expenses }) {
-  console.log(expenses);
   return (
     <Table>
       <TableHeader>
