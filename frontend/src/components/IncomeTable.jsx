@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { getAllIncomes, deleteIncome, patchIncome } from '@/lib/api';
+import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 
 export function IncomeTable({ accountId }) {
   const queryClient = useQueryClient();
@@ -41,6 +42,8 @@ export function IncomeTable({ accountId }) {
     is_one_time: false
   });
   const [updateError, setUpdateError] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [incomeToDelete, setIncomeToDelete] = useState(null);
 
   const { data: incomes, isLoading, error } = useQuery({
     queryKey: ['incomes'],
@@ -51,7 +54,12 @@ export function IncomeTable({ accountId }) {
     mutationFn: (incomeId) => deleteIncome(incomeId),
     onSuccess: () => {
       queryClient.invalidateQueries(['incomes']);
+      setDeleteConfirmOpen(false);
+      setIncomeToDelete(null);
     },
+    onError: (error) => {
+      console.error('Error deleting income:', error);
+    }
   });
 
   const patchIncomeMutation = useMutation({
@@ -277,9 +285,14 @@ export function IncomeTable({ accountId }) {
     }
   };
 
-  const handleDelete = (incomeId) => {
-    if (confirm("Are you sure you want to delete this income?")) {
-      deleteIncomeMutation.mutate(incomeId);
+  const handleDelete = (income) => {
+    setIncomeToDelete(income);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (incomeToDelete) {
+      deleteIncomeMutation.mutate(incomeToDelete.id);
     }
   };
 
@@ -325,7 +338,7 @@ export function IncomeTable({ accountId }) {
                       className="text-xs cursor-pointer hover:bg-secondary/80"
                       onClick={() => handleEditSchedule(income)}
                     >
-                      {income.raise_schedule.length}
+                      {income.raise_schedule.length} Raises
                     </Badge>
                   )}
                 </div>
@@ -348,7 +361,7 @@ export function IncomeTable({ accountId }) {
                       Edit Raises
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => handleDelete(income.id)}
+                      onClick={() => handleDelete(income)}
                       className="text-red-500 focus:text-red-500"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -361,6 +374,16 @@ export function IncomeTable({ accountId }) {
           ))}
         </TableBody>
       </Table>
+
+      <DeleteConfirmation
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete Income"
+        itemName={incomeToDelete?.name}
+        itemType="income"
+        onConfirm={confirmDelete}
+        isDeleting={deleteIncomeMutation.isLoading}
+      />
 
       <Dialog open={!!editingIncome} onOpenChange={(open) => !open && setEditingIncome(null)}>
         <DialogContent className="sm:max-w-[425px]">
@@ -464,7 +487,7 @@ export function IncomeTable({ accountId }) {
       <Dialog open={!!editingSchedule} onOpenChange={(open) => !open && setEditingSchedule(null)}>
         <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Income Schedule</DialogTitle>
+            <DialogTitle>Edit Raise Schedule</DialogTitle>
             <DialogDescription>
               Manage scheduled raises for <span className="text-blue-600">{editingSchedule?.name}</span>
             </DialogDescription>
@@ -485,15 +508,15 @@ export function IncomeTable({ accountId }) {
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {new Date(item.start_date).toLocaleDateString('en-US', { 
-                            month: 'long', 
+                            month: 'short', 
                             day: 'numeric', 
                             year: 'numeric' 
                           })}
-                          {item.end_date && ` - ${new Date(item.end_date).toLocaleDateString('en-US', {
+                          {item.end_date ? ` - ${new Date(item.end_date).toLocaleDateString('en-US', {
                             month: 'long',
                             day: 'numeric',
                             year: 'numeric'
-                          })}`}
+                          })}` : ' - No end date'}
                           {item.frequency && ` • Every ${item.frequency.value} ${item.frequency.unit}`}
                           {!item.frequency && ' • One-time'}
                         </div>
