@@ -1,8 +1,9 @@
-from app.models.account import Account
 from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy import or_, select
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
+from app.models.account import Account
 from app.schemas.account import NewAccountSchema, ReturnAccountSchema
 
 
@@ -30,7 +31,29 @@ def get_all_accounts(
     db: Session = Depends(get_database),
 ) -> list[ReturnAccountSchema]:
 
-    return db.query(Account).all()
+    return [
+        ReturnAccountSchema(**account.__dict__)
+        for account in db.query(Account).all()
+    ]
+
+
+@account_router.get('/banks')
+def get_bank_accounts(
+    db: Session = Depends(get_database),
+) -> list[ReturnAccountSchema]:
+
+    return [
+        ReturnAccountSchema(**account.__dict__)
+        for account in db.query(Account)
+            .filter(
+                or_(
+                    Account.type == 'checking',
+                    Account.type == 'investment',
+                    Account.type == 'savings',
+                )
+            )
+            .all()
+    ]
 
 
 @account_router.get('/{account_id}')
