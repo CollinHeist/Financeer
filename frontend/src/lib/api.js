@@ -37,6 +37,21 @@ export const getAccounts = async () => {
 };
 
 /**
+ * Fetches all bank accounts from the API
+ * @returns {Promise<Array>} Array of bank account data
+ * @throws {Error} If the API request fails
+ */
+export const getBankAccounts = async () => {
+  try {
+    const { data } = await api.get('/account/banks');
+    return data;
+  } catch (error) {
+    console.error('Error fetching bank accounts:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to fetch bank accounts');
+  }
+};
+
+/**
  * Fetches account information from the API
  * @param {number} accountID The ID of the account to fetch
  * @returns {Promise<Object>} The account data

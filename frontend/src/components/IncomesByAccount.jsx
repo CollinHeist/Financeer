@@ -2,13 +2,13 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from "@/components/ui/card";
-import { getAccounts } from '@/lib/api';
+import { getBankAccounts } from '@/lib/api';
 import { IncomeTable } from './IncomeTable';
 
 export default function IncomesByAccount() {
   const { data: accounts, isLoading, error } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts
+    queryFn: getBankAccounts
   });
 
   if (isLoading) {
