@@ -161,38 +161,3 @@ def get_expenses_to_account(
 ) -> list[ReturnExpenseSchema]:
 
     return db.query(Expense).filter(Expense.to_account_id == account_id).all() # type: ignore
-
-
-@expense_router.get('/account/{account_id}/upcoming')
-def get_upcoming_expenses_to_and_from_account(
-    account_id: int,
-    start: date = Query(default_factory=lambda: date.today()),
-    end: date = Query(default_factory=lambda: date.today() + timedelta(days=14)),
-    db: Session = Depends(get_database),
-) -> list[ReturnUpcomingExpenseSchema]:
-
-    # Get all Expenses which will be active over the given time period
-    expenses = (
-        db.query(Expense)
-            .filter(
-                or_(
-                    Expense.from_account_id == account_id,
-                    Expense.to_account_id == account_id,
-                ),
-                Expense.start_date <= end,
-                or_(Expense.end_date.is_(None), Expense.end_date >= start),
-            ).all()
-    )
-
-    upcoming_expenses = []
-    for date_ in date_range(start, end):
-        for expense in expenses:
-            if (amount := expense.get_effective_amount(date_)) != 0.0:
-                upcoming_expenses.append(ReturnUpcomingExpenseSchema(
-                    name=expense.name,
-                    amount=-amount if expense.to_account_id == account_id else amount,
-                    date=date_,
-                    expense_id=expense.id,
-                ))
-
-    return upcoming_expenses
