@@ -55,3 +55,28 @@ def delete_income(
     income = require_income(db, income_id, raise_exception=True)
     db.delete(income)
     db.commit()
+
+
+@income_router.patch('/{income_id}')
+async def patch_income(
+    income_id: int,
+    income_update: UpdateIncomeSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnIncomeSchema:
+
+    # Verify the income exists
+    income = require_income(db, income_id, raise_exception=True)
+
+    # Verify the new Account exists if it's being updated
+    if ('account_id' in income_update.model_fields_set
+        and income_update.account_id is not None):
+        _ = require_account(db, income_update.account_id, raise_exception=True)
+
+    # Only update fields that were explicitly specified
+    for field_name, value in income_update.model_dump().items():
+        if field_name in income_update.model_fields_set:
+            setattr(income, field_name, value)
+    
+    db.commit()
+    
+    return income
