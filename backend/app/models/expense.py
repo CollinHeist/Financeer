@@ -11,6 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.dates import date_meets_frequency
 from app.db.base import Base, JSONWithDates
 from app.schemas.expense import (
     ExpenseType,
@@ -106,31 +107,7 @@ class Expense(Base):
         # If a recurring expense, check if the date aligns with the
         # indicated frequency
         if self.type == 'recurring' and self.frequency:
-            unit, frequency = self.frequency['unit'], self.frequency['value']
-            if unit == 'days' and (date - self.start_date).days % frequency != 0:
-                return 0.0
-            if (unit == 'weeks'
-                and (date - self.start_date).days % (frequency * 7) != 0):
-                return 0.0
-            if (unit == 'months'
-                and (
-                    date.day != self.start_date.day
-                    or (date.month - self.start_date.month) % frequency != 0
-                )):
-                return 0.0
-            if (unit == 'years'
-                and (
-                    date.day != self.start_date.day
-                    or date.month != self.start_date.month
-                    or (date.year - self.start_date.year) % frequency != 0
-                )):
-                return 0.0
-            if (unit == 'decades'
-                and (
-                    date.day != self.start_date.day
-                    or date.month != self.start_date.month
-                    or (date.year - self.start_date.year) % (frequency * 10) != 0
-                )):
+            if not date_meets_frequency(date, self.start_date, self.frequency):
                 return 0.0
 
         # Apply the change schedule to the amount
