@@ -39,7 +39,7 @@ class Income(Base):
         back_populates='incomes',
     )
 
-    change_schedule: Mapped[list[dict]] = mapped_column(
+    raise_schedule: Mapped[list[RaiseItemDict]] = mapped_column(
         MutableList.as_mutable(JSONWithDates),
         default=[],
     )

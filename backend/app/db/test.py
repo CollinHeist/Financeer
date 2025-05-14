@@ -169,21 +169,14 @@ def initialize_test_data(db: Session) -> None:
         start_date=date(2021, 1, 14),
         end_date=date(2045, 1, 14),
         account_id=account.id,
-        change_schedule=[
-            # Bonus
-            {
-                'type': 'bonus',
-                'amount': 0.05,
-                'is_percentage': True,
-                'start_date': date(2021, 3, 14),
-                'frequency': {'value': 1, 'unit': 'years'},
-            },
+        raise_schedule=[
             # COLA
             {
                 'type': 'raise',
                 'amount': 1.05,
                 'is_percentage': True,
                 'start_date': date(2022, 1, 28),
+                'end_date': None,
                 'frequency': {'value': 1, 'unit': 'years'},
             },
             # Raises
@@ -205,7 +198,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'months'},
         start_date=date(2023, 6, 15),
         account_id=account.id,
-        change_schedule=[],
+        raise_schedule=[],
     )
     db.add(github_income)
 

@@ -15,8 +15,7 @@ class FrequencyDict(TypedDict):
     value: int
     unit: FrequencyUnit
 
-class IncomeChangeItem(BaseModel):
-    type: Literal['bonus', 'raise']
+class RaiseItem(BaseModel):
     amount: float
     is_percentage: bool
     start_date: date
@@ -38,7 +37,7 @@ class NewIncomeSchema(BaseModel):
     start_date: date
     end_date: date | None = None
     account_id: int
-    change_schedule: list[IncomeChangeItem] = []
+    raise_schedule: list[RaiseItem] = []
 
     @model_validator(mode='after')
     def validate_dates(self) -> Self:
@@ -56,4 +55,4 @@ class ReturnIncomeSchema(BaseModel):
     start_date: date
     end_date: date | None
     account_id: int
-    change_schedule: list[IncomeChangeItem]
+    raise_schedule: list[RaiseItem]

@@ -63,7 +63,7 @@ def upgrade() -> None:
         sa.Column('start_date', sa.Date(), nullable=False),
         sa.Column('end_date', sa.Date(), nullable=True),
         sa.Column('account_id', sa.Integer(), nullable=False),
-        sa.Column('change_schedule', sa.JSON(), nullable=False),
+        sa.Column('raise_schedule', sa.JSON(), nullable=False),
         sa.ForeignKeyConstraint(['account_id'], ['accounts.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
