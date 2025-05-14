@@ -14,7 +14,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, JSONWithDates
 from app.core.dates import date_meets_frequency, date_range
 from app.schemas.income import FrequencyDict, RaiseItemDict
-from app.utils.logging import log
 
 if TYPE_CHECKING:
     from app.models.account import Account
@@ -94,6 +93,46 @@ class Income(Base):
                         continue
 
                 # Apply each change that occurs on this date
+                if raise_['is_percentage']:
+                    amount *= raise_['amount']
+                else:
+                    amount += raise_['amount']
+
+        return amount
+
+
+    def get_effective_amount(self, date: date) -> float:
+        """
+        Get the effective amount of the Income for a given date.
+
+        Args:
+            date: The date to get the effective amount for.
+
+        Returns:
+            The effective amount of the Income for the given date.
+        """
+
+        # If the Income is not active for the given date, return 0.0
+        if (self.start_date > date
+            or (self.end_date is not None and self.end_date < date)):
+            return 0.0
+
+        # If a one-time Income on this date, return the amount, or 0
+        if self.frequency is None:
+            if self.start_date == date:
+                return self.amount
+            return 0.0
+
+        # If a recurring Income, check if the date aligns with the
+        # indicated frequency
+        if not date_meets_frequency(date, self.start_date, self.frequency):
+            return 0.0
+
+        # Apply the raise schedule to the amount
+        amount = self.amount
+        for raise_ in self.raise_schedule:
+            if (raise_['start_date'] <= date
+                and (raise_['end_date'] is None or raise_['end_date'] >= date)):
                 if raise_['is_percentage']:
                     amount *= raise_['amount']
                 else:
