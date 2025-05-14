@@ -1,6 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -9,14 +10,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAllAccountExpenses, getAccounts } from '@/lib/api';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { getAllAccountExpenses, getAccounts, deleteExpense } from '@/lib/api';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 
 export function ExpenseTable({ accountId }) {
+  const queryClient = useQueryClient();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
+
   const { data: expenses, isLoading, error } = useQuery({
     queryKey: ['expenses', accountId],
     queryFn: () => getAllAccountExpenses(accountId)
@@ -26,6 +40,35 @@ export function ExpenseTable({ accountId }) {
     queryKey: ['accounts'],
     queryFn: getAccounts
   });
+
+  const deleteExpenseMutation = useMutation({
+    mutationFn: (expenseId) => deleteExpense(expenseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['expenses', accountId]);
+      setDeleteConfirmOpen(false);
+      setExpenseToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting expense:', error);
+    }
+  });
+
+  const handleDelete = (expense) => {
+    setExpenseToDelete(expense);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (expenseToDelete) {
+      deleteExpenseMutation.mutate(expenseToDelete.id);
+    }
+  };
+
+  const handleEdit = (expense) => {
+    // TODO: Implement edit expense functionality
+    console.log('Edit expense:', expense);
+  };
+
   if (error) {
     return <div className="text-left p-4 text-red-500">Error loading expenses: {error.message}</div>;
   }
@@ -51,6 +94,7 @@ export function ExpenseTable({ accountId }) {
             <TableHead className="text-left">Amount</TableHead>
             <TableHead className="text-left">Date</TableHead>
             <TableHead className="text-left">End Date</TableHead>
+            <TableHead className="text-right w-[60px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -106,10 +150,43 @@ export function ExpenseTable({ accountId }) {
                 {expense.end_date ? new Date(expense.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
                   expense.type === 'one_time' ? '-' : <span className="text-gray-400">Never</span>}
               </TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEdit(expense)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => handleDelete(expense)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      <DeleteConfirmation
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete Expense"
+        itemName={expenseToDelete?.name}
+        itemType="expense"
+        onConfirm={confirmDelete}
+        isDeleting={deleteExpenseMutation.isLoading}
+      />
     </div>
   );
 }
