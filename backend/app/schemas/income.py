@@ -5,7 +5,7 @@ from pydantic.main import BaseModel
 from pydantic import Field, model_validator
 
 
-FrequencyUnit = Literal['days', 'weeks', 'months', 'years', 'decades']
+FrequencyUnit = Literal['days', 'weeks', 'months', 'years']
 
 class Frequency(BaseModel):
     value: int = Field(ge=1)
