@@ -1,7 +1,4 @@
-from datetime import date, timedelta
-
-from app.core.dates import date_range
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
 
@@ -11,8 +8,9 @@ from app.models.expense import Expense
 from app.schemas.expense import (
     NewExpenseSchema,
     ReturnExpenseSchema,
-    ReturnUpcomingExpenseSchema,
+    UpdateExpenseSchema,
 )
+
 
 expense_router = APIRouter(
     prefix='/expense',
@@ -25,11 +23,16 @@ def create_expense(
     new_expense: NewExpenseSchema = Body(...),
     db: Session = Depends(get_database),
 ) -> ReturnExpenseSchema:
+    """
+    Create a new Expense.
+
+    - new_expense: Definition of the new Expense to create.
+    """
 
     # Verify the source and destination Accounts exist
-    _ = require_account(db, new_expense.from_account_id, raise_exception=True)
+    require_account(db, new_expense.from_account_id, raise_exception=True)
     if new_expense.to_account_id is not None:
-        _ = require_account(db, new_expense.to_account_id, raise_exception=True)
+        require_account(db, new_expense.to_account_id, raise_exception=True)
 
     expense = Expense(**new_expense.model_dump())
     db.add(expense)
@@ -60,6 +63,11 @@ def delete_expense(
     expense_id: int,
     db: Session = Depends(get_database),
 ) -> None:
+    """
+    Delete the Expense with the given ID.
+
+    - expense_id: The ID of the Expense to delete.
+    """
 
     expense = require_expense(db, expense_id, raise_exception=True)
     db.delete(expense)
