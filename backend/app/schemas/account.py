@@ -4,13 +4,11 @@ from pydantic import BaseModel
 
 
 AccountType = Literal[
-    'debit',
-    'credit',
     'checking',
+    'credit',
     'investment',
     'loan',
-    'other',
-    'saving',
+    'savings',
 ]
 
 

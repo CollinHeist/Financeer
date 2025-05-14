@@ -63,7 +63,7 @@ def initialize_test_data(db: Session) -> None:
     db.add(account)
     savings_account = Account(
         name='Savings',
-        type='saving',
+        type='savings',
         account_number=9,
         routing_number=1,
         interest=0.03,
