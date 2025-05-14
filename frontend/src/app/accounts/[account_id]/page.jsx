@@ -6,9 +6,9 @@ import { IconConfetti } from "@tabler/icons-react";
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAccount, getUpcomingAccountExpenses } from '@/lib/api';
+import { getAccount, getUpcomingAccountTransactions } from '@/lib/api';
 import AccountSummary from "@/components/AccountSummary";
-import ExpenseTable from '@/components/ExpenseTable';
+import TransactionTable from '@/components/TransactionTable';
 import { motion, AnimatePresence } from 'framer-motion';
 
 
@@ -26,6 +26,13 @@ export default function AccountPage() {
     }
   };
 
+  // Get stable date values for the query
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = getDays();
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + days);
+
   // Fetch account data
   const { data: accountData, isLoading: accountLoading } = useQuery({
     queryKey: ['account', account_id],
@@ -33,14 +40,15 @@ export default function AccountPage() {
     enabled: !!account_id,
   });
 
-  // Fetch upcoming expense data
-  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
-    queryKey: ['expenses', account_id, timeFilter],
-    queryFn: () => getUpcomingAccountExpenses(account_id, getDays()),
+  // Fetch upcoming transaction data
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
+    queryKey: ['transactions', account_id, timeFilter, today.toISOString(), endDate.toISOString()],
+    queryFn: () => getUpcomingAccountTransactions(account_id, days),
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
     enabled: !!account_id,
   });
 
-  const loading = accountLoading || expensesLoading;
+  const loading = accountLoading || transactionsLoading;
 
   return (
     <div className="flex flex-col gap-4">
@@ -96,7 +104,7 @@ export default function AccountPage() {
 
       {loading ? (
         <p>Loading...</p>
-      ) : expenses.length > 0 ? (
+      ) : transactions.length > 0 ? (
         <AnimatePresence mode="wait">
           <motion.div
             key={timeFilter}
@@ -105,7 +113,7 @@ export default function AccountPage() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <ExpenseTable expenses={expenses} />
+            <TransactionTable transactions={transactions} />
           </motion.div>
         </AnimatePresence>
       ) : (
@@ -115,7 +123,7 @@ export default function AccountPage() {
           className="flex items-center gap-2 text-blue-400"
         >
           <IconConfetti className="size-4" />
-          <span>Great news! No upcoming expenses!</span>
+          <span>Great news! No upcoming transactions!</span>
         </motion.p>
       )}
     </div>
