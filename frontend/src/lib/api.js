@@ -102,7 +102,7 @@ export const getTransactions = async () => {
     const { data } = await api.get('/transaction/all');
     return data;
   } catch (error) {
-    console.error('Error fetching transactions:', error);
+    console.error(error.response?.data?.detail || 'Error fetching transactions:', error);
     throw error;
   }
 }
@@ -118,7 +118,7 @@ export const getAllAccountExpenses = async (accountId) => {
     const response = await api.get(`/expense/account/${accountId}/all`);
     return response.data;
   } catch (error) {
-    console.error('Error fetching expenses:', error);
+    console.error(error.response?.data?.detail || 'Error fetching expenses:', error);
     throw error;
   }
 }
@@ -133,7 +133,7 @@ export const getAllIncomes = async () => {
     const response = await api.get('/income/all');
     return response.data;
   } catch (error) {
-    console.error('Error fetching incomes:', error);
+    console.error(error.response?.data?.detail || 'Error fetching incomes:', error);
     throw error;
   }
 }
@@ -164,7 +164,6 @@ export const updateIncome = async (incomeId, incomeData) => {
  */
 export const patchIncome = async (incomeId, incomeData) => {
   try {
-    console.log(incomeData);
     const response = await api.patch(`/income/${incomeId}`, incomeData);
     return response.data;
   } catch (error) {
