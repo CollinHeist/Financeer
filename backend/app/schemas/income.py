@@ -47,6 +47,24 @@ class NewIncomeSchema(BaseModel):
             raise ValueError('End date must be after start date')
         return self
 
+class UpdateIncomeSchema(BaseModel):
+    name: str | None = None
+    amount: float | None = None
+    frequency: Frequency | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    account_id: int | None = None
+    raise_schedule: list[RaiseItem] | None = None
+
+    @model_validator(mode='after')
+    def validate_dates(self) -> Self:
+        """Validate that the end date is after the start date"""
+
+        if (self.start_date is not None and self.end_date is not None and 
+            self.start_date > self.end_date):
+            raise ValueError('End date must be after start date')
+        return self
+
 class ReturnIncomeSchema(BaseModel):
     id: int
     name: str
