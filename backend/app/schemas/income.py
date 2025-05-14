@@ -30,6 +30,13 @@ class RaiseItem(BaseModel):
             raise ValueError('End date must be after start date')
         return self
 
+class RaiseItemDict(TypedDict):
+    amount: float
+    is_percentage: bool
+    start_date: date
+    end_date: date | None
+    frequency: FrequencyDict | None
+
 class NewIncomeSchema(BaseModel):
     name: str
     amount: float
