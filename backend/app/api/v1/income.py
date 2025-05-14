@@ -32,9 +32,18 @@ def create_income(
 @income_router.get('/all')
 def get_all_incomes(
     db: Session = Depends(get_database),
+    on: date | None = Query(default_factory=lambda: date.today()),
 ) -> list[ReturnIncomeSchema]:
 
-    return db.query(Income).all()
+    filters = []
+    if on is not None:
+        filters.append(Income.start_date <= on)
+        filters.append(or_(
+            Income.end_date.is_(None),
+            Income.end_date >= on,
+        ))
+
+    return db.query(Income).filter(*filters).all()
 
 
 @income_router.get('/{income_id}')
