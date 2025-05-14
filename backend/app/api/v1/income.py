@@ -57,6 +57,28 @@ def delete_income(
     db.commit()
 
 
+@income_router.put('/{income_id}')
+def update_income(
+    income_id: int,
+    income_update: NewIncomeSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnIncomeSchema:
+
+    # Verify the income exists
+    income = require_income(db, income_id, raise_exception=True)
+    
+    # Verify the destination Account exists
+    _ = require_account(db, income_update.account_id, raise_exception=True)
+    
+    # Update income attributes
+    for key, value in income_update.model_dump().items():
+        setattr(income, key, value)
+    
+    db.commit()
+    
+    return income
+
+
 @income_router.patch('/{income_id}')
 async def patch_income(
     income_id: int,
