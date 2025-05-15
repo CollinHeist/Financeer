@@ -25,7 +25,6 @@ def upgrade() -> None:
     op.create_table('transaction_relationships',
         sa.Column('transaction_id', sa.Integer(), nullable=False),
         sa.Column('related_transaction_id', sa.Integer(), nullable=False),
-        sa.Column('relationship_type', sa.String(), nullable=False),
         sa.ForeignKeyConstraint(['related_transaction_id'], ['transactions.id'], ),
         sa.ForeignKeyConstraint(['transaction_id'], ['transactions.id'], ),
         sa.PrimaryKeyConstraint('transaction_id', 'related_transaction_id')

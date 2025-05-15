@@ -35,7 +35,6 @@ class Transaction(Base):
     upload_id: Mapped[int | None] = mapped_column(ForeignKey('uploads.id'))
     upload: Mapped['Upload | None'] = relationship(back_populates='transactions')
 
-    # Related transactions (for transfers, reconciliations, etc.)
     related_transactions: Mapped[list['Transaction']] = relationship(
         'Transaction',
         secondary='transaction_relationships',
@@ -49,6 +48,9 @@ class Transaction(Base):
 class TransactionRelationship(Base):
     __tablename__ = 'transaction_relationships'
 
-    transaction_id: Mapped[int] = mapped_column(ForeignKey('transactions.id'), primary_key=True)
-    related_transaction_id: Mapped[int] = mapped_column(ForeignKey('transactions.id'), primary_key=True)
-    relationship_type: Mapped[str] = mapped_column(String)  # e.g., 'transfer', 'reconciliation', 'split'
+    transaction_id: Mapped[int] = mapped_column(
+        ForeignKey('transactions.id'), primary_key=True
+    )
+    related_transaction_id: Mapped[int] = mapped_column(
+        ForeignKey('transactions.id'), primary_key=True
+    )
