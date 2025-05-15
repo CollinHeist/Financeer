@@ -95,16 +95,33 @@ export const getUpcomingAccountTransactions = async (accountID, days = 14) => {
 }
 
 /**
- * Fetches all transactions from the API
- * @returns {Promise<Array>} Array of transaction data
+ * Fetches all Transactions from the API
+ * @param {number} page The page number to fetch
+ * @param {number} size The number of items per page
+ * @returns {Promise<Object>} Paginated transaction data
  * @throws {Error} If the API request fails
  */
-export const getTransactions = async () => {
+export const getAllTransactions = async (page = 1, size = 25) => {
   try {
-    const { data } = await api.get('/transaction/all');
+    const { data } = await api.get(`/transaction/all?page=${page}&size=${size}`);
     return data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching transactions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Deletes a transaction
+ * @param {number} transactionId The ID of the transaction to delete
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
+export const deleteTransaction = async (transactionId) => {
+  try {
+    await api.delete(`/transaction/${transactionId}`);
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error deleting transaction:', error);
     throw error;
   }
 }
