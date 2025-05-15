@@ -3,7 +3,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { getAccountSummary } from '@/lib/api';
-import { IconTrendingUp, IconTrendingDown } from '@tabler/icons-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
 
@@ -23,7 +22,7 @@ const formatCurrency = (number) => {
 export default function AccountSummary({ accountId, className }) {
   const [timePeriod, setTimePeriod] = useState('this month');
   
-  const { data: summary, isLoading, error, refetch } = useQuery({
+  const { data: summary, isLoading, error } = useQuery({
     queryKey: ['accountSummary', accountId, timePeriod],
     queryFn: () => getAccountSummary(accountId, timePeriod),
     enabled: !!accountId,
