@@ -99,7 +99,7 @@ def update_expense(
 
 
 @expense_router.patch('/{expense_id}')
-def partial_update_expense(
+def partially_update_expense(
     expense_id: int,
     expense_update: UpdateExpenseSchema = Body(...),
     db: Session = Depends(get_database),
