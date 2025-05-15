@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date as date_type
 
 from pydantic.main import BaseModel
 
@@ -8,7 +8,7 @@ from app.schemas.income import ReturnIncomeSchema
 
 
 class NewTransactionSchema(BaseModel):
-    date: date
+    date: date_type
     description: str
     note: str = ''
     amount: float
@@ -17,15 +17,25 @@ class NewTransactionSchema(BaseModel):
     income_id: int | None = None
     related_transaction_ids: list[int] | None = None
 
+class UpdateTransactionSchema(BaseModel):
+    date: date_type = None
+    description: str = None
+    note: str = None
+    amount: float = None
+    account_id: int = None
+    expense_id: int | None = None
+    income_id: int | None = None
+    related_transaction_ids: list[int] | None = None
+
 class ReturnRelatedTransactionSchema(BaseModel):
     id: int
-    date: date
+    date: date_type
     description: str
     amount: float
 
 class ReturnTransactionSchemaNoAccount(BaseModel):
     id: int
-    date: date
+    date: date_type
     description: str
     note: str
     amount: float

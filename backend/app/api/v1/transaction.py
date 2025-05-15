@@ -21,7 +21,8 @@ from app.models.transaction import Transaction
 from app.schemas.transaction import (
     NewTransactionSchema,
     ReturnTransactionSchema,
-    ReturnUpcomingTransactionSchema
+    ReturnUpcomingTransactionSchema,
+    UpdateTransactionSchema
 )
 
 
@@ -105,6 +106,88 @@ def delete_transaction(
 
     db.delete(require_transaction(db, transaction_id))
     db.commit()
+
+
+@transaction_router.put('/{transaction_id}')
+def update_transaction(
+    transaction_id: int,
+    updated_transaction: NewTransactionSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnTransactionSchema:
+    """
+    Update a Transaction.
+
+    - transaction_id: The ID of the Transaction to update.
+    - updated_transaction: The updated Transaction.
+    """
+
+    transaction = require_transaction(db, transaction_id)
+
+    # Verify all associated models exist
+    require_account(db, updated_transaction.account_id)
+    if updated_transaction.expense_id is not None:
+        require_expense(db, updated_transaction.expense_id)
+    if updated_transaction.income_id is not None:
+        require_income(db, updated_transaction.income_id)
+    related_transactions = []
+    if updated_transaction.related_transaction_ids:
+        related_transactions = [
+            require_transaction(db, id)
+            for id in updated_transaction.related_transaction_ids
+        ]
+
+    for key, value in updated_transaction.model_dump().items():
+        if key != 'related_transaction_ids':
+            setattr(transaction, key, value)
+    transaction.related_transactions = related_transactions
+
+    db.commit()
+
+    return transaction
+
+
+@transaction_router.patch('/{transaction_id}')
+def partial_update_transaction(
+    transaction_id: int,
+    updated_transaction: UpdateTransactionSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnTransactionSchema:
+    """
+    Partially update a Transaction.
+
+    - transaction_id: The ID of the Transaction to update.
+    - updated_transaction: The updated Transaction.
+    """
+
+    # Get the existing Transaction
+    transaction = require_transaction(db, transaction_id, raise_exception=True)
+    
+    # Verify IDs if they're being updated
+    if 'account_id' in updated_transaction.model_fields_set:
+        require_account(db, updated_transaction.account_id, raise_exception=True)
+    if ('expense_id' in updated_transaction.model_fields_set
+        and updated_transaction.expense_id is not None):
+        require_expense(db, updated_transaction.expense_id, raise_exception=True)
+    if ('income_id' in updated_transaction.model_fields_set
+        and updated_transaction.income_id is not None):
+        require_income(db, updated_transaction.income_id, raise_exception=True)
+    related_transactions = []
+    if ('related_transaction_ids' in updated_transaction.model_fields_set
+        and updated_transaction.related_transaction_ids is not None):
+        related_transactions = [
+            require_transaction(db, id)
+            for id in updated_transaction.related_transaction_ids
+        ]
+
+    # Update only the provided fields
+    for key, value in updated_transaction.model_dump().items():
+        if key in updated_transaction.model_fields_set:
+            setattr(transaction, key, value)
+    transaction.related_transactions = related_transactions
+
+    db.commit()
+
+    return transaction
 
 
 @transaction_router.get('/upcoming/account/{account_id}')
