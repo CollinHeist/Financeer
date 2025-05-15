@@ -25,11 +25,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+import ExpenseDialog from './ExpenseDialog';
 
 export function ExpenseTable({ accountId }) {
   const queryClient = useQueryClient();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [expenseToEdit, setExpenseToEdit] = useState(null);
 
   const { data: expenses, isLoading, error } = useQuery({
     queryKey: ['expenses', accountId],
@@ -65,8 +68,15 @@ export function ExpenseTable({ accountId }) {
   };
 
   const handleEdit = (expense) => {
-    // TODO: Implement edit expense functionality
-    console.log('Edit expense:', expense);
+    setExpenseToEdit(expense);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditDialogClose = (open) => {
+    setEditDialogOpen(open);
+    if (!open) {
+      setExpenseToEdit(null);
+    }
   };
 
   if (error) {
@@ -94,7 +104,7 @@ export function ExpenseTable({ accountId }) {
             <TableHead className="text-left">Amount</TableHead>
             <TableHead className="text-left">Date</TableHead>
             <TableHead className="text-left">End Date</TableHead>
-            <TableHead className="text-right w-[60px]">Actions</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -111,7 +121,7 @@ export function ExpenseTable({ accountId }) {
                       <div className="space-y-2">
                         <h4 className="font-medium">Outgoing Transfer</h4>
                         <p className="text-sm text-muted-foreground">
-                          Transfer to {accounts?.find(a => a.id === expense.to_account_id)?.name || 'another account'}
+                          Transfer to <span className="text-blue-500">{accounts?.find(a => a.id === expense.to_account_id)?.name || 'another account'}</span>
                         </p>
                       </div>
                     </PopoverContent>
@@ -126,14 +136,14 @@ export function ExpenseTable({ accountId }) {
                       <div className="space-y-2">
                         <h4 className="font-medium">Incoming Transfer</h4>
                         <p className="text-sm text-muted-foreground">
-                          Transfer from {accounts?.find(a => a.id === expense.from_account_id)?.name || 'another account'}
+                          Transfer from <span className="text-blue-500">{accounts?.find(a => a.id === expense.from_account_id)?.name || 'another account'}</span>
                         </p>
                       </div>
                     </PopoverContent>
                   </Popover>
                 )}
               </TableCell>
-              <TableCell className="text-left">{expense.description}</TableCell>
+              <TableCell className="text-left">{expense.description || '-'}</TableCell>
               <TableCell className={`text-left ${(expense.to_account_id === accountId ? -expense.amount : expense.amount) < 0 ? 'text-red-500' : 'text-green-500'}`}>
                 {(expense.to_account_id === accountId ? -expense.amount : expense.amount) < 0 ? '-' : ''}${Math.abs(expense.to_account_id === accountId ? -expense.amount : expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
@@ -186,6 +196,13 @@ export function ExpenseTable({ accountId }) {
         itemType="expense"
         onConfirm={confirmDelete}
         isDeleting={deleteExpenseMutation.isLoading}
+      />
+
+      <ExpenseDialog
+        isOpen={editDialogOpen}
+        onOpenChange={handleEditDialogClose}
+        accountId={accountId}
+        expenseId={expenseToEdit?.id}
       />
     </div>
   );

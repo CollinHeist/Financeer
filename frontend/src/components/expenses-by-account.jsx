@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getAccounts } from '@/lib/api';
 import { ExpenseTable } from './expense-table';
 import { Plus } from 'lucide-react';
-import NewExpenseDialog from './NewExpenseDialog';
+import ExpenseDialog from './ExpenseDialog';
 
 export default function ExpensesByAccount() {
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -64,7 +64,7 @@ export default function ExpensesByAccount() {
         </section>
       ))}
 
-      <NewExpenseDialog 
+      <ExpenseDialog 
         isOpen={isNewExpenseDialogOpen} 
         onOpenChange={setIsNewExpenseDialogOpen} 
         accountId={selectedAccount} 
