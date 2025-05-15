@@ -1,5 +1,6 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from random import randint, random
 
 from sqlalchemy.orm import Session
 
@@ -44,10 +45,70 @@ TEST_TRANSACTIONS = [
         'note': '',
         'amount': 2500,
         'account_id': 1,
-        'expense_id': 1,
+        'expense_id': None,
+        'income_id': 1,
+    },
+    # Restaurant purchase on credit card
+    {
+        'date': date(2025, 5, 10),
+        'description': 'Restaurant',
+        'note': '',
+        'amount': -80.00,
+        'account_id': 3,
+        'expense_id': None,
         'income_id': None,
-    }
+    },
+    # Restaurant payback into checking
+    {
+        'date': date(2025, 5, 11),
+        'description': 'CashApp Payment',
+        'note': 'Payback for restaurant purchase',
+        'amount': 40,
+        'account_id': 1,
+        'expense_id': None,
+        'income_id': None,
+        'related_transaction_ids': [5],
+    },
+    # Spotify on credit card
+    {
+        'date': date(2025, 5, 14),
+        'description': 'Spotify',
+        'note': '',
+        'amount': -14.99,
+        'account_id': 3,
+        'expense_id': 7,
+        'income_id': None,
+    },
 ]
+
+
+def _generate_random_transactions(
+    db: Session,
+    amount: int = 100,
+    start_date: date = date(2024, 8, 1),
+    expense_probability: float = 0.8,
+) -> None:
+    for i in range(amount):
+        related_transaction_ids = [
+            randint(0, i - 1)
+            for _ in range(randint(0, 5))
+        ] if random() > 0.8 and i > 1 else []
+        related_transactions = [
+            db.query(Transaction).get(tid)
+            for tid in related_transaction_ids
+            if db.query(Transaction).get(tid) is not None
+        ]
+        transaction = Transaction(
+            date=start_date + timedelta(days=randint(0, 365)),
+            description=f'Random Transaction #{i}',
+            amount=randint(-100, 100),
+            account_id=randint(1, 3),
+            expense_id=randint(1, 7) if random() > expense_probability else None,
+            income_id=None,
+        )
+        transaction.related_transactions = related_transactions
+        db.add(transaction)
+        db.commit()
 
 
 def initialize_test_data(db: Session) -> None:
@@ -222,6 +283,19 @@ def initialize_test_data(db: Session) -> None:
     # Import hard-coded test transactions
     else:
         for transaction in TEST_TRANSACTIONS:
-            db.add(Transaction(**transaction))
+            # Query related transactions if provided
+            related = []
+            if 'related_transaction_ids' in transaction:
+                related = [
+                    db.query(Transaction).get(id)
+                    for id in transaction.pop('related_transaction_ids')
+                ]
+
+            trans = Transaction(**transaction)
+            if related:
+                trans.related_transactions = related # type: ignore
+            db.add(trans)
+            db.commit()
+        _generate_random_transactions(db)
 
     db.commit()
