@@ -26,12 +26,12 @@ import {
 } from "@/components/ui/dialog";
 import { getAllIncomes, deleteIncome, patchIncome } from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+import IncomeDialog from '@/components/IncomeDialog';
 
 export function IncomeTable({ accountId }) {
   const queryClient = useQueryClient();
   const [editingIncome, setEditingIncome] = useState(null);
   const [editingSchedule, setEditingSchedule] = useState(null);
-  const [formData, setFormData] = useState({});
   const [scheduleFormData, setScheduleFormData] = useState({ raise_schedule: [] });
   const [newChangeItem, setNewChangeItem] = useState({
     amount: 0,
@@ -44,6 +44,7 @@ export function IncomeTable({ accountId }) {
   const [updateError, setUpdateError] = useState(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const { data: incomes, isLoading, error } = useQuery({
     queryKey: ['incomes'],
@@ -66,7 +67,6 @@ export function IncomeTable({ accountId }) {
     mutationFn: ({ incomeId, data }) => patchIncome(incomeId, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['incomes']);
-      setEditingIncome(null);
       setEditingSchedule(null);
       setUpdateError(null);
     },
@@ -77,82 +77,17 @@ export function IncomeTable({ accountId }) {
   });
 
   const handleEdit = (income) => {
-    setFormData({
-      name: income.name,
-      amount: income.amount,
-      frequency: {
-        value: income.frequency?.value || 1,
-        unit: income.frequency?.unit?.toLowerCase() || 'months'
-      },
-      start_date: income.start_date,
-      end_date: income.end_date,
-      account_id: income.account_id,
-    });
     setEditingIncome(income);
+    setIsEditDialogOpen(true);
   };
 
   const handleEditSchedule = (income) => {
-    // Ensure that any existing raise_schedule items are compatible with new model
-    const updatedRaiseSchedule = (income.raise_schedule || []).map(item => {
-      // Convert legacy types to the new format if needed
-      const updatedItem = { ...item };
-      
-      // If old format data is detected (has type field), convert to new format
-      if ('type' in updatedItem) {
-        // Convert any existing percentage-based values to the correct format
-        if (updatedItem.is_percentage && updatedItem.type === 'raise') {
-          // For raises, the amount was stored as 1.xx (e.g., 1.05 for 5%)
-          // Now we store it as the actual percentage value (e.g., 0.05 for 5%)
-          if (updatedItem.amount > 1) {
-            updatedItem.amount = updatedItem.amount - 1;
-          } else if (updatedItem.amount < 1) {
-            // If it was a pay cut (e.g., 0.95 for -5%), convert to negative percentage
-            updatedItem.amount = updatedItem.amount - 1;
-          }
-        }
-        
-        // Remove type field as it's no longer part of the model
-        delete updatedItem.type;
-      }
-      
-      // Remove is_one_time field if present
-      if ('is_one_time' in updatedItem) {
-        delete updatedItem.is_one_time;
-      }
-      
-      return updatedItem;
-    });
-    
     setScheduleFormData({
       ...income,
-      raise_schedule: updatedRaiseSchedule
+      raise_schedule: income.raise_schedule || [],
     });
     
     setEditingSchedule(income);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'frequencyValue' || name === 'frequencyUnit') {
-      setFormData(prev => ({
-        ...prev,
-        frequency: {
-          ...prev.frequency,
-          [name === 'frequencyValue' ? 'value' : 'unit']: name === 'frequencyValue' ? Number(value) : value
-        }
-      }));
-    } else if (name === 'amount') {
-      // Parse the amount to a float when it changes
-      setFormData(prev => ({
-        ...prev,
-        [name]: parseFloat(value),
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
   };
 
   const handleChangeItemChange = (e) => {
@@ -233,22 +168,6 @@ export function IncomeTable({ accountId }) {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingIncome) {
-      // Ensure end_date is explicitly included as either a value or null
-      const patchData = {
-        ...formData,
-        end_date: formData.end_date || null
-      };
-
-      patchIncomeMutation.mutate({
-        incomeId: editingIncome.id,
-        data: patchData,
-      });
-    }
-  };
-
   const handleScheduleSubmit = (e) => {
     e.preventDefault();
     if (editingSchedule) {
@@ -296,6 +215,13 @@ export function IncomeTable({ accountId }) {
     }
   };
 
+  const handleEditDialogClose = (open) => {
+    setIsEditDialogOpen(open);
+    if (!open) {
+      setEditingIncome(null);
+    }
+  };
+
   if (error) {
     return <div className="text-left p-4 text-red-500">Error loading incomes: {error.message}</div>;
   }
@@ -305,7 +231,7 @@ export function IncomeTable({ accountId }) {
   if (!filteredIncomes.length) {
     return (
       <div className="text-left p-4">
-        <p className="text-gray-500">No incomes found for this account.</p>
+        <p className="text-gray-500">No Income added to this Account.</p>
       </div>
     );
   }
@@ -338,7 +264,7 @@ export function IncomeTable({ accountId }) {
                       className="text-xs cursor-pointer hover:bg-secondary/80"
                       onClick={() => handleEditSchedule(income)}
                     >
-                      {income.raise_schedule.length} Raises
+                      {income.raise_schedule.length} Raise{income.raise_schedule.length === 1 ? '' : 's'}
                     </Badge>
                   )}
                 </div>
@@ -385,104 +311,12 @@ export function IncomeTable({ accountId }) {
         isDeleting={deleteIncomeMutation.isLoading}
       />
 
-      <Dialog open={!!editingIncome} onOpenChange={(open) => !open && setEditingIncome(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Income</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <div>
-                <label className="text-sm font-medium">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name || ''}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Amount</label>
-                <input
-                  type="number"
-                  name="amount"
-                  value={(formData.amount || 0).toFixed(2)}
-                  onChange={handleChange}
-                  step="0.01"
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Frequency</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    name="frequencyValue"
-                    value={formData.frequency?.value || 1}
-                    onChange={handleChange}
-                    min="1"
-                    className="w-1/3 p-2 border rounded-md"
-                  />
-                  <select
-                    name="frequencyUnit"
-                    value={formData.frequency?.unit || 'months'}
-                    onChange={handleChange}
-                    className="w-2/3 p-2 border rounded-md"
-                  >
-                    <option value="days">Day(s)</option>
-                    <option value="weeks">Week(s)</option>
-                    <option value="months">Month(s)</option>
-                    <option value="years">Year(s)</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Start Date</label>
-                <input
-                  type="date"
-                  name="start_date"
-                  value={formData.start_date || ''}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">End Date</label>
-                <input
-                  type="date"
-                  name="end_date"
-                  value={formData.end_date || ''}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                />
-              </div>
-              
-              {updateError && (
-                <div className="text-red-500 text-sm p-2 bg-red-50 rounded-md">
-                  {updateError}
-                </div>
-              )}
-            </div>
-            <DialogFooter className="gap-2">
-              <button 
-                type="button"
-                className="px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground"
-                onClick={() => setEditingIncome(null)}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                className="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                disabled={patchIncomeMutation.isLoading}
-              >
-                {patchIncomeMutation.isLoading ? 'Saving...' : 'Save Changes'}
-              </button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <IncomeDialog 
+        isOpen={isEditDialogOpen}
+        onOpenChange={handleEditDialogClose}
+        accountId={accountId}
+        incomeId={editingIncome?.id}
+      />
 
       <Dialog open={!!editingSchedule} onOpenChange={(open) => !open && setEditingSchedule(null)}>
         <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">

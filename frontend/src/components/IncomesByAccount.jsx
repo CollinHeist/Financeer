@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getBankAccounts } from '@/lib/api';
 import { IncomeTable } from './IncomeTable';
 import { Plus } from 'lucide-react';
-import NewIncomeDialog from './NewIncomeDialog';
+import IncomeDialog from '@/components/IncomeDialog';
 
 export default function IncomesByAccount() {
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -64,7 +64,7 @@ export default function IncomesByAccount() {
         </section>
       ))}
 
-      <NewIncomeDialog 
+      <IncomeDialog 
         isOpen={isNewIncomeDialogOpen} 
         onOpenChange={setIsNewIncomeDialogOpen} 
         accountId={selectedAccount} 
