@@ -43,6 +43,10 @@ class Transaction(Base):
         backref='related_to_transactions'
     )
 
+    @property
+    def related_transaction_ids(self) -> list[int]:
+        return [t.id for t in self.related_transactions]
+
 
 # Association table for many-to-many relationship between transactions
 class TransactionRelationship(Base):
