@@ -32,6 +32,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { deleteTransaction } from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+import TransactionDialog from '@/components/TransactionDialog';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -146,12 +147,8 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
 
 const ActionsCell = ({ transaction }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const queryClient = useQueryClient();
-
-  const handleEdit = () => {
-    // TODO: Implement edit functionality
-    console.log('Edit transaction:', transaction.id);
-  };
 
   const handleDelete = async () => {
     try {
@@ -174,7 +171,7 @@ const ActionsCell = ({ transaction }) => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleEdit}>
+          <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
             <IconEdit className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
@@ -196,6 +193,12 @@ const ActionsCell = ({ transaction }) => {
         itemName={transaction.description}
         itemType="Transaction"
       />
+
+      <TransactionDialog
+        isOpen={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        transactionId={transaction.id}
+      />
     </TableCell>
   );
 };
@@ -205,7 +208,10 @@ export default function TransactionTable({
   page = 1,
   totalPages = 1,
   onPageChange,
-  isLoading = false 
+  isLoading = false,
+  // accounts = [],
+  expenses = [],
+  incomes = []
 }) {
   const [sortConfig, setSortConfig] = useState({
     key: 'date',
@@ -214,6 +220,7 @@ export default function TransactionTable({
   const [filterValue, setFilterValue] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [accountFilter, setAccountFilter] = useState('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const accounts = useMemo(() => {
     const accountSet = new Set();
@@ -273,10 +280,9 @@ export default function TransactionTable({
     { key: 'date', label: 'Date', align: 'right' },
     { key: 'description', label: 'Description', align: 'left' },
     { key: 'account', label: 'Account', align: 'center' },
-    { key: 'category', label: 'Category', sortable: false, align: 'center' },
     { key: 'amount', label: 'Amount', align: 'right' },
+    { key: 'category', label: 'Category', sortable: false, align: 'center' },
     { key: 'related', label: 'Related', sortable: false, align: 'center' },
-    { key: 'note', label: 'Note', align: 'left' },
     { key: 'actions', label: '', sortable: false, align: 'center' }
   ];
 
@@ -295,6 +301,9 @@ export default function TransactionTable({
           </div>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setShowCreateDialog(true)}>
+            New Transaction
+          </Button>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Category" />
@@ -360,7 +369,12 @@ export default function TransactionTable({
               sortedTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell className="text-right">{formatDate(transaction.date)}</TableCell>
-                  <TableCell>{transaction.description}</TableCell>
+                  <TableCell>
+                    <div>{transaction.description}</div>
+                    {transaction.note && (
+                      <div className="text-sm text-muted-foreground">{transaction.note}</div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-center">
                     <TooltipProvider>
                       <Tooltip>
@@ -371,21 +385,22 @@ export default function TransactionTable({
                       </Tooltip>
                     </TooltipProvider>
                   </TableCell>
-                  <CategoryCell 
-                    expense={transaction.expense} 
-                    income={transaction.income} 
-                  />
                   <TableCell className={cn(
                     transaction.amount >= 0 ? "text-green-600" : "text-red-600",
                     "text-right"
                   )}>
                     {formatCurrency(transaction.amount)}
                   </TableCell>
+                  <CategoryCell 
+                    expense={transaction.expense} 
+                    income={transaction.income} 
+                  />
                   <RelatedTransactionsCell 
                     transactions={[...(transaction.related_transactions || []), ...(transaction.related_to_transactions || [])]}
                   />
-                  <TableCell>{transaction.note || '-'}</TableCell>
-                  <ActionsCell transaction={transaction} />
+                  <ActionsCell 
+                    transaction={transaction} 
+                  />
                 </TableRow>
               ))
             )}
@@ -397,6 +412,11 @@ export default function TransactionTable({
         currentPage={page}
         totalPages={totalPages}
         onPageChange={onPageChange}
+      />
+
+      <TransactionDialog
+        isOpen={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
       />
     </div>
   );
