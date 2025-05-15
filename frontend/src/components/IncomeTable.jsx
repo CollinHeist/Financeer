@@ -133,8 +133,9 @@ export function IncomeTable({ accountId }) {
   };
 
   const addChangeItem = () => {
-    if (!newChangeItem.start_date) return;
-    
+    // Require a start date and non-zero raise amount
+    if (!newChangeItem.start_date || !newChangeItem.amount) return;
+
     // Create a clean item object that matches the backend model
     const itemToAdd = {
       // Only include fields that are part of the RaiseItem model
