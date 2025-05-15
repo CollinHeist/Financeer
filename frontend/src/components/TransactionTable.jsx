@@ -238,8 +238,7 @@ export default function TransactionTable({
 
       const matchesCategory = categoryFilter === 'all' ||
         (categoryFilter === 'expense' && transaction.expense) ||
-        (categoryFilter === 'income' && transaction.income) ||
-        (categoryFilter === 'transfer' && transaction.related_transactions?.length);
+        (categoryFilter === 'income' && transaction.income);
 
       const matchesAccount = accountFilter === 'all' ||
         transaction.account?.name === accountFilter;
@@ -312,7 +311,6 @@ export default function TransactionTable({
               <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="expense">Expenses</SelectItem>
               <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="transfer">Transfers</SelectItem>
             </SelectContent>
           </Select>
           <Select value={accountFilter} onValueChange={setAccountFilter}>
