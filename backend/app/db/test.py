@@ -208,7 +208,7 @@ def initialize_test_data(db: Session) -> None:
     db.add(github_income)
 
     # Upload Transactions
-    iccu_transactions = Path(__file__).parent.parent.parent.parent / 'iccu_2024_upload.csv'
+    iccu_transactions = Path(__file__).parent.parent.parent.parent / 'iccu_upload.csv'
     if iccu_transactions.exists():
         upload = Upload(
             filename=iccu_transactions.name,
