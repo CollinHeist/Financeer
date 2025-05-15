@@ -30,6 +30,14 @@ class RaiseItem(BaseModel):
             raise ValueError('End date must be after start date')
         return self
 
+    @model_validator(mode='after')
+    def validate_amount(self) -> Self:
+        """Validate that the amount is not zero"""
+
+        if self.amount == 0:
+            raise ValueError('Amount must be non-zero')
+        return self
+
 class RaiseItemDict(TypedDict):
     amount: float
     is_percentage: bool
@@ -67,8 +75,8 @@ class UpdateIncomeSchema(BaseModel):
     def validate_dates(self) -> Self:
         """Validate that the end date is after the start date"""
 
-        if (self.start_date is not None and self.end_date is not None and 
-            self.start_date > self.end_date):
+        if (self.start_date is not None and self.end_date is not None
+            and self.start_date > self.end_date):
             raise ValueError('End date must be after start date')
         return self
 
