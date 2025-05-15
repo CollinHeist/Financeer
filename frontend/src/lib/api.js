@@ -285,3 +285,67 @@ export const createIncome = async (incomeData) => {
     throw error;
   }
 }
+
+/**
+ * Fetches a single expense by ID
+ * @param {number} expenseId The ID of the expense to fetch
+ * @returns {Promise<Object>} The expense data
+ * @throws {Error} If the API request fails
+ */
+export const getExpenseById = async (expenseId) => {
+  try {
+    const response = await api.get(`/expense/${expenseId}`);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching expense:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches a single income by ID
+ * @param {number} incomeId The ID of the income to fetch
+ * @returns {Promise<Object>} The income data
+ * @throws {Error} If the API request fails
+ */
+export const getIncomeById = async (incomeId) => {
+  try {
+    const response = await api.get(`/income/${incomeId}`);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching income:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches the summary for an account
+ * @param {number} accountId The ID of the account to fetch the summary for
+ * @returns {Promise<Object>} The account summary data
+ * @throws {Error} If the API request fails
+ */
+export const getAccountSummary = async (accountId) => {
+  try {
+    const response = await api.get(`/account/${accountId}/summary`);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching account summary:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a new balance record
+ * @param {Object} balanceData The balance data to create
+ * @returns {Promise<Object>} The created balance data
+ * @throws {Error} If the API request fails
+ */
+export const createBalance = async (balanceData) => {
+  try {
+    const response = await api.post('/balance/new', balanceData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error creating balance:', error);
+    throw error;
+  }
+}
