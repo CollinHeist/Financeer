@@ -112,6 +112,23 @@ export const getAllTransactions = async (page = 1, size = 25) => {
 }
 
 /**
+ * Fetches a transaction by ID
+ * @param {number} transactionId The ID of the transaction to fetch
+ * @returns {Promise<Object>} The transaction data
+ * @throws {Error} If the API request fails
+ */
+export const getTransactionById = async (transactionId) => {
+  try {
+    const { data } = await api.get(`/transaction/${transactionId}`);
+    return data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching transaction:', error);
+    throw error;
+  }
+}
+
+
+/**
  * Deletes a transaction
  * @param {number} transactionId The ID of the transaction to delete
  * @returns {Promise<void>}
@@ -125,6 +142,40 @@ export const deleteTransaction = async (transactionId) => {
     throw error;
   }
 }
+
+/**
+ * Updates a transaction
+ * @param {number} transactionId The ID of the transaction to update
+ * @param {Object} transactionData The updated transaction data
+ * @returns {Promise<Object>} The updated transaction data
+ * @throws {Error} If the API request fails
+ */
+export const updateTransaction = async (transactionId, transactionData) => {
+  try {
+    const response = await api.put(`/transaction/${transactionId}`, transactionData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error updating transaction:', error);
+    throw error;
+  }
+}
+
+/**
+ * Creates a new transaction
+ * @param {Object} transactionData The transaction data to create
+ * @returns {Promise<Object>} The created transaction data
+ * @throws {Error} If the API request fails
+ */
+export const createTransaction = async (transactionData) => {
+  try {
+    const response = await api.post('/transaction/new', transactionData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error creating transaction:', error);
+    throw error;
+  }
+}
+
 
 /**
  * Fetches all to and from expenses for an account from the API
@@ -141,6 +192,22 @@ export const getAllAccountExpenses = async (accountId) => {
     throw error;
   }
 }
+
+/**
+ * Fetches all expenses from the API
+ * @returns {Promise<Array>} Array of expense data
+ * @throws {Error} If the API request fails
+ */
+export const getAllExpenses = async () => {
+  try {
+    const response = await api.get('/expense/all');
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching expenses:', error);
+    throw error;
+  }
+}
+
 
 /**
  * Creates a new expense record
