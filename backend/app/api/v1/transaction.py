@@ -86,9 +86,13 @@ def delete_transaction(
     transaction_id: int,
     db: Session = Depends(get_database),
 ) -> None:
+    """
+    Delete a Transaction.
 
-    transaction = require_transaction(db, transaction_id)
-    db.delete(transaction)
+    - transaction_id: The ID of the Transaction to delete.
+    """
+
+    db.delete(require_transaction(db, transaction_id))
     db.commit()
 
 
