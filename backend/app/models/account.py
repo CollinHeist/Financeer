@@ -7,6 +7,7 @@ from app.db.base import Base
 from app.schemas.account import AccountType
 
 if TYPE_CHECKING:
+    from app.models.balance import Balance
     from app.models.income import Income
     from app.models.transaction import Transaction
     from app.models.upload import Upload
@@ -41,5 +42,10 @@ class Account(Base):
 
     uploads: Mapped[list['Upload']] = relationship(
         'Upload',
+        back_populates='account',
+    )
+
+    balances: Mapped[list['Balance']] = relationship(
+        'Balance',
         back_populates='account',
     )

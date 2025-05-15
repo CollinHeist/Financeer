@@ -40,7 +40,7 @@ def upgrade() -> None:
         sa.Column('description', sa.String(), nullable=False),
         sa.Column('amount', sa.Float(), nullable=False),
         sa.Column('type', sa.String(), nullable=False),
-        sa.Column('frequency', sa.Integer(), nullable=True),
+        sa.Column('frequency', sa.JSON(), nullable=True),
         sa.Column('start_date', sa.Date(), nullable=False),
         sa.Column('end_date', sa.Date(), nullable=True),
         sa.Column('change_schedule', sa.JSON(), nullable=False),
