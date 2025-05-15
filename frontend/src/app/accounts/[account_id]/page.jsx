@@ -1,15 +1,12 @@
 'use client';
 
-import { Suspense } from 'react';
-import { Skeleton } from "@/components/ui/skeleton"
 import { IconConfetti } from "@tabler/icons-react";
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAccount, getUpcomingAccountTransactions } from '@/lib/api';
-import AccountDetails from "@/components/AccountDetails";
 import AccountSummary from "@/components/AccountSummary";
-import TransactionTable from '@/components/TransactionTable';
+import UpcomingTransactionTable from '@/components/UpcomingTransactionTable';
 import { motion, AnimatePresence } from 'framer-motion';
 
 
@@ -58,7 +55,7 @@ export default function AccountPage() {
       {/* <AccountDetails accountId={account_id} /> */}
 
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Upcoming Expenses</h2>
+        <h2 className="text-xl font-bold">Upcoming Transactions</h2>
         <div className="flex space-x-2">
           <button 
             variant="outline"
@@ -101,7 +98,7 @@ export default function AccountPage() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <TransactionTable transactions={transactions} />
+            <UpcomingTransactionTable transactions={transactions} />
           </motion.div>
         </AnimatePresence>
       ) : (

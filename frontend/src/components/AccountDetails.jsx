@@ -13,7 +13,7 @@ import {
 import AccountSummary from './AccountSummary';
 import { ExpenseTable } from './expense-table';
 import { IncomeTable } from './IncomeTable';
-import TransactionTable from './TransactionTable';
+import TransactionTable from './UpcomingTransactionTable';
 
 import {
   Card,
