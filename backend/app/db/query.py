@@ -20,8 +20,16 @@ def _require_model(
     id: int,
     *,
     raise_exception: bool = True,
-) -> _ModelType:
-    ...
+) -> _ModelType: ...
+
+@overload
+def _require_model(
+    db: Session,
+    model: _ModelType,
+    id: int,
+    *,
+    raise_exception: bool = False,
+) -> _ModelType | None: ...
 
 def _require_model(
     db: Session,
@@ -48,7 +56,7 @@ def _require_model(
             `raise_exception` is True.
     """
 
-    if not (item := db.query(model).filter(model.id == id).first()):
+    if not (item := db.query(model).get(id)):
         if raise_exception:
             raise HTTPException(
                 status_code=404,
@@ -65,8 +73,15 @@ def require_account(
     account_id: int,
     *,
     raise_exception: bool = True,
-) -> Account:
-    ...
+) -> Account: ...
+
+@overload
+def require_account(
+    db: Session,
+    account_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Account | None: ...
 
 def require_account(
     db: Session,
@@ -93,8 +108,15 @@ def require_expense(
     expense_id: int,
     *,
     raise_exception: bool = True,
-) -> Expense:
-    ...
+) -> Expense: ...
+
+@overload
+def require_expense(
+    db: Session,
+    expense_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Expense | None: ...
 
 def require_expense(
     db: Session,
@@ -121,8 +143,15 @@ def require_income(
     income_id: int,
     *,
     raise_exception: bool = True,
-) -> Income:
-    ...
+) -> Income: ...
+
+@overload
+def require_income(
+    db: Session,
+    income_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Income | None: ...
 
 def require_income(
     db: Session,
@@ -147,8 +176,15 @@ def require_transaction(
     transaction_id: int,
     *,
     raise_exception: bool = True,
-) -> Transaction:
-    ...
+) -> Transaction: ...
+
+@overload
+def require_transaction(
+    db: Session,
+    transaction_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Transaction | None: ...
 
 def require_transaction(
     db: Session,
