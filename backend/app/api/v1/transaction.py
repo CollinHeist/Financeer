@@ -61,7 +61,15 @@ def get_transactions(
     db: Session = Depends(get_database),
 ) -> Page[ReturnTransactionSchema]:
 
-    return paginate(db.query(Transaction))
+    return paginate(
+        db.query(Transaction)
+            .order_by(Transaction.date.desc())
+            .options(
+                joinedload(Transaction.account),
+                joinedload(Transaction.expense),
+                joinedload(Transaction.income),
+            )
+    )
 
 
 @transaction_router.get('/{transaction_id}')
