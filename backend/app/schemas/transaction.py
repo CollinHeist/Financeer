@@ -15,6 +15,13 @@ class NewTransactionSchema(BaseModel):
     account_id: int
     expense_id: int | None = None
     income_id: int | None = None
+    related_transaction_ids: list[int] | None = None
+
+class ReturnRelatedTransactionSchema(BaseModel):
+    id: int
+    date: date
+    description: str
+    amount: float
 
 class ReturnTransactionSchemaNoAccount(BaseModel):
     id: int
@@ -25,6 +32,8 @@ class ReturnTransactionSchemaNoAccount(BaseModel):
     account_id: int
     expense_id: int | None
     income_id: int | None
+    related_transactions: list[ReturnRelatedTransactionSchema]
+    related_to_transactions: list[ReturnRelatedTransactionSchema] = []
 
 class ReturnTransactionSchema(ReturnTransactionSchemaNoAccount):
     account: ReturnAccountSchema
