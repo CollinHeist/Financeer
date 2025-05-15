@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
@@ -42,14 +43,24 @@ def create_transaction(
     """
 
     # Verify all associated models exist
-    _ = require_account(db, new_transaction.account_id)
+    require_account(db, new_transaction.account_id)
     if new_transaction.expense_id is not None:
-        _ = require_expense(db, new_transaction.expense_id)
+        require_expense(db, new_transaction.expense_id)
     if new_transaction.income_id is not None:
-        _ = require_income(db, new_transaction.income_id)
+        require_income(db, new_transaction.income_id)
+    related_transactions = []
+    if new_transaction.related_transaction_ids:
+        related_transactions = [
+            require_transaction(db, id)
+            for id in new_transaction.related_transaction_ids
+        ]
 
-    # Create and add to the database
-    transaction = Transaction(**new_transaction.model_dump())
+    # Create and add to the database; exclude related_transaction_ids
+    # as these will be set after the Transaction is created
+    transaction = Transaction(
+        **new_transaction.model_dump(exclude={'related_transaction_ids'})
+    )
+    transaction.related_transactions = related_transactions
     db.add(transaction)
     db.commit()
 
