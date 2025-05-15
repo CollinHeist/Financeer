@@ -11,6 +11,13 @@ AccountType = Literal[
     'savings',
 ]
 
+SummaryTimePeriod = Literal[
+    'today',
+    'this week',
+    'this month',
+    'this quarter',
+    'this year',
+]
 
 class NewAccountSchema(BaseModel):
     name: str
@@ -26,3 +33,8 @@ class ReturnAccountSchema(BaseModel):
     account_number: int | None
     routing_number: int | None
     interest: float
+
+class ReturnAccountSummarySchema(BaseModel):
+    balance: float
+    income: float
+    expenses: float
