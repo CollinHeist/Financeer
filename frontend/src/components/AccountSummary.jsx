@@ -1,48 +1,106 @@
-import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react";
+'use client';
 
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
+import { getAccountSummary } from '@/lib/api';
+import { IconTrendingUp, IconTrendingDown } from '@tabler/icons-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useState } from 'react';
 
+/**
+ * Formats a number as currency
+ * @param {number} number - The number to format
+ * @returns {string} The formatted currency string
+ */
+const formatCurrency = (number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2
+  }).format(number);
+};
 
-export default function AccountSummary({ data }) {
-  if (!data) {
+export default function AccountSummary({ accountId, className }) {
+  const [timePeriod, setTimePeriod] = useState('this month');
+  
+  const { data: summary, isLoading, error, refetch } = useQuery({
+    queryKey: ['accountSummary', accountId, timePeriod],
+    queryFn: () => getAccountSummary(accountId, timePeriod),
+    enabled: !!accountId,
+  });
+
+  const handlePeriodChange = (e) => {
+    setTimePeriod(e.target.value);
+  };
+
+  if (isLoading) {
     return (
-      <Card className="@container/card">
-        <CardHeader className="relative">
-          <CardDescription>No account data available</CardDescription>
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Account Summary</CardTitle>
+          <CardDescription>Loading...</CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Account Summary</CardTitle>
+          <CardDescription className="text-red-500">Error: {error.message}</CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
   return (
-    <Card className="@container/card">
-      <CardHeader className="relative">
-      <CardDescription>{ data?.name || "Account" }</CardDescription>
-        <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-          ${ data?.balance || "999.99"}
-        </CardTitle>
+    <Card className={className}>
+      <CardHeader className="pb-2">
+        <CardTitle>Financial overview for {timePeriod}</CardTitle>
+        <CardDescription>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {(summary?.income || 0) - (summary?.expenses || 0) > 0 ? (
+                    <span className="text-green-600">
+                      {"Good News! Your balance is up this month"}
+                    </span>
+                  ) : (summary?.income || 0) - (summary?.expenses || 0) < 0 ? (
+                    <span className="text-red-600">
+                      {"Uh oh! Your balance is down this month"}
+                    </span>
+                  ) : null
+                }
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Balance is up this month</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </CardDescription>
       </CardHeader>
-      <CardFooter className="flex-col items-start gap-1.5 text-sm">
-        <div className="line-clamp-1 flex gap-2 font-medium">
-          Balance is up this month <IconTrendingUp className="size-4" />
-        </div>
-        <div className="text-muted-foreground">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 text-red-400/80">
-              Expenses: ${data?.expenses || "450.00"}
-            </div>
-            <div className="flex items-center gap-2 text-green-400/80">
-              Income: ${data?.income || "1,200.00"}
+      <CardContent>
+        <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Current Balance</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold">{formatCurrency(summary?.balance || 0)}</span>
             </div>
           </div>
+          
+          <div className="flex justify-between items-center">
+            <span className="font-medium text-green-600 text-sm">Income</span>
+            <span className="text-green-600 font-semibold text-sm">{formatCurrency(summary?.income || 0)}</span>
+          </div>
+          
+          <div className="flex justify-between items-center">
+            <span className="font-medium text-red-600 text-sm">Expenses</span>
+            <span className="text-red-600 font-semibold text-sm">{formatCurrency(summary?.expenses || 0)}</span>
+          </div>
         </div>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 }

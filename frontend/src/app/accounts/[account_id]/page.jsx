@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAccount, getUpcomingAccountTransactions } from '@/lib/api';
+import AccountDetails from "@/components/AccountDetails";
 import AccountSummary from "@/components/AccountSummary";
 import TransactionTable from '@/components/TransactionTable';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,21 +54,8 @@ export default function AccountPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Account Details</h1>
-      <Suspense fallback={<div>Loading...</div>}>
-        {accountLoading ? (
-          <div className="flex flex-col space-y-3">
-            <Skeleton className="h-[125px] w-[250px] rounded-xl" />
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-[250px]" />
-              <Skeleton className="h-4 w-[200px]" />
-            </div>
-          </div>
-        ) : accountData ? (
-          <AccountSummary data={accountData} />
-        ) : (
-          <div>No account data available</div>
-        )}
-      </Suspense>
+      <AccountSummary accountId={account_id} />
+      {/* <AccountDetails accountId={account_id} /> */}
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Upcoming Expenses</h2>

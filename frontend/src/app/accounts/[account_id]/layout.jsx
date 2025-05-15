@@ -1,7 +1,7 @@
 export default function AccountDetailsLayout({ children }) {
   return (
-    <section className="flex flex-col md:py-10 w-full">
-      <div className="w-full">
+    <section className="flex flex-col gap-4 md:py-10">
+      <div className="inline-block">
         {children}
       </div>
     </section>
