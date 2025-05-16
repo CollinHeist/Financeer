@@ -26,6 +26,9 @@ import {
 } from "@/components/ui/popover";
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import ExpenseDialog from './ExpenseDialog';
+import TransactionFilterDialog from './TransactionFilterDialog';
+import { IconFilterDollar } from '@tabler/icons-react';
+import { Badge } from "@/components/ui/badge";
 
 export function ExpenseTable({ accountId }) {
   const queryClient = useQueryClient();
@@ -33,6 +36,8 @@ export function ExpenseTable({ accountId }) {
   const [expenseToDelete, setExpenseToDelete] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [expenseToFilter, setExpenseToFilter] = useState(null);
 
   const { data: expenses, isLoading, error } = useQuery({
     queryKey: ['expenses', accountId],
@@ -79,6 +84,18 @@ export function ExpenseTable({ accountId }) {
     }
   };
 
+  const handleFilter = (expense) => {
+    setExpenseToFilter(expense);
+    setFilterDialogOpen(true);
+  };
+  
+  const handleFilterDialogClose = (open) => {
+    setFilterDialogOpen(open);
+    if (!open) {
+      setExpenseToFilter(null);
+    }
+  };
+
   if (error) {
     return <div className="text-left p-4 text-red-500">Error loading expenses: {error.message}</div>;
   }
@@ -104,6 +121,7 @@ export function ExpenseTable({ accountId }) {
             <TableHead className="text-left">Amount</TableHead>
             <TableHead className="text-left">Date</TableHead>
             <TableHead className="text-left">End Date</TableHead>
+            <TableHead className="text-left">Filters</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -160,6 +178,17 @@ export function ExpenseTable({ accountId }) {
                 {expense.end_date ? new Date(expense.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
                   expense.type === 'one_time' ? '-' : <span className="text-gray-400">Never</span>}
               </TableCell>
+              <TableCell className="text-left">
+                {expense.transaction_filters && expense.transaction_filters.length > 0 ? (
+                  <Badge 
+                    variant="outline" 
+                    className="hover:bg-slate-100 cursor-pointer" 
+                    onClick={() => handleFilter(expense)}
+                  >
+                    {expense.transaction_filters.reduce((total, group) => total + group.length, 0)}
+                  </Badge>
+                ) : '-'}
+              </TableCell>
               <TableCell className="text-right">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -172,6 +201,10 @@ export function ExpenseTable({ accountId }) {
                     <DropdownMenuItem onClick={() => handleEdit(expense)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleFilter(expense)}>
+                      <IconFilterDollar className="mr-2 h-4 w-4" />
+                      Transaction Filters
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleDelete(expense)}
@@ -203,6 +236,12 @@ export function ExpenseTable({ accountId }) {
         onOpenChange={handleEditDialogClose}
         accountId={accountId}
         expenseId={expenseToEdit?.id}
+      />
+
+      <TransactionFilterDialog
+        isOpen={filterDialogOpen}
+        onOpenChange={handleFilterDialogClose}
+        expenseId={expenseToFilter?.id}
       />
     </div>
   );

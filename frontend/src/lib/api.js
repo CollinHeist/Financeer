@@ -433,3 +433,19 @@ export const createBalance = async (balanceData) => {
     throw error;
   }
 }
+
+/**
+ * Fetches transactions from the API based on expense filters
+ * @param {Array} expenseFilters The expense filters to apply
+ * @returns {Promise<Array>} Array of transaction data
+ * @throws {Error} If the API request fails
+ */
+export const getTransactionsFromExpenseFilters = async (expenseFilters) => {
+  try {
+    const response = await api.post('/transaction/expense-filters', expenseFilters);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching transactions from expense filters:', error);
+    throw error;
+  }
+}
