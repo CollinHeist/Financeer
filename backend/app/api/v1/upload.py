@@ -7,9 +7,10 @@ from app.core.upload import (
     add_transactions_to_database,
     create_upload,
     parse_generic_upload,
-    parse_iccu_upload,
 )
 from app.schemas.transaction import ReturnTransactionSchema
+from app.services.citi import parse_citi_upload
+from app.services.iccu import parse_iccu_upload
 
 
 upload_router = APIRouter(
@@ -55,5 +56,24 @@ def upload_iccu_transactions(
     upload = create_upload(file, account_id, db)
 
     transactions = parse_iccu_upload(upload)
+
+    return add_transactions_to_database(transactions, upload.id, db)
+
+
+@upload_router.post('/new/citi')
+def upload_citi_transactions(
+    file: UploadFile,
+    account_id: int = Query(...),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """
+    Upload an Citi Bank TransactionCSV file.
+
+    - account_id: The ID of the Account to upload the Transactions to.
+    """
+
+    upload = create_upload(file, account_id, db)
+
+    transactions = parse_citi_upload(upload)
 
     return add_transactions_to_database(transactions, upload.id, db)
