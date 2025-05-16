@@ -62,14 +62,17 @@ const RelatedTransactionsCell = ({ transactions }) => {
             {transactions.length} Transaction{transactions.length === 1 ? '' : 's'}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-100">
+        <PopoverContent className="w-[450px] max-h-[500px] overflow-y-auto">
           <div className="space-y-2">
             <h4 className="font-medium">Related Transactions</h4>
             <div className="divide-y">
               {transactions.map((t) => (
                 <div key={t.id} className="py-2 grid grid-cols-3 gap-2">
                   <span className="text-sm">{formatDate(t.date)}</span>
-                  <span className="text-sm">{t.description}</span>
+                  <div>
+                    <span className="text-sm truncate block" title={t.description}>{t.description}</span>
+                    {t.note && t.note !== t.description && <span className="text-xs text-muted-foreground truncate block" title={t.note}>{t.note}</span>}
+                  </div>
                   <span className={cn(
                     "text-sm text-right",
                     t.amount >= 0 ? "text-green-600" : "text-red-600"
