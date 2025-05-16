@@ -3,7 +3,6 @@ from datetime import datetime
 from io import StringIO
 
 from fastapi.datastructures import UploadFile
-import pandas as pd
 from sqlalchemy.orm.session import Session
 
 from app.models.transaction import Transaction
@@ -65,36 +64,6 @@ def parse_generic_upload(upload: Upload) -> list[NewTransactionSchema]:
         )
         for line in reader
         if line and line[0] and line[0].lower() != 'date'
-    ]
-
-
-def parse_iccu_upload(upload: Upload) -> list[NewTransactionSchema]:
-    """
-    Parse an ICCU upload into a list of NewTransactionSchemas.
-
-    Args:
-        upload: The Upload to parse.
-
-    Returns:
-        A list of NewTransactionSchemas.
-    """
-
-    # Parse the raw Upload data into a CSV stream
-    file_stream = StringIO(upload.data.decode('utf-8'))
-    df = pd.read_csv(file_stream)
-
-    # Convert the posting date column to a datetime object
-    df['Posting Date'] = pd.to_datetime(df['Posting Date'], format='%m/%d/%Y')
-
-    return [
-        NewTransactionSchema(
-            date=row['Posting Date'],
-            description=row['Description'],
-            note=row['Extended Description'],
-            amount=row['Amount'],
-            account_id=upload.account_id,
-        )
-        for _, row in df.iterrows()
     ]
 
 
