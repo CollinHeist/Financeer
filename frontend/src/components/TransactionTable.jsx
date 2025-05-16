@@ -105,7 +105,47 @@ const CategoryCell = ({ expense, income }) => {
 };
 
 const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  // Show limited number of page buttons
+  const getPageNumbers = () => {
+    const maxButtonsToShow = 5; // Adjust this number as needed
+    
+    if (totalPages <= maxButtonsToShow) {
+      // If we have fewer pages than the max, show all
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    
+    const leftSiblingIndex = Math.max(currentPage - 1, 1);
+    const rightSiblingIndex = Math.min(currentPage + 1, totalPages);
+    
+    const shouldShowLeftDots = leftSiblingIndex > 2;
+    const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
+    
+    if (!shouldShowLeftDots && shouldShowRightDots) {
+      // Show first few pages
+      const leftRange = Array.from({ length: maxButtonsToShow - 1 }, (_, i) => i + 1);
+      return [...leftRange, '...', totalPages];
+    }
+    
+    if (shouldShowLeftDots && !shouldShowRightDots) {
+      // Show last few pages
+      const rightRange = Array.from(
+        { length: maxButtonsToShow - 1 }, 
+        (_, i) => totalPages - (maxButtonsToShow - 2) + i
+      );
+      return [1, '...', ...rightRange];
+    }
+    
+    if (shouldShowLeftDots && shouldShowRightDots) {
+      // Show pages around current page with dots on both sides
+      const middleRange = Array.from(
+        { length: rightSiblingIndex - leftSiblingIndex + 1 },
+        (_, i) => leftSiblingIndex + i
+      );
+      return [1, '...', ...middleRange, '...', totalPages];
+    }
+  };
+  
+  const pages = getPageNumbers();
   
   return (
     <div className="flex items-center justify-center gap-2 mt-4">
@@ -118,19 +158,23 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
         Previous
       </Button>
       
-      {pages.map((pageNum) => (
-        <Button
-          key={pageNum}
-          variant={pageNum === currentPage ? "default" : "outline"}
-          size="sm"
-          onClick={() => onPageChange(pageNum)}
-          className={cn(
-            "min-w-[32px]",
-            pageNum === currentPage && "bg-primary text-primary-foreground"
-          )}
-        >
-          {pageNum}
-        </Button>
+      {pages.map((pageNum, i) => (
+        pageNum === '...' ? (
+          <span key={`ellipsis-${i}`} className="px-2">...</span>
+        ) : (
+          <Button
+            key={pageNum}
+            variant={pageNum === currentPage ? "default" : "outline"}
+            size="sm"
+            onClick={() => onPageChange(pageNum)}
+            className={cn(
+              "min-w-[32px]",
+              pageNum === currentPage && "bg-primary text-primary-foreground"
+            )}
+          >
+            {pageNum}
+          </Button>
+        )
       ))}
       
       <Button
