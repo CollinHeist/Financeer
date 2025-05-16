@@ -16,6 +16,7 @@ from app.db.base import Base, JSONWithDates
 from app.schemas.expense import (
     ExpenseType,
     ExpenseChangeItemDict,
+    ExpenseFilterDict,
     FrequencyDict,
 )
 
@@ -50,8 +51,8 @@ class Expense(Base):
         MutableList.as_mutable(JSONWithDates),
         default=[],
     )
-    transaction_filters: Mapped[list[dict]] = mapped_column(
-        MutableList.as_mutable(JSONWithDates),
+    transaction_filters: Mapped[list[ExpenseFilterDict]] = mapped_column(
+        MutableList.as_mutable(JSON),
         default=[],
     )
 

@@ -9,6 +9,7 @@ from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
 from app.core.dates import date_range
+from app.core.expenses import apply_expense_filters
 from app.db.query import (
     require_account,
     require_expense,
@@ -18,6 +19,7 @@ from app.db.query import (
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.transaction import Transaction
+from app.schemas.expense import ExpenseFilter
 from app.schemas.transaction import (
     NewTransactionSchema,
     ReturnTransactionSchema,
@@ -82,6 +84,21 @@ def get_transactions(
                 joinedload(Transaction.income),
             )
     )
+
+
+@transaction_router.post('/expense-filters')
+def get_transactions_from_expense_filters(
+    filters: list[list[ExpenseFilter]] = Body(default=[]),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """
+    Get all Transactions which would meet the prospective filter
+    criteria.
+
+    - filters: The filters to apply to the Transactions.
+    """
+
+    return apply_expense_filters(filters, db).all() # type: ignore
 
 
 @transaction_router.get('/{transaction_id}')
