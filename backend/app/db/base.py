@@ -1,8 +1,10 @@
 from datetime import date, datetime
 from json import loads, dumps
+from re import match as regex_match, IGNORECASE
 from typing import Any
 
 from sqlalchemy import create_engine
+from sqlalchemy.event import listens_for
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.types import TypeDecorator, JSON
 
@@ -15,6 +17,22 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+@listens_for(engine, 'connect')
+def register_custom_functions(
+        dbapi_connection,
+        connection_record, # pylint: disable=unused-argument
+    ) -> None:
+    """
+    When the engine is connected, register the regex match function.
+    """
+
+    dbapi_connection.create_function(
+        'regex_match',
+        2,
+        lambda s, pattern: bool(regex_match(pattern, s, flags=IGNORECASE)),
+    )
 
 
 def json_serializer(obj: Any):
