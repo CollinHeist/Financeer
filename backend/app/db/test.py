@@ -4,8 +4,11 @@ from random import randint, random
 
 from sqlalchemy.orm import Session
 
-from app.core.upload import add_transactions_to_database, parse_iccu_upload
+from app.core.upload import add_transactions_to_database
 from app.models import Account, Expense, Income, Transaction, Upload
+from app.services.citi import parse_citi_upload
+from app.services.iccu import parse_iccu_upload
+from app.utils.logging import log
 
 
 TEST_TRANSACTIONS = [
@@ -90,7 +93,7 @@ def _generate_random_transactions(
 ) -> None:
     for i in range(amount):
         related_transaction_ids = [
-            randint(0, i - 1)
+            randint(0, db.query(Transaction).count() - 1)
             for _ in range(randint(0, 5))
         ] if random() > 0.8 and i > 1 else []
         related_transactions = [
@@ -109,6 +112,45 @@ def _generate_random_transactions(
         transaction.related_transactions = related_transactions
         db.add(transaction)
         db.commit()
+
+
+def upload_bank_transactions(db: Session) -> bool:
+
+    root_dir = Path(__file__).parent.parent.parent.parent
+
+    # Checking transactions
+    checking_transactions = root_dir / 'bank_upload.csv'
+    if checking_transactions.exists():
+        upload = Upload(
+            filename=checking_transactions.name,
+            data=checking_transactions.read_bytes(),
+            upload_date=datetime.now(),
+            account_id=1,
+        )
+        db.add(upload)
+        transactions = parse_iccu_upload(upload)
+        add_transactions_to_database(transactions, upload.id, db)
+        log.debug(
+            f'Uploaded {len(transactions)} transactions from {upload.filename}'
+        )
+
+    # Credit card transactions
+    credit_transactions = root_dir / 'credit_upload.csv'
+    if credit_transactions.exists():
+        upload = Upload(
+            filename=credit_transactions.name,
+            data=credit_transactions.read_bytes(),
+            upload_date=datetime.now(),
+            account_id=1,
+        )
+        db.add(upload)
+        transactions = parse_citi_upload(upload)
+        add_transactions_to_database(transactions, upload.id, db)
+        log.debug(
+            f'Uploaded {len(transactions)} transactions from {upload.filename}'
+        )
+
+    return checking_transactions.exists() or credit_transactions.exists()
 
 
 def initialize_test_data(db: Session) -> None:
@@ -152,7 +194,9 @@ def initialize_test_data(db: Session) -> None:
         from_account_id=account.id,
         to_account_id=None,
         change_schedule=[],
-        transaction_filters=[],
+        transaction_filters=[
+            [{"on": "description", "type": "contains", "value": "AdelFi"}]
+        ]
     )
     db.add(car_loan)
     student_loan = Expense(
@@ -164,6 +208,15 @@ def initialize_test_data(db: Session) -> None:
         start_date=date(2024, 6, 1),
         end_date=date(2028, 6, 1),
         from_account_id=account.id,
+        transaction_filters=[
+            [
+                {
+                    "on": "description",
+                    "type": "contains",
+                    "value": "American Education Services"
+                }
+            ]
+        ]
     )
     db.add(student_loan)
     savings = Expense(
@@ -195,6 +248,9 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 6, 'unit': 'months'},
         start_date=date(2023, 1, 12),
         from_account_id=credit_card.id,
+        transaction_filters=[
+            [{"on": "description", "type": "contains", "value": "USAA Insurance"}]
+        ]
     )
     db.add(car_insurance)
 
@@ -269,33 +325,22 @@ def initialize_test_data(db: Session) -> None:
     db.add(github_income)
 
     # Upload Transactions
-    iccu_transactions = Path(__file__).parent.parent.parent.parent / 'iccu_upload.csv'
-    if iccu_transactions.exists():
-        upload = Upload(
-            filename=iccu_transactions.name,
-            data=iccu_transactions.read_bytes(),
-            upload_date=datetime.now(),
-            account_id=account.id,
-        )
-        db.add(upload)
-        transactions = parse_iccu_upload(upload)
-        add_transactions_to_database(transactions, upload.id, db)
-    # Import hard-coded test transactions
-    else:
-        for transaction in TEST_TRANSACTIONS:
-            # Query related transactions if provided
-            related = []
-            if 'related_transaction_ids' in transaction:
-                related = [
-                    db.query(Transaction).get(id)
-                    for id in transaction.pop('related_transaction_ids')
-                ]
+    for transaction in TEST_TRANSACTIONS:
+        # Query related transactions if provided
+        related = []
+        if 'related_transaction_ids' in transaction:
+            related = [
+                db.query(Transaction).get(id)
+                for id in transaction.pop('related_transaction_ids')
+            ]
 
-            trans = Transaction(**transaction)
-            if related:
-                trans.related_transactions = related # type: ignore
-            db.add(trans)
-            db.commit()
+        trans = Transaction(**transaction)
+        if related:
+            trans.related_transactions = related # type: ignore
+        db.add(trans)
+        db.commit()
+
+    if not upload_bank_transactions(db):
         _generate_random_transactions(db)
 
     db.commit()
