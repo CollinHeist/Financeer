@@ -46,7 +46,10 @@ def get_all_expenses(
     db: Session = Depends(get_database),
 ) -> list[ReturnExpenseSchema]:
 
-    return db.query(Expense).all()
+    return [
+        ReturnExpenseSchema.model_validate(expense)
+        for expense in db.query(Expense).all()
+    ]
 
 
 @expense_router.get('/{expense_id}')
@@ -54,6 +57,11 @@ def get_expense_by_id(
     expense_id: int,
     db: Session = Depends(get_database),
 ) -> ReturnExpenseSchema:
+    """
+    Get the Expense with the given ID.
+
+    - expense_id: The ID of the Expense to get.
+    """
 
     return require_expense(db, expense_id, raise_exception=True)
 
@@ -151,7 +159,11 @@ def get_expenses_from_account(
     db: Session = Depends(get_database),
 ) -> list[ReturnExpenseSchema]:
 
-    return db.query(Expense).filter(Expense.from_account_id == account_id).all() # type: ignore
+    return [
+        ReturnExpenseSchema.model_validate(expense)
+        for expense in
+        db.query(Expense).filter(Expense.from_account_id == account_id).all()
+    ]
 
 
 @expense_router.get('/account/{account_id}/to')
@@ -160,4 +172,8 @@ def get_expenses_to_account(
     db: Session = Depends(get_database),
 ) -> list[ReturnExpenseSchema]:
 
-    return db.query(Expense).filter(Expense.to_account_id == account_id).all() # type: ignore
+    return [
+        ReturnExpenseSchema.model_validate(expense)
+        for expense in
+        db.query(Expense).filter(Expense.to_account_id == account_id).all()
+    ]
