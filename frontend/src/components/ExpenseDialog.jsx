@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getAccounts, createExpense, updateExpense, getExpenseById } from '@/lib/api';
+import { getAccounts, createExpense, patchExpense, getExpenseById } from '@/lib/api';
 import { IconInfoCircle } from '@tabler/icons-react';
 
 export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expenseId = null }) {
@@ -66,7 +66,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
   });
 
   const updateExpenseMutation = useMutation({
-    mutationFn: (data) => updateExpense(expenseId, data),
+    mutationFn: (data) => patchExpense(expenseId, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['expenses', accountId]);
       queryClient.invalidateQueries(['expense', expenseId]);
