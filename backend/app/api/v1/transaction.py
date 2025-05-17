@@ -3,13 +3,13 @@ from datetime import date, timedelta
 from fastapi import APIRouter, Body, Depends, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
 from app.core.dates import date_range
-from app.core.expenses import apply_expense_filters
+from app.core.expenses import apply_transaction_filters
 from app.db.query import (
     require_account,
     require_expense,
@@ -19,10 +19,11 @@ from app.db.query import (
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.transaction import Transaction
-from app.schemas.expense import ExpenseFilter
+from app.schemas.core import TransactionFilter
 from app.schemas.transaction import (
     NewTransactionSchema,
     ReturnTransactionSchema,
+    ReturnTransactionSchemaNoAccount,
     ReturnUpcomingTransactionSchema,
     UpdateTransactionSchema
 )
@@ -72,11 +73,29 @@ def create_transaction(
 
 @transaction_router.get('/all')
 def get_transactions(
+    contains: str | None = Query(default=None),
+    date: date | None = Query(default=None),
+    unassigned_only: bool = Query(default=False),
     db: Session = Depends(get_database),
 ) -> Page[ReturnTransactionSchema]:
 
+    filters = []
+    if contains is not None:
+        filters.append(or_(
+            Transaction.description.contains(contains),
+            Transaction.note.contains(contains),
+        ))
+    if date is not None:
+        filters.append(Transaction.date == date)
+    if unassigned_only:
+        filters.append(and_(
+            Transaction.expense_id.is_(None),
+            Transaction.income_id.is_(None),
+        ))
+
     return paginate(
         db.query(Transaction)
+            .filter(and_(*filters))
             .order_by(Transaction.date.desc())
             .options(
                 joinedload(Transaction.account),
@@ -87,18 +106,56 @@ def get_transactions(
 
 
 @transaction_router.post('/expense-filters')
-def get_transactions_from_expense_filters(
-    filters: list[list[ExpenseFilter]] = Body(default=[]),
+def query_transactions_from_expense_filters(
+    expense_id: int = Query(...),
+    filters: list[list[TransactionFilter]] = Body(default=[]),
     db: Session = Depends(get_database),
 ) -> list[ReturnTransactionSchema]:
     """
     Get all Transactions which would meet the prospective filter
     criteria.
 
+    - expense_id: The ID of the Expense to get Transactions for.
     - filters: The filters to apply to the Transactions.
     """
 
-    return apply_expense_filters(filters, db).all() # type: ignore
+    return (
+        apply_transaction_filters(
+            require_expense(db, expense_id, raise_exception=True),
+            filters,
+            db,
+            include_currently_selected=True,
+        )
+        .order_by(Transaction.date.desc())
+        .all()
+    ) # type: ignore
+
+
+@transaction_router.post('/income-filters')
+def query_transactions_from_income_filters(
+    income_id: int = Query(...),
+    filters: list[list[TransactionFilter]] = Body(default=[]),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """
+    Get all Transactions which would meet the prospective filter
+    criteria.
+
+    - income_id: The ID of the Income to get Transactions for.
+    - filters: The filters to apply to the Transactions.
+    """
+
+    return (
+        apply_transaction_filters(
+            require_income(db, income_id, raise_exception=True),
+            filters,
+            db,
+            include_currently_selected=True,
+        )
+        .order_by(Transaction.date.desc())
+        .all()
+    ) # type: ignore
+
 
 
 @transaction_router.get('/{transaction_id}')

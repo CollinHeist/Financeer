@@ -1,24 +1,45 @@
-from fastapi import APIRouter, Body, Depends
+from datetime import date
+
+from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
+from app.core.expenses import apply_transaction_filters
 from app.db.query import require_account, require_expense
 from app.models.expense import Expense
+from app.models.income import Income
+from app.models.transaction import Transaction
+from app.schemas.core import TransactionFilter
 from app.schemas.expense import (
     NewExpenseSchema,
     ReturnExpenseSchema,
     UpdateExpenseSchema,
 )
+from app.schemas.transaction import ReturnTransactionSchemaNoAccount
 
 
 expense_router = APIRouter(
-    prefix='/expense',
+    prefix='/expenses',
     tags=['Expenses'],
 )
 
 
-@expense_router.post('/new')
+@expense_router.get('/all')
+def get_all_expenses(
+    on: date | None = Query(default_factory=lambda: date.today()),
+    db: Session = Depends(get_database),
+) -> list[ReturnExpenseSchema]:
+
+    filters = []
+    if on is not None:
+        filters.append(Expense.start_date <= on)
+        filters.append(or_(Expense.end_date.is_(None), Expense.end_date >= on))
+
+    return db.query(Expense).filter(*filters).order_by(Expense.name).all() # type: ignore
+
+
+@expense_router.post('/expense/new')
 def create_expense(
     new_expense: NewExpenseSchema = Body(...),
     db: Session = Depends(get_database),
@@ -41,18 +62,7 @@ def create_expense(
     return expense
 
 
-@expense_router.get('/all')
-def get_all_expenses(
-    db: Session = Depends(get_database),
-) -> list[ReturnExpenseSchema]:
-
-    return [
-        ReturnExpenseSchema.model_validate(expense)
-        for expense in db.query(Expense).all()
-    ]
-
-
-@expense_router.get('/{expense_id}')
+@expense_router.get('/expense/{expense_id}')
 def get_expense_by_id(
     expense_id: int,
     db: Session = Depends(get_database),
@@ -66,7 +76,7 @@ def get_expense_by_id(
     return require_expense(db, expense_id, raise_exception=True)
 
 
-@expense_router.delete('/{expense_id}')
+@expense_router.delete('/expense/{expense_id}')
 def delete_expense(
     expense_id: int,
     db: Session = Depends(get_database),
@@ -82,7 +92,7 @@ def delete_expense(
     db.commit()
 
 
-@expense_router.put('/{expense_id}')
+@expense_router.put('/expense/{expense_id}')
 def update_expense(
     expense_id: int,
     expense_update: NewExpenseSchema = Body(...),
@@ -106,7 +116,7 @@ def update_expense(
     return expense
 
 
-@expense_router.patch('/{expense_id}')
+@expense_router.patch('/expense/{expense_id}')
 def partially_update_expense(
     expense_id: int,
     expense_update: UpdateExpenseSchema = Body(...),
@@ -149,6 +159,7 @@ def get_all_expenses_for_account(
                     Expense.to_account_id == account_id,
                 ),
             )
+            .order_by(Expense.name)
             .all()
      ) # type: ignore
 
@@ -177,3 +188,80 @@ def get_expenses_to_account(
         for expense in
         db.query(Expense).filter(Expense.to_account_id == account_id).all()
     ]
+
+
+@expense_router.post('/expense/{expense_id}/transaction-filters')
+def apply_expense_transaction_filters_(
+    expense_id: int,
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchemaNoAccount]:
+    """
+    Apply the given Transaction filters of the given Expense to all
+    Transactions in the database. This only affects Transactions which
+    do not already have an associated Expense.
+
+    - expense_id: The ID of the Expense to apply the filters to.
+    """
+
+    # Get the associated Expense and Transaction filters
+    expense = require_expense(db, expense_id, raise_exception=True)
+    filters = [
+        [TransactionFilter.model_validate(filter) for filter in filter_group]
+        for filter_group in expense.transaction_filters
+    ]
+
+    if not filters:
+        return []
+
+    # Associate the Expense with the matching Transactions
+    for transaction in apply_transaction_filters(expense, filters, db).all():
+        transaction.expense = expense
+
+    db.commit()
+
+    # Return the filtered Transactions
+    return expense.transactions # type: ignore
+
+
+@expense_router.post('/expense-filters')
+def apply_all_expense_filters(
+    db: Session = Depends(get_database),
+) -> None:
+    """
+    Apply all Transaction filters of all Expenses to all Transactions in
+    the database.
+    """
+
+    # Apply all Transaction filters of all defined Expenses
+    for expense in db.query(Expense).all():
+        filters = [
+            [TransactionFilter.model_validate(filter) for filter in filter_group]
+            for filter_group in expense.transaction_filters
+        ]
+
+        if not filters:
+            continue
+
+        # Associate the Expense with the matching Transactions
+        apply_transaction_filters(
+            expense, filters, db, include_currently_selected=False
+        ).update({Transaction.expense_id: expense.id}, synchronize_session='fetch')
+
+    # Apply all Transaction filters of all defined Incomes
+    for income in db.query(Income).all():
+        filters = [
+            [TransactionFilter.model_validate(filter) for filter in filter_group]
+            for filter_group in income.transaction_filters
+        ]
+
+        if not filters:
+            continue
+
+        # Associate the Expense with the matching Transactions
+        apply_transaction_filters(
+            income, filters, db, include_currently_selected=False
+        ).update({Transaction.income_id: income.id}, synchronize_session='fetch')
+
+    db.commit()
+
+    return None
