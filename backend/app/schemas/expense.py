@@ -4,6 +4,8 @@ from typing import Literal, Self, TypedDict
 from pydantic import Field, model_validator
 from pydantic.main import BaseModel
 
+from app.schemas.core import TransactionFilter
+
 
 ExpenseType = Literal['one_time', 'recurring']
 FrequencyUnit = Literal['days', 'weeks', 'months', 'years']
@@ -40,16 +42,6 @@ class ExpenseChangeItemDict(TypedDict):
     end_date: date | None
     frequency: int | None
 
-class ExpenseFilter(BaseModel):
-    on: Literal['description', 'note']
-    type: Literal['contains', 'regex']
-    value: str = Field(min_length=1)
-
-class ExpenseFilterDict(TypedDict):
-    on: Literal['description', 'note']
-    type: Literal['contains', 'regex']
-    value: str
-
 class NewExpenseSchema(BaseModel):
     name: str
     description: str
@@ -59,7 +51,7 @@ class NewExpenseSchema(BaseModel):
     start_date: date
     end_date: date | None
     change_schedule: list[ExpenseChangeItem] = []
-    transaction_filters: list[list[ExpenseFilter]] = []
+    transaction_filters: list[list[TransactionFilter]] = []
     from_account_id: int
     to_account_id: int | None = None
 
@@ -86,7 +78,7 @@ class UpdateExpenseSchema(BaseModel):
     start_date: date = None
     end_date: date | None = None
     change_schedule: list[ExpenseChangeItem] = None
-    transaction_filters: list[list[ExpenseFilter]] = None
+    transaction_filters: list[list[TransactionFilter]] = None
     from_account_id: int = None
     to_account_id: int | None = None
 
@@ -115,6 +107,6 @@ class ReturnExpenseSchema(BaseModel):
     start_date: date
     end_date: date | None
     change_schedule: list[dict]
-    transaction_filters: list[list[ExpenseFilter]]
+    transaction_filters: list[list[TransactionFilter]]
     from_account_id: int
     to_account_id: int | None

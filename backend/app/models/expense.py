@@ -13,10 +13,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.dates import date_meets_frequency
 from app.db.base import Base, JSONWithDates
+from app.schemas.core import TransactionFilterDict
 from app.schemas.expense import (
     ExpenseType,
     ExpenseChangeItemDict,
-    ExpenseFilterDict,
     FrequencyDict,
 )
 
@@ -51,7 +51,7 @@ class Expense(Base):
         MutableList.as_mutable(JSONWithDates),
         default=[],
     )
-    transaction_filters: Mapped[list[ExpenseFilterDict]] = mapped_column(
+    transaction_filters: Mapped[list[TransactionFilterDict]] = mapped_column(
         MutableList.as_mutable(JSON),
         default=[],
     )
