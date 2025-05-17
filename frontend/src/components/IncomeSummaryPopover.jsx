@@ -3,7 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { IconExternalLink } from "@tabler/icons-react";
+import { IconExternalLink, IconTrash } from "@tabler/icons-react";
+import { useQueryClient } from '@tanstack/react-query';
+import { patchTransaction } from '@/lib/api';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -25,8 +27,23 @@ const formatCurrency = (amount) => {
 export default function IncomeSummaryPopover({ 
   income,
   trigger = null,
-  className
+  className,
+  transaction
 }) {
+  const queryClient = useQueryClient();
+
+  const handleRemoveAssignment = async () => {
+    try {
+      await patchTransaction(transaction.id, {
+        expense_id: null,
+        income_id: null,
+      });
+      await queryClient.invalidateQueries(['transactions']);
+    } catch (error) {
+      console.error('Failed to remove category assignment:', error);
+    }
+  };
+
   if (!income) return null;
 
   return (
@@ -45,13 +62,25 @@ export default function IncomeSummaryPopover({
       <PopoverContent className="w-80">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium text-green-600">{income.name}</h4>
-            <span className="text-sm text-muted-foreground">
-              <a href="/income" className="hover:underline flex items-center gap-1">
-                View Income
-                <IconExternalLink size={14} />
-              </a>
-            </span>
+            <div className="flex items-center gap-2">
+              <h4 className="font-medium">{income.name}</h4>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-red-600 hover:bg-destructive hover:text-destructive-foreground"
+                onClick={handleRemoveAssignment}
+              >
+                <IconTrash className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                <a href="/income" className="hover:underline flex items-center gap-1">
+                  View Income
+                  <IconExternalLink size={14} />
+                </a>
+              </span>
+            </div>
           </div>
 
           {income.description && (
