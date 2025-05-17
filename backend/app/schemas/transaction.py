@@ -1,6 +1,6 @@
 from datetime import date as date_type
 
-from pydantic.main import BaseModel
+from pydantic import BaseModel
 
 from app.schemas.account import ReturnAccountSchema
 from app.schemas.expense import ReturnExpenseSchema
