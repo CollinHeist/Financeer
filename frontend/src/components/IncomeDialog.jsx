@@ -10,7 +10,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getAccount, createIncome, updateIncome, getIncomeById } from '@/lib/api';
+import { getAccount, createIncome, patchIncome, getIncomeById } from '@/lib/api';
 
 const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
   const isEditMode = !!incomeId;
@@ -83,7 +83,7 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
   
   // Use the updateIncome API function
   const updateIncomeMutation = useMutation({
-    mutationFn: (data) => updateIncome(incomeId, data),
+    mutationFn: (data) => patchIncome(incomeId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incomes'] });
       queryClient.invalidateQueries({ queryKey: ['incomes', accountId] });
