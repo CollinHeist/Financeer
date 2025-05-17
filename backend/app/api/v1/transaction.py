@@ -327,3 +327,33 @@ def get_upcoming_account_transactions(
                 )
 
     return upcoming_expenses
+
+
+@transaction_router.get('/expense/{expense_id}')
+def get_expense_transactions(
+    expense_id: int,
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchemaNoAccount]:
+    """Get all Transactions associated with the given Expense."""
+
+    return (
+        db.query(Transaction)
+            .filter(Transaction.expense_id == expense_id)
+            .order_by(Transaction.date.desc())
+            .all()
+    ) # type: ignore
+
+
+@transaction_router.get('/income/{income_id}')
+def get_income_transactions(
+    income_id: int,
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchemaNoAccount]:
+    """Get all Transactions associated with the given Income."""
+
+    return (
+        db.query(Transaction)
+            .filter(Transaction.income_id == income_id)
+            .order_by(Transaction.date.desc())
+            .all()
+    ) # type: ignore
