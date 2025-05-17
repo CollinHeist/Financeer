@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { IconPlus, IconTrash, IconInfoCircle, IconBraces } from '@tabler/icons-react';
-import { getExpenseById, patchExpense, getTransactionsFromExpenseFilters } from '@/lib/api';
+import { getExpenseById, getIncomeById, patchExpense, patchIncome, getTransactionsFromFilters } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,23 +13,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseId }) {
+export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseId, incomeId }) {
   const queryClient = useQueryClient();
   const [filterGroups, setFilterGroups] = useState([]);
   const [previewTransactions, setPreviewTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('edit');
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
-  const { data: expense, isLoading: expenseLoading } = useQuery({
-    queryKey: ['expense', expenseId],
-    queryFn: () => getExpenseById(expenseId),
-    enabled: isOpen && !!expenseId,
+  const type = expenseId ? 'expense' : 'income';
+  const id = expenseId || incomeId;
+
+  const { data: item, isLoading: itemLoading } = useQuery({
+    queryKey: [type, id],
+    queryFn: () => type === 'expense' ? getExpenseById(id) : getIncomeById(id),
+    enabled: isOpen && !!id,
   });
 
   useEffect(() => {
-    if (expense?.transaction_filters) {
+    if (item?.transaction_filters) {
       // Convert API filter groups to our UI format
-      const groups = expense.transaction_filters.map((group, groupIndex) => ({
+      const groups = item.transaction_filters.map((group, groupIndex) => ({
         id: `group-${groupIndex}`,
         filters: group.map((filter, filterIndex) => ({
           ...filter,
@@ -41,17 +44,17 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
     } else {
       setFilterGroups([createEmptyGroup()]);
     }
-  }, [expense]);
+  }, [item]);
 
-  const updateExpenseMutation = useMutation({
-    mutationFn: (data) => patchExpense(expenseId, data),
+  const updateItemMutation = useMutation({
+    mutationFn: (data) => type === 'expense' ? patchExpense(id, data) : patchIncome(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['expense', expenseId]);
-      queryClient.invalidateQueries(['expenses']);
+      queryClient.invalidateQueries([type, id]);
+      queryClient.invalidateQueries([`${type}s`]);
       onOpenChange(false);
     },
     onError: (error) => {
-      console.error('Error updating expense filters:', error);
+      console.error(`Error updating ${type} filters:`, error);
     },
   });
 
@@ -126,7 +129,7 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
       ))
       .filter(group => group.length > 0); // Remove empty groups
     
-    updateExpenseMutation.mutate({
+    updateItemMutation.mutate({
       transaction_filters: validGroups
     });
   };
@@ -148,7 +151,7 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
     
     try {
       setIsPreviewLoading(true);
-      const transactions = await getTransactionsFromExpenseFilters(validGroups);
+      const transactions = await getTransactionsFromFilters(id, validGroups, type);
       setPreviewTransactions(transactions);
     } catch (error) {
       console.error('Error previewing filters:', error);
@@ -162,21 +165,21 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Transaction Filters for {expense?.name}</DialogTitle>
+          <DialogTitle>Transaction Filters for {item?.name}</DialogTitle>
           <div className="flex items-center gap-1">
             <IconInfoCircle className="text-blue-500 h-4 w-4" />
             <p className="text-xs text-gray-500">
-              Define filters to automatically match Transactions to this Expense. 
+              Define filters to automatically match Transactions to this {type === 'expense' ? 'Expense' : 'Income'}. 
               Filters within a group use AND logic (all must match), while different groups use OR logic (any group can match).
             </p>
           </div>
         </DialogHeader>
 
-        {expenseLoading ? (
+        {itemLoading ? (
           <div className="py-10 text-center">Loading...</div>
         ) : (
           <div className="py-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs defaultValue="edit" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="edit">Edit Filters</TabsTrigger>
                 <TabsTrigger value="preview">Preview Matches</TabsTrigger>
@@ -311,9 +314,9 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
                     <Button
                       type="button"
                       onClick={handleSave}
-                      disabled={updateExpenseMutation.isLoading}
+                      disabled={updateItemMutation.isLoading}
                     >
-                      {updateExpenseMutation.isLoading ? 'Saving...' : 'Save Filters'}
+                      {updateItemMutation.isLoading ? 'Saving...' : 'Save Filters'}
                     </Button>
                   </div>
                 </div>
@@ -383,9 +386,9 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
                   <Button
                     type="button"
                     onClick={handleSave}
-                    disabled={updateExpenseMutation.isLoading}
+                    disabled={updateItemMutation.isLoading}
                   >
-                    {updateExpenseMutation.isLoading ? 'Saving...' : 'Save Filters'}
+                    {updateItemMutation.isLoading ? 'Saving...' : 'Save Filters'}
                   </Button>
                 </div>
               </TabsContent>

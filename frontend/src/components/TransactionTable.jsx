@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -12,14 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
-import { IconSearch, IconDotsVertical, IconEdit, IconTrash } from "@tabler/icons-react";
+import { IconSearch, IconDotsVertical, IconEdit, IconTrash, IconPlus } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import IncomeSummaryPopover from '@/components/IncomeSummaryPopover';
 import ExpenseSummaryPopover from '@/components/ExpenseSummaryPopover';
@@ -30,9 +30,25 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient } from '@tanstack/react-query';
-import { deleteTransaction } from '@/lib/api';
+import {
+  deleteTransaction,
+  applyAllFilters,
+  getAllExpenses,
+  getAllIncomes,
+  patchTransaction,
+} from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import TransactionDialog from '@/components/TransactionDialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { useQuery } from '@tanstack/react-query';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -89,106 +105,110 @@ const RelatedTransactionsCell = ({ transactions }) => {
   );
 };
 
-const CategoryCell = ({ expense, income }) => {
-  if (!expense && !income) return <TableCell className="text-center">-</TableCell>;
+const QuickCategorizePopover = ({ transaction, onClose }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState('expense');
+  const queryClient = useQueryClient();
+
+  const { data: expenses } = useQuery({
+    queryKey: ['expenses', 'all', transaction.date],
+    queryFn: () => getAllExpenses(transaction.date),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const { data: incomes } = useQuery({
+    queryKey: ['incomes', 'all', transaction.date],
+    queryFn: () => getAllIncomes(transaction.date),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const handleCategorize = async (item) => {
+    try {
+      await patchTransaction(transaction.id, {
+        expense_id: selectedType === 'expense' ? item.id : null,
+        income_id: selectedType === 'income' ? item.id : null,
+      });
+      await queryClient.invalidateQueries(['transactions']);
+      onClose?.();
+    } catch (error) {
+      console.error('Failed to categorize transaction:', error);
+    }
+  };
+
+  const filteredItems = selectedType === 'expense' 
+    ? expenses?.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : incomes?.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  return (
+    <div>
+      <Tabs defaultValue="expense" onValueChange={setSelectedType} className="">
+        <TabsList className="w-full">
+          <TabsTrigger value="expense" className="flex-1">Expenses</TabsTrigger>
+          <TabsTrigger value="income" className="flex-1">Income</TabsTrigger>
+        </TabsList>
+        <div className="p-4">
+          <div className="relative mb-4">
+            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="max-h-[300px] overflow-y-auto">
+            {filteredItems?.map((item) => (
+              <Button
+                key={item.id}
+                variant="ghost"
+                className="justify-start w-full"
+                onClick={() => handleCategorize(item)}
+              >
+                {item.name}
+              </Button>
+            ))}
+            {filteredItems?.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-2">
+                No {selectedType === 'expense' ? 'expenses' : 'income'} found
+              </div>
+            )}
+          </div>
+        </div>
+      </Tabs>
+    </div>
+  );
+};
+
+const CategoryCell = ({ expense, income, transaction }) => {
+  if (!expense && !income) {
+    return (
+      <TableCell className="text-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <IconPlus className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[400px]">
+            <QuickCategorizePopover transaction={transaction} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    );
+  }
   
   if (income) {
     return (
       <TableCell className="text-center">
-        <IncomeSummaryPopover income={income} />
+        <IncomeSummaryPopover income={income} transaction={transaction} />
       </TableCell>
     );
   }
   
   return (
     <TableCell className="text-center">
-      <ExpenseSummaryPopover expense={expense} />
+      <ExpenseSummaryPopover expense={expense} transaction={transaction} />
     </TableCell>
-  );
-};
-
-const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
-  // Show limited number of page buttons
-  const getPageNumbers = () => {
-    const maxButtonsToShow = 5; // Adjust this number as needed
-    
-    if (totalPages <= maxButtonsToShow) {
-      // If we have fewer pages than the max, show all
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
-    
-    const leftSiblingIndex = Math.max(currentPage - 1, 1);
-    const rightSiblingIndex = Math.min(currentPage + 1, totalPages);
-    
-    const shouldShowLeftDots = leftSiblingIndex > 2;
-    const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
-    
-    if (!shouldShowLeftDots && shouldShowRightDots) {
-      // Show first few pages
-      const leftRange = Array.from({ length: maxButtonsToShow - 1 }, (_, i) => i + 1);
-      return [...leftRange, '...', totalPages];
-    }
-    
-    if (shouldShowLeftDots && !shouldShowRightDots) {
-      // Show last few pages
-      const rightRange = Array.from(
-        { length: maxButtonsToShow - 1 }, 
-        (_, i) => totalPages - (maxButtonsToShow - 2) + i
-      );
-      return [1, '...', ...rightRange];
-    }
-    
-    if (shouldShowLeftDots && shouldShowRightDots) {
-      // Show pages around current page with dots on both sides
-      const middleRange = Array.from(
-        { length: rightSiblingIndex - leftSiblingIndex + 1 },
-        (_, i) => leftSiblingIndex + i
-      );
-      return [1, '...', ...middleRange, '...', totalPages];
-    }
-  };
-  
-  const pages = getPageNumbers();
-  
-  return (
-    <div className="flex items-center justify-center gap-2 mt-4">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-      >
-        Previous
-      </Button>
-      
-      {pages.map((pageNum, i) => (
-        pageNum === '...' ? (
-          <span key={`ellipsis-${i}`} className="px-2">...</span>
-        ) : (
-          <Button
-            key={pageNum}
-            variant={pageNum === currentPage ? "default" : "outline"}
-            size="sm"
-            onClick={() => onPageChange(pageNum)}
-            className={cn(
-              "min-w-[32px]",
-              pageNum === currentPage && "bg-primary text-primary-foreground"
-            )}
-          >
-            {pageNum}
-          </Button>
-        )
-      ))}
-      
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-      >
-        Next
-      </Button>
-    </div>
   );
 };
 
@@ -252,91 +272,74 @@ const ActionsCell = ({ transaction }) => {
 
 export default function TransactionTable({ 
   transactions = [], 
-  page = 1,
-  totalPages = 1,
-  onPageChange,
   isLoading = false,
-  // accounts = [],
-  expenses = [],
-  incomes = []
+  onSearchChange,
+  showUncategorizedOnly,
+  onUncategorizedChange,
 }) {
-  const [sortConfig, setSortConfig] = useState({
-    key: 'date',
-    direction: 'desc'
-  });
   const [filterValue, setFilterValue] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [accountFilter, setAccountFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+  const [showFilterConfirmation, setShowFilterConfirmation] = useState(false);
+  const queryClient = useQueryClient();
 
-  const accounts = useMemo(() => {
-    const accountSet = new Set();
-    transactions.forEach(t => {
-      if (t.account?.name) accountSet.add(t.account.name);
-    });
-    return Array.from(accountSet);
-  }, [transactions]);
-
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(transaction => {
-      const matchesSearch = filterValue === '' || 
-        transaction.description.toLowerCase().includes(filterValue.toLowerCase()) ||
-        transaction.note.toLowerCase().includes(filterValue.toLowerCase());
-
-      const matchesCategory = categoryFilter === 'all' ||
-        (categoryFilter === 'expense' && transaction.expense) ||
-        (categoryFilter === 'income' && transaction.income);
-
-      const matchesAccount = accountFilter === 'all' ||
-        transaction.account?.name === accountFilter;
-
-      return matchesSearch && matchesCategory && matchesAccount;
-    });
-  }, [transactions, filterValue, categoryFilter, accountFilter]);
-
-  const sortedTransactions = useMemo(() => {
-    return [...filteredTransactions].sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+  // Add debounce effect for search with ref to track previous value
+  const prevSearchValueRef = useRef(filterValue);
+  const isFirstRender = useRef(true);
+  
+  useEffect(() => {
+    // Skip the first render
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    // Only set timer if value actually changed
+    if (prevSearchValueRef.current !== filterValue) {
+      const timer = setTimeout(() => {
+        if (onSearchChange) {
+          onSearchChange(filterValue);
+          // Update ref after search is triggered
+          prevSearchValueRef.current = filterValue;
+        }
+      }, 500); // 500ms debounce
       
-      if (sortConfig.key === 'date') {
-        return sortConfig.direction === 'desc' 
-          ? new Date(bValue) - new Date(aValue)
-          : new Date(aValue) - new Date(bValue);
-      }
-      
-      if (typeof aValue === 'number') {
-        return sortConfig.direction === 'desc' ? bValue - aValue : aValue - bValue;
-      }
-      
-      return sortConfig.direction === 'desc'
-        ? String(bValue).localeCompare(String(aValue))
-        : String(aValue).localeCompare(String(bValue));
-    });
-  }, [filteredTransactions, sortConfig]);
+      return () => clearTimeout(timer);
+    }
+  }, [filterValue, onSearchChange]);
 
-  const toggleSort = (key) => {
-    setSortConfig(current => ({
-      key,
-      direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
-    }));
-  };
+  // Use transactions directly without sorting
+  const sortedTransactions = transactions;
 
   const columns = [
     { key: 'date', label: 'Date', align: 'right' },
     { key: 'description', label: 'Description', align: 'left' },
     { key: 'account', label: 'Account', align: 'center' },
     { key: 'amount', label: 'Amount', align: 'right' },
-    { key: 'category', label: 'Category', sortable: false, align: 'center' },
-    { key: 'related', label: 'Related', sortable: false, align: 'center' },
-    { key: 'actions', label: '', sortable: false, align: 'center' }
+    { key: 'category', label: 'Category', align: 'center' },
+    { key: 'related', label: 'Related', align: 'center' },
+    { key: 'actions', label: '', align: 'center' }
   ];
+
+  const handleApplyFilters = async () => {
+    try {
+      setIsApplyingFilters(true);
+      await applyAllFilters('expense');
+      // Invalidate and refetch transactions
+      await queryClient.invalidateQueries(['transactions']);
+    } catch (error) {
+      console.error('Failed to apply expense filters:', error);
+    } finally {
+      setIsApplyingFilters(false);
+      setShowFilterConfirmation(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex-1 min-w-[200px] max-w-xl">
-          <div className="relative">
+        <div className="flex items-center gap-4">
+          <div className="relative w-[300px]">
             <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search transactions..."
@@ -345,34 +348,60 @@ export default function TransactionTable({
               className="pl-9"
             />
           </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="uncategorized" 
+              checked={showUncategorizedOnly}
+              onCheckedChange={onUncategorizedChange}
+            />
+            <label
+              htmlFor="uncategorized"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Show uncategorized only
+            </label>
+          </div>
         </div>
         <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowFilterConfirmation(true)}
+            disabled={isApplyingFilters}
+            variant="outline"
+          >
+            {isApplyingFilters ? 'Applying...' : 'Categorize Expenses'}
+          </Button>
           <Button onClick={() => setShowCreateDialog(true)}>
             New Transaction
           </Button>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="expense">Expenses</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Account" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Accounts</SelectItem>
-              {accounts.map(account => (
-                <SelectItem key={account} value={account}>{account}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
+
+      <Dialog open={showFilterConfirmation} onOpenChange={setShowFilterConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Categorize Expenses</DialogTitle>
+            <DialogDescription>
+              This will automatically associated Transactions with Expenses based on your defined Filters. 
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilterConfirmation(false)}
+              disabled={isApplyingFilters}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApplyFilters}
+              disabled={isApplyingFilters}
+            >
+              {isApplyingFilters ? 'Applying...' : 'Apply Filters'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="rounded-md border">
         <Table>
@@ -381,18 +410,9 @@ export default function TransactionTable({
               {columns.map((column) => (
                 <TableHead
                   key={column.key}
-                  className={cn(
-                    column.sortable !== false ? 'cursor-pointer select-none' : '',
-                    `text-${column.align}`
-                  )}
-                  onClick={() => column.sortable !== false && toggleSort(column.key)}
+                  className={`text-${column.align}`}
                 >
                   {column.label}
-                  {column.sortable !== false && sortConfig.key === column.key && (
-                    <span className="ml-2">
-                      {sortConfig.direction === 'desc' ? '↓' : '↑'}
-                    </span>
-                  )}
                 </TableHead>
               ))}
             </TableRow>
@@ -413,7 +433,7 @@ export default function TransactionTable({
             ) : (
               sortedTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
-                  <TableCell className="text-right">{formatDate(transaction.date)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">{formatDate(transaction.date)}</TableCell>
                   <TableCell>
                     <div>{transaction.description}</div>
                     {transaction.note && (
@@ -438,7 +458,8 @@ export default function TransactionTable({
                   </TableCell>
                   <CategoryCell 
                     expense={transaction.expense} 
-                    income={transaction.income} 
+                    income={transaction.income}
+                    transaction={transaction}
                   />
                   <RelatedTransactionsCell 
                     transactions={[...(transaction.related_transactions || []), ...(transaction.related_to_transactions || [])]}
@@ -452,12 +473,6 @@ export default function TransactionTable({
           </TableBody>
         </Table>
       </div>
-
-      <PaginationControls
-        currentPage={page}
-        totalPages={totalPages}
-        onPageChange={onPageChange}
-      />
 
       <TransactionDialog
         isOpen={showCreateDialog}

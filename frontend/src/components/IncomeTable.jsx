@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreVertical, Pencil, Trash2, CalendarClock, Plus, X } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, CalendarClock, Plus, X, BarChart2 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import {
@@ -24,9 +24,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { getAllIncomes, deleteIncome, patchIncome } from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import IncomeDialog from '@/components/IncomeDialog';
+import TransactionFilterDialog from './TransactionFilterDialog';
+import IncomeTransactionSummary from './income-transaction-summary';
+import { IconFilterDollar } from '@tabler/icons-react';
 
 export function IncomeTable({ accountId }) {
   const queryClient = useQueryClient();
@@ -45,10 +49,15 @@ export function IncomeTable({ accountId }) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [incomeToDelete, setIncomeToDelete] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [incomeToFilter, setIncomeToFilter] = useState(null);
+  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [incomeToSummarize, setIncomeToSummarize] = useState(null);
 
   const { data: incomes, isLoading, error } = useQuery({
-    queryKey: ['incomes'],
-    queryFn: getAllIncomes
+    queryKey: ['incomes', 'all'],
+    queryFn: () => getAllIncomes(),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const deleteIncomeMutation = useMutation({
@@ -223,6 +232,30 @@ export function IncomeTable({ accountId }) {
     }
   };
 
+  const handleFilter = (income) => {
+    setIncomeToFilter(income);
+    setFilterDialogOpen(true);
+  };
+  
+  const handleFilterDialogClose = (open) => {
+    setFilterDialogOpen(open);
+    if (!open) {
+      setIncomeToFilter(null);
+    }
+  };
+
+  const handleSummary = (income) => {
+    setIncomeToSummarize(income);
+    setSummaryDialogOpen(true);
+  };
+
+  const handleSummaryDialogClose = (open) => {
+    setSummaryDialogOpen(open);
+    if (!open) {
+      setIncomeToSummarize(null);
+    }
+  };
+
   if (error) {
     return <div className="text-left p-4 text-red-500">Error loading incomes: {error.message}</div>;
   }
@@ -242,17 +275,30 @@ export function IncomeTable({ accountId }) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="text-left"></TableHead>
             <TableHead className="text-left">Name</TableHead>
             <TableHead className="text-left">Amount</TableHead>
             <TableHead className="text-left">Frequency</TableHead>
             <TableHead className="text-left">Start Date</TableHead>
             <TableHead className="text-left">End Date</TableHead>
+            <TableHead className="text-left">Filters</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredIncomes.map((income) => (
             <TableRow key={income.id}>
+              <TableCell className="text-left">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleSummary(income)}
+                >
+                  <BarChart2 className="h-4 w-4" />
+                  <span className="sr-only">View transactions</span>
+                </Button>
+              </TableCell>
               <TableCell className="font-medium text-left">
                 {income.name}
               </TableCell>
@@ -273,6 +319,17 @@ export function IncomeTable({ accountId }) {
               <TableCell className="text-left">{income.frequency ? `${income.frequency.value} ${income.frequency.unit}` : '-'}</TableCell>
               <TableCell className="text-left">{income.start_date ? new Date(income.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</TableCell>
               <TableCell className="text-left">{income.end_date ? new Date(income.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span className="text-gray-400">Never</span>}</TableCell>
+              <TableCell className="text-left">
+                {income.transaction_filters && income.transaction_filters.length > 0 ? (
+                  <Badge 
+                    variant="outline" 
+                    className="hover:bg-slate-100 cursor-pointer" 
+                    onClick={() => handleFilter(income)}
+                  >
+                    {income.transaction_filters.reduce((total, group) => total + group.length, 0)}
+                  </Badge>
+                ) : '-'}
+              </TableCell>
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger className="p-1 hover:bg-muted rounded-md">
@@ -286,6 +343,14 @@ export function IncomeTable({ accountId }) {
                     <DropdownMenuItem onSelect={() => handleEditSchedule(income)}>
                       <CalendarClock className="h-4 w-4 mr-2" />
                       Edit Raises
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleFilter(income)}>
+                      <IconFilterDollar className="h-4 w-4 mr-2" />
+                      Transaction Filters
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSummary(income)}>
+                      <BarChart2 className="h-4 w-4 mr-2" />
+                      Transaction Summary
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleDelete(income)}
@@ -317,6 +382,21 @@ export function IncomeTable({ accountId }) {
         onOpenChange={handleEditDialogClose}
         accountId={accountId}
         incomeId={editingIncome?.id}
+      />
+
+      <TransactionFilterDialog
+        isOpen={filterDialogOpen}
+        onOpenChange={handleFilterDialogClose}
+        incomeId={incomeToFilter?.id}
+      />
+
+      <IncomeTransactionSummary
+        isOpen={summaryDialogOpen}
+        onOpenChange={handleSummaryDialogClose}
+        incomeId={incomeToSummarize?.id}
+        incomeName={incomeToSummarize?.name}
+        incomeAmount={incomeToSummarize?.amount}
+        incomeFrequency={incomeToSummarize?.frequency}
       />
 
       <Dialog open={!!editingSchedule} onOpenChange={(open) => !open && setEditingSchedule(null)}>

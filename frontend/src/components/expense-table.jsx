@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, BarChart2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -27,6 +27,7 @@ import {
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import ExpenseDialog from './ExpenseDialog';
 import TransactionFilterDialog from './TransactionFilterDialog';
+import ExpenseTransactionSummary from './expense-transaction-summary';
 import { IconFilterDollar } from '@tabler/icons-react';
 import { Badge } from "@/components/ui/badge";
 
@@ -38,6 +39,8 @@ export function ExpenseTable({ accountId }) {
   const [expenseToEdit, setExpenseToEdit] = useState(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [expenseToFilter, setExpenseToFilter] = useState(null);
+  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [expenseToSummarize, setExpenseToSummarize] = useState(null);
 
   const { data: expenses, isLoading, error } = useQuery({
     queryKey: ['expenses', accountId],
@@ -96,6 +99,18 @@ export function ExpenseTable({ accountId }) {
     }
   };
 
+  const handleSummary = (expense) => {
+    setExpenseToSummarize(expense);
+    setSummaryDialogOpen(true);
+  };
+
+  const handleSummaryDialogClose = (open) => {
+    setSummaryDialogOpen(open);
+    if (!open) {
+      setExpenseToSummarize(null);
+    }
+  };
+
   if (error) {
     return <div className="text-left p-4 text-red-500">Error loading expenses: {error.message}</div>;
   }
@@ -116,6 +131,7 @@ export function ExpenseTable({ accountId }) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="text-left"></TableHead>
             <TableHead className="text-left">Name</TableHead>
             <TableHead className="text-left">Description</TableHead>
             <TableHead className="text-left">Amount</TableHead>
@@ -128,6 +144,17 @@ export function ExpenseTable({ accountId }) {
         <TableBody>
           {expenses.map((expense) => (
             <TableRow key={expense.id}>
+              <TableCell className="text-left">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleSummary(expense)}
+                >
+                  <BarChart2 className="h-4 w-4" />
+                  <span className="sr-only">View transactions</span>
+                </Button>
+              </TableCell>
               <TableCell className="font-medium text-left">
                 {expense.name}
                 {expense.to_account_id && expense.to_account_id !== accountId && (
@@ -206,6 +233,10 @@ export function ExpenseTable({ accountId }) {
                       <IconFilterDollar className="mr-2 h-4 w-4" />
                       Transaction Filters
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSummary(expense)}>
+                      <BarChart2 className="mr-2 h-4 w-4" />
+                      Transaction Summary
+                    </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => handleDelete(expense)}
                       className="text-red-600"
@@ -242,6 +273,15 @@ export function ExpenseTable({ accountId }) {
         isOpen={filterDialogOpen}
         onOpenChange={handleFilterDialogClose}
         expenseId={expenseToFilter?.id}
+      />
+
+      <ExpenseTransactionSummary
+        isOpen={summaryDialogOpen}
+        onOpenChange={handleSummaryDialogClose}
+        expenseId={expenseToSummarize?.id}
+        expenseName={expenseToSummarize?.name}
+        expenseAmount={expenseToSummarize?.amount}
+        expenseFrequency={expenseToSummarize?.frequency}
       />
     </div>
   );
