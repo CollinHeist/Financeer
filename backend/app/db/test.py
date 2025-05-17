@@ -141,7 +141,7 @@ def upload_bank_transactions(db: Session) -> bool:
             filename=credit_transactions.name,
             data=credit_transactions.read_bytes(),
             upload_date=datetime.now(),
-            account_id=1,
+            account_id=3,
         )
         db.add(upload)
         transactions = parse_citi_upload(upload)
@@ -249,11 +249,10 @@ def initialize_test_data(db: Session) -> None:
         start_date=date(2023, 1, 12),
         from_account_id=credit_card.id,
         transaction_filters=[
-            [{"on": "description", "type": "contains", "value": "USAA Insurance"}]
+            [{"on": "description", "type": "contains", "value": "USAA Insurance Payment"}]
         ]
     )
     db.add(car_insurance)
-
     car_wash = Expense(
         name='Car Wash',
         description='Car Wash',
@@ -265,7 +264,9 @@ def initialize_test_data(db: Session) -> None:
         from_account_id=credit_card.id,
         to_account_id=None,
         change_schedule=[],
-        transaction_filters=[],
+        transaction_filters=[
+            [{"on": "description", "type": "contains", "value": "Rocket Express"}]
+        ],
     )
     db.add(car_wash)
     spotify = Expense(
@@ -279,9 +280,60 @@ def initialize_test_data(db: Session) -> None:
         from_account_id=credit_card.id,
         to_account_id=None,
         change_schedule=[],
-        transaction_filters=[],
+        transaction_filters=[
+            [{"on": "description", "type": "contains", "value": "Spotify"}]
+        ],
     )
     db.add(spotify)
+    pets = Expense(
+        name='Pets',
+        description='',
+        amount=-75,
+        type='recurring',
+        frequency={'value': 1, 'unit': 'months'},
+        start_date=date(2021, 1, 1),
+        end_date=None,
+        from_account_id=credit_card.id,
+        to_account_id=None,
+        change_schedule=[],
+        transaction_filters=[
+            [{"on": "description", "type": "contains", "value": "Petco"}],
+            [{"on": "description", "type": "contains", "value": "PetSmart"}],
+        ],
+    )
+    db.add(pets)
+    power_bill = Expense(
+        name='Power Bill',
+        description='Power Bill',
+        amount=-70,
+        type='recurring',
+        frequency={'value': 1, 'unit': 'months'},
+        start_date=date(2021, 1, 1),
+        end_date=None,
+        from_account_id=account.id,
+        to_account_id=None,
+        change_schedule=[],
+        transaction_filters=[
+            [{"on": "description", "type": "contains", "value": "Payment to Idaho Power"}],
+        ],
+    )
+    db.add(power_bill)
+    groceries = Expense(
+        name='Groceries',
+        description='Groceries',
+        amount=-85,
+        type='recurring',
+        frequency={'value': 1, 'unit': 'weeks'},
+        start_date=date(2020, 12, 2),
+        end_date=None,
+        from_account_id=account.id,
+        to_account_id=None,
+        change_schedule=[],
+        transaction_filters=[
+            [{"on": "description", "type": "contains", "value": "WinCo Foods"}],
+        ],
+    )
+    db.add(groceries)
 
     # Add test incomes
     base_income = Income(
