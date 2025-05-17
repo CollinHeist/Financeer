@@ -13,6 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, JSONWithDates
 from app.core.dates import date_meets_frequency, date_range
+from app.schemas.core import TransactionFilterDict
 from app.schemas.income import FrequencyDict, RaiseItemDict
 
 if TYPE_CHECKING:
@@ -42,6 +43,10 @@ class Income(Base):
 
     raise_schedule: Mapped[list[RaiseItemDict]] = mapped_column(
         MutableList.as_mutable(JSONWithDates),
+        default=[],
+    )
+    transaction_filters: Mapped[list[TransactionFilterDict]] = mapped_column(
+        MutableList.as_mutable(JSON),
         default=[],
     )
 

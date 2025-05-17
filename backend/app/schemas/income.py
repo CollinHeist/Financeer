@@ -4,6 +4,8 @@ from datetime import date
 from pydantic.main import BaseModel
 from pydantic import Field, model_validator
 
+from app.schemas.core import TransactionFilter
+
 
 FrequencyUnit = Literal['days', 'weeks', 'months', 'years']
 
@@ -53,6 +55,7 @@ class NewIncomeSchema(BaseModel):
     end_date: date | None = None
     account_id: int
     raise_schedule: list[RaiseItem] = []
+    transaction_filters: list[list[TransactionFilter]] = []
 
     @model_validator(mode='after')
     def validate_dates(self) -> Self:
@@ -63,13 +66,14 @@ class NewIncomeSchema(BaseModel):
         return self
 
 class UpdateIncomeSchema(BaseModel):
-    name: str | None = None
-    amount: float | None = None
+    name: str = None
+    amount: float = None
     frequency: Frequency | None = None
-    start_date: date | None = None
+    start_date: date = None
     end_date: date | None = None
-    account_id: int | None = None
-    raise_schedule: list[RaiseItem] | None = None
+    account_id: int = None
+    raise_schedule: list[RaiseItem] = None
+    transaction_filters: list[list[TransactionFilter]] = None
 
     @model_validator(mode='after')
     def validate_dates(self) -> Self:
@@ -90,3 +94,4 @@ class ReturnIncomeSchema(BaseModel):
     end_date: date | None
     account_id: int
     raise_schedule: list[RaiseItem]
+    transaction_filters: list[list[TransactionFilter]]

@@ -7,8 +7,13 @@ from sqlalchemy.orm.session import Session
 from app.api.deps import get_database
 from app.db.query import require_account, require_income
 from app.models.income import Income
-from app.schemas.income import NewIncomeSchema, ReturnIncomeSchema, UpdateIncomeSchema
-from app.utils.logging import log
+from app.schemas.core import TransactionFilter
+from app.schemas.income import (
+    NewIncomeSchema,
+    ReturnIncomeSchema,
+    UpdateIncomeSchema,
+)
+from app.schemas.transaction import ReturnTransactionSchemaNoAccount
 
 
 income_router = APIRouter(
@@ -35,19 +40,16 @@ def create_income(
 
 @income_router.get('/all')
 def get_all_incomes(
-    db: Session = Depends(get_database),
     on: date | None = Query(default_factory=lambda: date.today()),
+    db: Session = Depends(get_database),
 ) -> list[ReturnIncomeSchema]:
 
     filters = []
     if on is not None:
         filters.append(Income.start_date <= on)
-        filters.append(or_(
-            Income.end_date.is_(None),
-            Income.end_date >= on,
-        ))
+        filters.append(or_(Income.end_date.is_(None), Income.end_date >= on))
 
-    return db.query(Income).filter(*filters).all()
+    return db.query(Income).filter(*filters).order_by(Income.name).all() # type: ignore
 
 
 @income_router.get('/{income_id}')
@@ -93,7 +95,7 @@ def update_income(
 
 
 @income_router.patch('/{income_id}')
-async def patch_income(
+def patch_income(
     income_id: int,
     income_update: UpdateIncomeSchema = Body(...),
     db: Session = Depends(get_database),
@@ -115,3 +117,36 @@ async def patch_income(
     db.commit()
     
     return income
+
+
+@income_router.post('/income/{income_id}/income-filters')
+def apply_income_transaction_filters_(
+    income_id: int,
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchemaNoAccount]:
+    """
+    Apply the given Transaction filters of the given Expense to all
+    Transactions in the database. This only affects Transactions which
+    do not already have an associated Expense.
+
+    - expense_id: The ID of the Expense to apply the filters to.
+    """
+
+    # Get the associated Expense
+    income = require_income(db, income_id, raise_exception=True)
+    filters = [
+        [TransactionFilter.model_validate(filter) for filter in filter_group]
+        for filter_group in income.transaction_filters
+    ]
+
+    if not filters:
+        return []
+
+    # Associate the Expense with the matching Transactions
+    for transaction in apply_expense_filters(expense, filters, db).all():
+        transaction.expense = expense
+
+    db.commit()
+
+    # Return the filtered Transactions
+    return expense.transactions # type: ignore
