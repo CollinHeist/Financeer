@@ -13,3 +13,7 @@ class ReturnBalanceSchema(BaseModel):
     account_id: int
     date: date
     balance: float
+
+class ReturnDailyBalanceSchema(BaseModel):
+    date: date
+    balance: float | None
