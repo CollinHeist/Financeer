@@ -19,3 +19,8 @@ export interface ReturnTransactionSchemaNoAccount {
   related_transactions: ReturnRelatedTransactionSchema[];
   related_to_transactions: ReturnRelatedTransactionSchema[];
 }
+
+export interface ReturnDailyBalanceSchema {
+  date: string;
+  balance: number | null;
+}
