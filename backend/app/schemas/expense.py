@@ -52,8 +52,7 @@ class NewExpenseSchema(BaseModel):
     end_date: date | None
     change_schedule: list[ExpenseChangeItem] = []
     transaction_filters: list[list[TransactionFilter]] = []
-    from_account_id: int
-    to_account_id: int | None = None
+    account_id: int
 
     @model_validator(mode='after')
     def validate_dates(self) -> Self:
@@ -79,8 +78,7 @@ class UpdateExpenseSchema(BaseModel):
     end_date: date | None = None
     change_schedule: list[ExpenseChangeItem] = None
     transaction_filters: list[list[TransactionFilter]] = None
-    from_account_id: int = None
-    to_account_id: int | None = None
+    account_id: int = None
 
     @model_validator(mode='after')
     def validate_dates(self) -> Self:
@@ -108,5 +106,4 @@ class ReturnExpenseSchema(BaseModel):
     end_date: date | None
     change_schedule: list[dict]
     transaction_filters: list[list[TransactionFilter]]
-    from_account_id: int
-    to_account_id: int | None
+    account_id: int
