@@ -470,7 +470,7 @@ export const getAccountSummary = async (accountId) => {
  */
 export const createBalance = async (balanceData) => {
   try {
-    const response = await api.post('/balance/new', balanceData);
+    const response = await api.post('/balances/balance/new', balanceData);
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error creating balance:', error);
@@ -542,6 +542,75 @@ export const getIncomeTransactions = async (incomeId) => {
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching income transactions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches monthly cash flow data for an account
+ * @param {number} accountId The ID of the account to fetch cash flow for
+ * @param {string} startDate The start date in YYYY-MM-DD format
+ * @param {string} endDate The end date in YYYY-MM-DD format
+ * @returns {Promise<Array>} Array of monthly cash flow data
+ * @throws {Error} If the API request fails
+ */
+export const getMonthlyCashFlow = async (accountId, startDate, endDate) => {
+  try {
+    const response = await api.get(`/cash-flow/monthly/${accountId}`, {
+      params: {
+        start_date: startDate,
+        end_date: endDate
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching monthly cash flow:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches the expense breakdown for an account
+ * @param {number} accountId The ID of the account to fetch the expense breakdown for
+ * @param {string} startDate The start date in YYYY-MM-DD format
+ * @param {string} endDate The end date in YYYY-MM-DD format
+ * @returns {Promise<Array>} Array of expense breakdown data
+ * @throws {Error} If the API request fails
+ */
+export const getAccountExpenseBreakdown = async (accountId, startDate, endDate) => {
+  try {
+    const response = await api.get(`/transaction/account/${accountId}/expense-breakdown`, {
+      params: {
+        start_date: startDate,
+        end_date: endDate
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching expense breakdown:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches daily balances for an account
+ * @param {number} accountId The ID of the account to fetch the daily balances for
+ * @param {string} startDate The start date in YYYY-MM-DD format
+ * @param {string} endDate The end date in YYYY-MM-DD format
+ * @returns {Promise<api_types.ReturnDailyBalanceSchema[]>} Array of daily balance data
+ * @throws {Error} If the API request fails
+ */
+export const getDailyBalances = async (accountId, startDate, endDate) => {
+  try {
+    const response = await api.get(`/balances/account/${accountId}/daily`, {
+      params: {
+        start_date: startDate,
+        end_date: endDate
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching daily balances:', error);
     throw error;
   }
 }
