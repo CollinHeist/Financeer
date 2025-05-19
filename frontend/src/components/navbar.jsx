@@ -7,12 +7,20 @@ import {
 import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
+import React from "react";
 
-import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
-import {
-  Logo,
-} from "@/components/icons";
+import { Logo } from "@/components/icons";
+import { Separator } from "@/components/ui/separator";
+
+const navigationItems = [
+  { label: "Home", href: "/" },
+  { label: "Accounts", href: "/accounts" },
+  { label: "Expenses", href: "/expenses" },
+  { label: "Income", href: "/income" },
+  { label: "Transfers", href: "/transfers" },
+  { label: "Transactions", href: "/transactions" },
+];
 
 export const Navbar = () => {
   return (
@@ -24,20 +32,25 @@ export const Navbar = () => {
             <p className="font-bold text-inherit">Financeer</p>
           </NextLink>
         </NavbarBrand>
-        <ul className="hidden lg:flex gap-7 justify-start ml-2">
-          {siteConfig.navItems.map((item) => (
-            <NavbarItem key={item.href}>
-              <NextLink
-                className={clsx(
-                  linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium",
-                )}
-                color="foreground"
-                href={item.href}
-              >
-                {item.label}
-              </NextLink>
-            </NavbarItem>
+        <ul className="hidden lg:flex gap-7 justify-start ml-2 items-center">
+          {navigationItems.map((item, index) => (
+            <React.Fragment key={item.href}>
+              <NavbarItem>
+                <NextLink
+                  className={clsx(
+                    linkStyles({ color: "foreground" }),
+                    "data-[active=true]:text-primary data-[active=true]:font-medium"
+                  )}
+                  color="foreground"
+                  href={item.href}
+                >
+                  {item.label}
+                </NextLink>
+              </NavbarItem>
+              {(index === 0 || index === 4) && (
+                <Separator orientation="vertical" className="h-6" />
+              )}
+            </React.Fragment>
           ))}
         </ul>
       </NavbarContent>
@@ -50,7 +63,6 @@ export const Navbar = () => {
           <ThemeSwitch />
         </NavbarItem>
       </NavbarContent>
-
     </HeroUINavbar>
   );
 };

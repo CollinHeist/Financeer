@@ -112,13 +112,13 @@ export function ExpenseTable({ accountId }) {
   };
 
   if (error) {
-    return <div className="text-left p-4 text-red-500">Error loading expenses: {error.message}</div>;
+    return <div className="text-left p-4 text-red-500">Error loading Expenses: {error.message}</div>;
   }
 
   if (!expenses || expenses.length === 0) {
     return (
       <div className="text-left p-4">
-        <p className="text-gray-500">No expenses found for this account.</p>
+        <p className="text-gray-500">No Expenses found for this Account.</p>
       </div>
     );
   }
@@ -152,45 +152,15 @@ export function ExpenseTable({ accountId }) {
                   onClick={() => handleSummary(expense)}
                 >
                   <BarChart2 className="h-4 w-4" />
-                  <span className="sr-only">View transactions</span>
+                  <span className="sr-only">View Transactions</span>
                 </Button>
               </TableCell>
               <TableCell className="font-medium text-left">
                 {expense.name}
-                {expense.to_account_id && expense.to_account_id !== accountId && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <span className="text-red-500 ml-2 cursor-help">→</span>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-60">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Outgoing Transfer</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Transfer to <span className="text-blue-500">{accounts?.find(a => a.id === expense.to_account_id)?.name || 'another account'}</span>
-                        </p>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
-                {expense.from_account_id && expense.from_account_id !== accountId && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <span className="text-green-500 ml-2 cursor-help">←</span>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-60">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Incoming Transfer</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Transfer from <span className="text-blue-500">{accounts?.find(a => a.id === expense.from_account_id)?.name || 'another account'}</span>
-                        </p>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
               </TableCell>
               <TableCell className="text-left">{expense.description || '-'}</TableCell>
-              <TableCell className={`text-left ${(expense.to_account_id === accountId ? -expense.amount : expense.amount) < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                {(expense.to_account_id === accountId ? -expense.amount : expense.amount) < 0 ? '-' : ''}${Math.abs(expense.to_account_id === accountId ? -expense.amount : expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <TableCell className={`text-left ${expense.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                {expense.amount < 0 ? '-' : ''}${Math.abs(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </TableCell>
               <TableCell className="text-left">
                 {expense.start_date ? (

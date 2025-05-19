@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAccount, getUpcomingAccountTransactions } from '@/lib/api';
 import AccountSummary from "@/components/AccountSummary";
 import UpcomingTransactionTable from '@/components/UpcomingTransactionTable';
+import DailyBalance from '@/components/DailyBalance';
 import { motion, AnimatePresence } from 'framer-motion';
 
 
@@ -52,7 +53,8 @@ export default function AccountPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Account Details</h1>
       <AccountSummary accountId={account_id} />
-      {/* <AccountDetails accountId={account_id} /> */}
+      
+      <DailyBalance accountId={account_id} days={days} />
 
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Upcoming Transactions</h2>

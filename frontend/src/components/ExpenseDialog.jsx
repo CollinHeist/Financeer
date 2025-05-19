@@ -4,8 +4,15 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getAccounts, createExpense, patchExpense, getExpenseById } from '@/lib/api';
-import { IconInfoCircle } from '@tabler/icons-react';
+import { IconInfoCircle, ChevronDown } from '@tabler/icons-react';
 
 export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expenseId = null }) {
   const isEditMode = !!expenseId;
@@ -17,8 +24,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
     type: 'one_time',
     start_date: new Date().toISOString().split('T')[0],
     end_date: '',
-    from_account_id: accountId || '',
-    to_account_id: '',
+    account_id: accountId || '',
     frequencyValue: 1,
     frequencyUnit: 'months'
   });
@@ -45,8 +51,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
         type: existingExpense.type,
         start_date: existingExpense.start_date || new Date().toISOString().split('T')[0],
         end_date: existingExpense.end_date || '',
-        from_account_id: existingExpense.from_account_id.toString(),
-        to_account_id: existingExpense.to_account_id ? existingExpense.to_account_id.toString() : '',
+        account_id: existingExpense.account_id.toString(),
         frequencyValue: existingExpense.frequency?.value || 1,
         frequencyUnit: existingExpense.frequency?.unit || 'months'
       });
@@ -85,8 +90,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
       type: 'one_time',
       start_date: new Date().toISOString().split('T')[0],
       end_date: '',
-      from_account_id: accountId || '',
-      to_account_id: '',
+      account_id: accountId || '',
       frequencyValue: 1,
       frequencyUnit: 'months'
     });
@@ -99,7 +103,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
     if (!formData.amount || isNaN(formData.amount)) {
       newErrors.amount = 'Amount must be non-zero';
     }
-    if (!formData.from_account_id) newErrors.from_account_id = 'From account is required';
+    if (!formData.account_id) newErrors.account_id = 'Account is required';
     if (!formData.start_date) newErrors.start_date = 'Start date is required';
     
     if (formData.type === 'recurring') {
@@ -125,7 +129,6 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
     const expenseData = {
       ...formData,
       amount: parseFloat(formData.amount),
-      to_account_id: formData.to_account_id || null,
       end_date: formData.end_date || null,
       frequency: formData.type === 'recurring' ? { 
         value: parseInt(formData.frequencyValue), 
@@ -220,56 +223,45 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="from_account_id" className="text-sm font-medium">From Account</label>
-                <select
-                  id="from_account_id"
-                  name="from_account_id"
-                  value={formData.from_account_id}
-                  onChange={handleChange}
-                  className={`w-full p-2 border rounded-md ${errors.from_account_id ? 'border-red-500' : ''}`}
+                <label htmlFor="account_id" className="text-sm font-medium">Account</label>
+                <Select
+                  value={formData.account_id}
+                  onValueChange={(value) => {
+                    handleChange({ target: { name: 'account_id', value } });
+                  }}
                 >
-                  <option value="">Select Account</option>
-                  {accounts?.map(account => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.from_account_id && <p className="text-xs text-red-500">{errors.from_account_id}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="to_account_id" className="text-sm font-medium">Transfer to Account (Optional)</label>
-                <select
-                  id="to_account_id"
-                  name="to_account_id"
-                  value={formData.to_account_id}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="">None</option>
-                  {accounts?.map(account => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className={errors.account_id ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Select Account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts?.map(account => (
+                      <SelectItem key={account.id} value={account.id.toString()}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.account_id && <p className="text-xs text-red-500">{errors.account_id}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="type" className="text-sm font-medium">Type</label>
-                <select
-                  id="type"
-                  name="type"
+                <Select
                   value={formData.type}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md"
+                  onValueChange={(value) => {
+                    handleChange({ target: { name: 'type', value } });
+                  }}
                 >
-                  <option value="one_time">One Time</option>
-                  <option value="recurring">Recurring</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="one_time">One Time</SelectItem>
+                    <SelectItem value="recurring">Recurring</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {formData.type === 'recurring' && (
@@ -284,17 +276,23 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
                       min="1"
                       className={`w-1/3 p-2 border rounded-md ${errors.frequencyValue ? 'border-red-500' : ''}`}
                     />
-                    <select
-                      name="frequencyUnit"
+                    <Select
                       value={formData.frequencyUnit}
-                      onChange={handleChange}
-                      className={`w-2/3 p-2 border rounded-md ${errors.frequencyUnit ? 'border-red-500' : ''}`}
+                      onValueChange={(value) => {
+                        handleChange({ target: { name: 'frequencyUnit', value } });
+                      }}
                     >
-                      <option value="days">Day(s)</option>
-                      <option value="weeks">Week(s)</option>
-                      <option value="months">Month(s)</option>
-                      <option value="years">Year(s)</option>
-                    </select>
+                      <SelectTrigger className={`w-2/3 ${errors.frequencyUnit ? 'border-red-500' : ''}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['days', 'weeks', 'months', 'years'].map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit.charAt(0).toUpperCase() + unit.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   {errors.frequencyValue && <p className="text-xs text-red-500">{errors.frequencyValue}</p>}
                   {errors.frequencyUnit && <p className="text-xs text-red-500">{errors.frequencyUnit}</p>}

@@ -131,15 +131,15 @@ export default function ExpenseTransactionSummary({ isOpen, onOpenChange, expens
         <DialogHeader>
           <DialogTitle>{expenseName || 'Expense'} Transactions</DialogTitle>
         </DialogHeader>
-        
+
         {isLoading && <div className="py-4 text-center">Loading Transactions...</div>}
-        
+
         {error && <div className="py-4 text-center text-red-500">Error loading Transactions: {error.message}</div>}
-        
+
         {transactions && transactions.length === 0 && (
           <div className="py-4 text-center text-gray-500">No Transactions are associated with this Expense.</div>
         )}
-        
+
         {transactions && transactions.length > 0 && (
           <div className="grid grid-cols-3 gap-6">
             <div className="col-span-2 min-h-[400px]">
