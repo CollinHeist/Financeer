@@ -4,6 +4,7 @@ from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
 from app.core.upload import (
+    add_balances_to_database,
     add_transactions_to_database,
     create_upload,
     parse_generic_upload,
@@ -56,7 +57,9 @@ def upload_iccu_transactions(
 
     upload = create_upload(file, account_id, db)
 
-    transactions = parse_iccu_upload(upload)
+    balances, transactions = parse_iccu_upload(upload)
+
+    add_balances_to_database(balances, db)
 
     return add_transactions_to_database(transactions, upload.id, db) # type: ignore
 

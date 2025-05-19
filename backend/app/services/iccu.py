@@ -3,18 +3,22 @@ from io import StringIO
 import pandas as pd
 
 from app.models.upload import Upload
+from app.schemas.balance import NewBalanceSchema
 from app.schemas.transaction import NewTransactionSchema
 
 
-def parse_iccu_upload(upload: Upload) -> list[NewTransactionSchema]:
+def parse_iccu_upload(
+    upload: Upload
+) -> tuple[list[NewBalanceSchema], list[NewTransactionSchema]]:
     """
-    Parse an ICCU upload into a list of NewTransactionSchemas.
+    Parse an ICCU upload into a list of Balances and Transactions to add
+    to the database.
 
     Args:
         upload: The Upload to parse.
 
     Returns:
-        A list of NewTransactionSchemas.
+        A tuple of lists of NewBalanceSchemas and NewTransactionSchemas.
     """
 
     # Parse the raw Upload data into a CSV stream
@@ -38,13 +42,26 @@ def parse_iccu_upload(upload: Upload) -> list[NewTransactionSchema]:
         'Extended Description'
     ] = ''
 
-    return [
-        NewTransactionSchema(
-            date=row['Posting Date'],
-            description=row['Description'],
-            note=row['Extended Description'],
-            amount=row['Amount'],
-            account_id=upload.account_id,
-        )
-        for _, row in df.iterrows()
-    ]
+    return (
+        [
+            NewBalanceSchema(
+                account_id=upload.account_id,
+                date=date,
+                # Transactions are listed in reverse chronological 
+                # order, so the most recent EOD balance is the first
+                # balance in the list
+                balance=df.loc[df['Posting Date'] == date, 'Balance'].iloc[0],
+            )
+            for date in df['Posting Date'].unique()
+        ],
+        [
+            NewTransactionSchema(
+                date=row['Posting Date'],
+                description=row['Description'],
+                note=row['Extended Description'],
+                amount=row['Amount'],
+                account_id=upload.account_id,
+            )
+            for _, row in df.iterrows()
+        ]
+    )

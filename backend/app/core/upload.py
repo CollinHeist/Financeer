@@ -6,7 +6,9 @@ from fastapi.datastructures import UploadFile
 from sqlalchemy.orm.session import Session
 
 from app.models.transaction import Transaction
+from app.models.balance import Balance
 from app.models.upload import Upload
+from app.schemas.balance import NewBalanceSchema
 from app.schemas.transaction import NewTransactionSchema
 from app.utils.logging import log
 
@@ -140,3 +142,40 @@ def add_transactions_to_database(
     db.commit()
 
     return db_transactions
+
+
+def add_balances_to_database(
+    balances: list[NewBalanceSchema],
+    db: Session,
+) -> list[Balance]:
+    """
+    Add the list of NewBalanceSchemas to the database.
+
+    Args:
+        balances: The list of NewBalanceSchemas to add.
+        upload_id: The ID of the Upload that the Balances belong to.
+        db: The database session.
+
+    Returns:
+        A list of Balances. May be not the same length as the input list
+        if there are duplicates or existing Balances.
+    """
+
+    db_balances = []
+    for balance in balances:
+        # Skip if there is already a Balance for this Account and Date
+        if not db.query(Balance).filter(
+            Balance.account_id == balance.account_id,
+            Balance.date == balance.date,
+        ).first():
+            new_balance = Balance(
+                account_id=balance.account_id,
+                date=balance.date,
+                balance=balance.balance,
+            )
+            db.add(new_balance)
+            db_balances.append(new_balance)
+
+    db.commit()
+
+    return db_balances
