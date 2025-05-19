@@ -8,7 +8,12 @@ from app.api.deps import get_database
 from app.db.query import require_account
 from app.models.account import Account
 from app.models.balance import Balance
-from app.schemas.account import NewAccountSchema, ReturnAccountSchema, ReturnAccountSummarySchema, SummaryTimePeriod
+from app.schemas.account import (
+    NewAccountSchema,
+    ReturnAccountSchema,
+    ReturnAccountSummarySchema,
+    SummaryTimePeriod,
+)
 
 
 account_router = APIRouter(
@@ -23,8 +28,17 @@ def create_account(
     db: Session = Depends(get_database),
 ) -> ReturnAccountSchema:
 
-    account = Account(**new_account.model_dump())
+    # Add the new Account to the database
+    account = Account(**new_account.model_dump(exclude={'balance'}))
     db.add(account)
+    db.commit()
+
+    # Add the starting Balance for the Account
+    db.add(Balance(
+        account_id=account.id,
+        date=new_account.balance.date,
+        balance=new_account.balance.balance,
+    ))
     db.commit()
 
     return account
@@ -35,10 +49,7 @@ def get_all_accounts(
     db: Session = Depends(get_database),
 ) -> list[ReturnAccountSchema]:
 
-    return [
-        ReturnAccountSchema(**account.__dict__)
-        for account in db.query(Account).all()
-    ]
+    return db.query(Account).order_by(Account.name).all() # type: ignore
 
 
 @account_router.get('/banks')
@@ -100,14 +111,6 @@ def get_account_summary(
     elif time_period == 'this quarter':
         start_date = today.replace(month=((today.month - 1) // 3) * 3 + 1)
 
-    # Get the latest balance for the account
-    latest_balance = (
-        db.query(Balance)
-            .filter(Balance.account_id == account_id)
-            .order_by(Balance.date.desc())
-            .first()
-    )
-
     # Get the transactions for the account
     transactions = (
         db.query(Transaction)
@@ -118,10 +121,23 @@ def get_account_summary(
             .all()
     )
 
-    balance = (
-        (0 if latest_balance is None else latest_balance.balance)
-        + sum(t.amount for t in transactions if t.amount)
-    )
+    # If there is no last Balance, use the transaction totals
+    if (last_balance := require_account(db, account_id).last_balance) is None:
+        balance = sum(t.amount for t in transactions if t.amount)
+    # Otherwise, add the last Balance to the transaction totals since
+    # the date of the last Balance
+    else:
+        balance = (
+            last_balance.balance
+            + sum(
+                t.amount for t in db.query(Transaction)
+                    .filter(
+                        Transaction.account_id == account_id,
+                        Transaction.date > last_balance.date,
+                    )
+                    .all()
+            )
+        )
 
     return ReturnAccountSummarySchema(
         balance=balance,

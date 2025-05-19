@@ -57,3 +57,12 @@ class ReturnUpcomingTransactionSchema(BaseModel):
     date: date_type
     expense_id: int | None = None
     income_id: int | None = None
+
+class ExpenseBreakdownItem(BaseModel):
+    expense_name: str
+    total_amount: float
+    transaction_count: int
+
+class ExpenseBreakdownResponse(BaseModel):
+    total_expenses: float
+    breakdown: list[ExpenseBreakdownItem]

@@ -1,9 +1,11 @@
 from typing import TYPE_CHECKING
+from datetime import date
 
 from sqlalchemy import Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.core.dates import date_range
 from app.schemas.account import AccountType
 
 if TYPE_CHECKING:
@@ -72,3 +74,31 @@ class Account(Base):
     )
 
 
+    @property
+    def last_balance(self) -> 'Balance':
+        """The most recent Balance for the Account."""
+
+        return self.balances[0]
+
+
+    def get_card_balance(self, target_date: date, /) -> float:
+        """
+        Get the balance for the account on a specific date. This only
+        accounts for Expenses from the Account, not Incomes or
+        Transfers.
+
+        Args:
+            target_date: The date to get the balance for
+
+        Returns:
+            The projected balance for the account on the given date.
+        """
+
+        last_balance = self.last_balance
+        starting_balance = last_balance.balance
+
+        for date_ in date_range(last_balance.date, target_date):
+            for expense in self.expenses:
+                starting_balance += expense.get_effective_amount(date_)
+
+        return starting_balance

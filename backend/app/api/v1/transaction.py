@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Body, Depends, Query
@@ -25,7 +26,9 @@ from app.schemas.transaction import (
     ReturnTransactionSchema,
     ReturnTransactionSchemaNoAccount,
     ReturnUpcomingTransactionSchema,
-    UpdateTransactionSchema
+    UpdateTransactionSchema,
+    ExpenseBreakdownResponse,
+    ExpenseBreakdownItem
 )
 
 
@@ -157,7 +160,6 @@ def query_transactions_from_income_filters(
     ) # type: ignore
 
 
-
 @transaction_router.get('/{transaction_id}')
 def get_transaction_by_id(
     transaction_id: int,
@@ -283,13 +285,11 @@ def get_upcoming_account_transactions(
     expenses = (
         db.query(Expense)
             .filter(
-                or_(
-                    Expense.from_account_id == account_id,
-                    Expense.to_account_id == account_id,
-                ),
+                Expense.account_id == account_id,
                 Expense.start_date <= end,
                 or_(Expense.end_date.is_(None), Expense.end_date >= start),
-            ).all()
+            )
+            .all()
     )
 
     # Get all Incomes which will be active over the given time period
@@ -306,7 +306,7 @@ def get_upcoming_account_transactions(
     for date_ in date_range(start, end):
         for expense in expenses:
             if (amount := expense.get_effective_amount(date_)) != 0.0:
-                amount *= -1 if expense.to_account_id == account_id else 1
+                amount *= -1 if expense.account_id == account_id else 1
                 upcoming_expenses.append(
                     ReturnUpcomingTransactionSchema(
                         name=expense.name,
@@ -357,3 +357,61 @@ def get_income_transactions(
             .order_by(Transaction.date.desc())
             .all()
     ) # type: ignore
+
+
+@transaction_router.get('/account/{account_id}/expense-breakdown')
+def get_account_expense_breakdown(
+    account_id: int,
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    db: Session = Depends(get_database),
+) -> ExpenseBreakdownResponse:
+    """
+    Get a breakdown of expenses for an account within a date range.
+    
+    - account_id: The ID of the account to get expense breakdown for
+    - start_date: The start date of the period to analyze
+    - end_date: The end date of the period to analyze
+    """
+
+    # Get all transactions for the account in the date range
+    transactions = (
+        db.query(Transaction)
+        .filter(
+            Transaction.account_id == account_id,
+            Transaction.date >= start_date,
+            Transaction.date <= end_date,
+            Transaction.amount < 0 # Only include Expenses
+        )
+        .options(joinedload(Transaction.expense))
+        .all()
+    )
+
+    # Group Transactions by Expense name and calculate totals
+    expense_totals = defaultdict(lambda: {'total': 0.0, 'count': 0})
+    for transaction in transactions:
+        expense_name = (
+            transaction.expense.name if transaction.expense else 'Uncategorized'
+        )
+        expense_totals[expense_name]['total'] += abs(transaction.amount)
+        expense_totals[expense_name]['count'] += 1
+
+    # Convert to response format
+    breakdown = sorted(
+        [
+            ExpenseBreakdownItem(
+                expense_name=name,
+                total_amount=data['total'],
+                transaction_count=data['count'] # type: ignore
+            )
+            for name, data in expense_totals.items()
+        ],
+        key=lambda x: x.total_amount, reverse=True
+    )
+
+    total_expenses = sum(item.total_amount for item in breakdown)
+
+    return ExpenseBreakdownResponse(
+        total_expenses=total_expenses,
+        breakdown=breakdown
+    )

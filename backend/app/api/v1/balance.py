@@ -144,6 +144,7 @@ def get_daily_balances(
     last_known_balance: float | None = None
 
     for current_date in date_range(start_date, end_date):
+        log.info(f'[{current_date.strftime("%Y-%m-%d")}] ${last_known_balance or 0.0:,.02f}')
         # Use actual Balance if it exists
         if current_date in balance_dict:
             last_known_balance = balance_dict[current_date].balance
@@ -152,12 +153,15 @@ def get_daily_balances(
             projected_balance = last_known_balance
             for expense in expenses:
                 if (amt := expense.get_effective_amount(current_date)) != 0:
+                    log.debug(f'[{current_date.strftime("%Y-%m-%d")}] ${projected_balance:,.02f} + Expense[{expense.name}, {amt:,.02f}]')
                     projected_balance += amt
             for income in incomes:
                 if (amt := income.get_effective_amount(current_date)) != 0:
+                    log.debug(f'[{current_date.strftime("%Y-%m-%d")}] ${projected_balance:,.02f} + Income[{income.name}, {amt:,.02f}]')
                     projected_balance += amt
             for transfer in transfers:
                 if (amt := transfer.get_effective_amount(current_date, account_id)) != 0:
+                    log.debug(f'[{current_date.strftime("%Y-%m-%d")}] ${projected_balance:,.02f} + Transfer[{transfer.name}, {amt:,.02f}]')
                     projected_balance += amt
 
             last_known_balance = projected_balance

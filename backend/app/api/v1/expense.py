@@ -50,10 +50,8 @@ def create_expense(
     - new_expense: Definition of the new Expense to create.
     """
 
-    # Verify the source and destination Accounts exist
-    require_account(db, new_expense.from_account_id, raise_exception=True)
-    if new_expense.to_account_id is not None:
-        require_account(db, new_expense.to_account_id, raise_exception=True)
+    # Verify the Account exists
+    require_account(db, new_expense.account_id, raise_exception=True)
 
     expense = Expense(**new_expense.model_dump())
     db.add(expense)
@@ -99,13 +97,11 @@ def update_expense(
     db: Session = Depends(get_database),
 ) -> ReturnExpenseSchema:
 
-    # Get the existing expense
+    # Get the existing Expense
     expense = require_expense(db, expense_id, raise_exception=True)
 
-    # Verify the source and destination Accounts exist
-    require_account(db, expense_update.from_account_id, raise_exception=True)
-    if expense_update.to_account_id is not None:
-        require_account(db, expense_update.to_account_id, raise_exception=True)
+    # Verify the source Account exists
+    require_account(db, expense_update.account_id, raise_exception=True)
 
     # Update all attributes
     for key, value in expense_update.model_dump().items():
@@ -126,14 +122,10 @@ def partially_update_expense(
     # Get the existing expense
     expense = require_expense(db, expense_id, raise_exception=True)
     
-    # Verify account IDs if they're being updated
-    if ('from_account_id' in expense_update.model_fields_set
-        and expense_update.from_account_id is not None):
-        require_account(db, expense_update.from_account_id, raise_exception=True)
-
-    if ('to_account_id' in expense_update.model_fields_set
-        and expense_update.to_account_id is not None):
-        require_account(db, expense_update.to_account_id, raise_exception=True)
+    # Verify Account ID if it's being updated
+    if ('account_id' in expense_update.model_fields_set
+        and expense_update.account_id is not None):
+        require_account(db, expense_update.account_id, raise_exception=True)
 
     # Update only the provided fields
     for key, value in expense_update.model_dump().items():
@@ -153,41 +145,10 @@ def get_all_expenses_for_account(
 
     return (
         db.query(Expense)
-            .filter(
-                or_(
-                    Expense.from_account_id == account_id,
-                    Expense.to_account_id == account_id,
-                ),
-            )
+            .filter(Expense.account_id == account_id)
             .order_by(Expense.name)
             .all()
-     ) # type: ignore
-
-
-@expense_router.get('/account/{account_id}/from')
-def get_expenses_from_account(
-    account_id: int,
-    db: Session = Depends(get_database),
-) -> list[ReturnExpenseSchema]:
-
-    return [
-        ReturnExpenseSchema.model_validate(expense)
-        for expense in
-        db.query(Expense).filter(Expense.from_account_id == account_id).all()
-    ]
-
-
-@expense_router.get('/account/{account_id}/to')
-def get_expenses_to_account(
-    account_id: int,
-    db: Session = Depends(get_database),
-) -> list[ReturnExpenseSchema]:
-
-    return [
-        ReturnExpenseSchema.model_validate(expense)
-        for expense in
-        db.query(Expense).filter(Expense.to_account_id == account_id).all()
-    ]
+    ) # type: ignore
 
 
 @expense_router.post('/expense/{expense_id}/transaction-filters')
@@ -204,7 +165,7 @@ def apply_expense_transaction_filters_(
     """
 
     # Get the associated Expense and Transaction filters
-    expense = require_expense(db, expense_id, raise_exception=True)
+    expense = require_expense(db, expense_id)
     filters = [
         [TransactionFilter.model_validate(filter) for filter in filter_group]
         for filter_group in expense.transaction_filters

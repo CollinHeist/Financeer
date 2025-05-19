@@ -50,7 +50,7 @@ def apply_transaction_filters(
     ])
 
     if isinstance(model, Expense):
-        account_id = model.from_account_id
+        account_id = model.account_id
         start_date = model.start_date
         end_date = model.end_date
         associated_field = Transaction.expense_id
