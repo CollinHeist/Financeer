@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.account import Account
     from app.models.expense import Expense
     from app.models.income import Income
+    from app.models.transfer import Transfer
     from app.models.upload import Upload
 
 
@@ -34,6 +35,9 @@ class Transaction(Base):
 
     upload_id: Mapped[int | None] = mapped_column(ForeignKey('uploads.id'))
     upload: Mapped['Upload | None'] = relationship(back_populates='transactions')
+
+    transfer_id: Mapped[int | None] = mapped_column(ForeignKey('transfers.id'))
+    transfer: Mapped['Transfer | None'] = relationship(back_populates='transactions')
 
     related_transactions: Mapped[list['Transaction']] = relationship(
         'Transaction',

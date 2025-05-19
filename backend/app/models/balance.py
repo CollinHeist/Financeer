@@ -23,3 +23,7 @@ class Balance(Base):
         'Account',
         back_populates='balances',
     )
+
+
+    def __repr__(self) -> str:
+        return f'Balance[{self.id}] for ${self.balance:,.02f} on {self.date.strftime("%Y-%m-%d")}'

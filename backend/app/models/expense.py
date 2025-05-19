@@ -61,21 +61,10 @@ class Expense(Base):
         back_populates='expense',
     )
 
-    from_account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
-    from_account: Mapped['Account'] = relationship(
+    account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
+    account: Mapped['Account'] = relationship(
         'Account',
-        # back_populates='from_expenses',
-        foreign_keys=[from_account_id],
-    )
-
-    to_account_id: Mapped[int | None] = mapped_column(
-        ForeignKey('accounts.id'),
-        nullable=True,
-    )
-    to_account: Mapped['Account | None'] = relationship(
-        'Account',
-        # back_populates='to_expenses',
-        foreign_keys=[to_account_id],
+        back_populates='expenses',
     )
 
 
