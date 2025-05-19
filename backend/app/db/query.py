@@ -1,5 +1,6 @@
 from typing import TypeVar, overload
 
+from app.models.balance import Balance
 from fastapi.exceptions import HTTPException
 from sqlalchemy.orm.session import Session
 
@@ -7,6 +8,7 @@ from app.db.base import Base
 from app.models.account import Account
 from app.models.expense import Expense
 from app.models.income import Income
+from app.models.transfer import Transfer
 from app.models.transaction import Transaction
 
 
@@ -103,6 +105,41 @@ def require_account(
 
 
 @overload
+def require_balance(
+    db: Session,
+    balance_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Balance: ...
+
+@overload
+def require_balance(
+    db: Session,
+    balance_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Balance | None: ...
+
+def require_balance(
+    db: Session,
+    balance_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Balance | None:
+    """
+    Query and return an Balance by ID
+
+    Args:
+        db: The database session.
+        balance_id: The ID of the Balance to query.
+    """
+
+    return _require_model(
+        db, Balance, balance_id, raise_exception=raise_exception
+    )
+
+
+@overload
 def require_expense(
     db: Session,
     expense_id: int,
@@ -168,6 +205,41 @@ def require_income(
     """
 
     return _require_model(db, Income, income_id,raise_exception=raise_exception)
+
+
+@overload
+def require_transfer(
+    db: Session,
+    transfer_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Transaction: ...
+
+@overload
+def require_transfer(
+    db: Session,
+    transfer_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Transaction | None: ...
+
+def require_transfer(
+    db: Session,
+    transfer_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Transaction | None:
+    """
+    Query and return a Transfer by ID.
+
+    Args:
+        db: The database session.
+        transfer_id: The ID of the Transfer to query.
+    """
+
+    return _require_model(
+        db, Transfer, transfer_id, raise_exception=raise_exception
+    )
 
 
 @overload
