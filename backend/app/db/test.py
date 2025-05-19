@@ -191,8 +191,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'months'},
         start_date=date(2022, 1, 10),
         end_date=date(2028, 1, 10),
-        from_account_id=account.id,
-        to_account_id=None,
+        account_id=account.id,
         change_schedule=[],
         transaction_filters=[
             [{"on": "description", "type": "contains", "value": "AdelFi"}]
@@ -207,7 +206,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'months'},
         start_date=date(2024, 6, 1),
         end_date=date(2028, 6, 1),
-        from_account_id=account.id,
+        account_id=account.id,
         transaction_filters=[
             [
                 {
@@ -219,25 +218,13 @@ def initialize_test_data(db: Session) -> None:
         ]
     )
     db.add(student_loan)
-    savings = Expense(
-        name='Savings',
-        description='Savings Transfer',
-        amount=-250,
-        type='recurring',
-        frequency={'value': 1, 'unit': 'months'},
-        start_date=date(2024, 6, 1),
-        end_date=date(2028, 6, 1),
-        from_account_id=account.id,
-        to_account_id=savings_account.id,
-    )
-    db.add(savings)
     downpayment = Expense(
         name='Downpayment',
         description='Downpayment on new house',
         amount=-25000,
         type='one_time',
         start_date=date(2025, 8, 1),
-        from_account_id=account.id,
+        account_id=account.id,
     )
     db.add(downpayment)
     car_insurance = Expense(
@@ -247,7 +234,7 @@ def initialize_test_data(db: Session) -> None:
         type='recurring',
         frequency={'value': 6, 'unit': 'months'},
         start_date=date(2023, 1, 12),
-        from_account_id=credit_card.id,
+        account_id=credit_card.id,
         transaction_filters=[
             [{"on": "description", "type": "contains", "value": "USAA Insurance Payment"}]
         ]
@@ -261,8 +248,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'months'},
         start_date=date(2024, 1, 10),
         end_date=None,
-        from_account_id=credit_card.id,
-        to_account_id=None,
+        account_id=credit_card.id,
         change_schedule=[],
         transaction_filters=[
             [{"on": "description", "type": "contains", "value": "Rocket Express"}]
@@ -277,8 +263,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'months'},
         start_date=date(2022, 1, 10),
         end_date=None,
-        from_account_id=credit_card.id,
-        to_account_id=None,
+        account_id=credit_card.id,
         change_schedule=[],
         transaction_filters=[
             [{"on": "description", "type": "contains", "value": "Spotify"}]
@@ -293,8 +278,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'months'},
         start_date=date(2021, 1, 1),
         end_date=None,
-        from_account_id=credit_card.id,
-        to_account_id=None,
+        account_id=credit_card.id,
         change_schedule=[],
         transaction_filters=[
             [{"on": "description", "type": "contains", "value": "Petco"}],
@@ -310,8 +294,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'months'},
         start_date=date(2021, 1, 1),
         end_date=None,
-        from_account_id=account.id,
-        to_account_id=None,
+        account_id=account.id,
         change_schedule=[],
         transaction_filters=[
             [{"on": "description", "type": "contains", "value": "Payment to Idaho Power"}],
@@ -326,8 +309,7 @@ def initialize_test_data(db: Session) -> None:
         frequency={'value': 1, 'unit': 'weeks'},
         start_date=date(2020, 12, 2),
         end_date=None,
-        from_account_id=account.id,
-        to_account_id=None,
+        account_id=account.id,
         change_schedule=[],
         transaction_filters=[
             [{"on": "description", "type": "contains", "value": "WinCo Foods"}],
