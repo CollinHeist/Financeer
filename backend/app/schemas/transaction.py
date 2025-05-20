@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from app.schemas.account import ReturnAccountSchema
 from app.schemas.expense import ReturnExpenseSchema
 from app.schemas.income import ReturnIncomeSchema
+from app.schemas.transfers import ReturnTransferSchema
 
 
 class NewTransactionSchema(BaseModel):
@@ -15,6 +16,7 @@ class NewTransactionSchema(BaseModel):
     account_id: int
     expense_id: int | None = None
     income_id: int | None = None
+    transfer_id: int | None = None
     related_transaction_ids: list[int] | None = None
 
 class UpdateTransactionSchema(BaseModel):
@@ -25,6 +27,7 @@ class UpdateTransactionSchema(BaseModel):
     account_id: int = None
     expense_id: int | None = None
     income_id: int | None = None
+    transfer_id: int | None = None
     related_transaction_ids: list[int] | None = None
 
 class ReturnRelatedTransactionSchema(BaseModel):
@@ -43,13 +46,14 @@ class ReturnTransactionSchemaNoAccount(BaseModel):
     account_id: int
     expense_id: int | None
     income_id: int | None
+    transfer_id: int | None
     related_transactions: list[ReturnRelatedTransactionSchema] = []
     related_to_transactions: list[ReturnRelatedTransactionSchema] = []
 
 class ReturnTransactionSchema(ReturnTransactionSchemaNoAccount):
     account: ReturnAccountSchema
     expense: ReturnExpenseSchema | None
-    income: ReturnIncomeSchema | None    
+    income: ReturnIncomeSchema | None
 
 class ReturnUpcomingTransactionSchema(BaseModel):
     name: str
@@ -57,6 +61,7 @@ class ReturnUpcomingTransactionSchema(BaseModel):
     date: date_type
     expense_id: int | None = None
     income_id: int | None = None
+    transfer_id: int | None = None
 
 class ExpenseBreakdownItem(BaseModel):
     expense_name: str
