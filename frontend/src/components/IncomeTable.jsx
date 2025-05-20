@@ -1,5 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreVertical, Pencil, Trash2, CalendarClock, Plus, X, BarChart2 } from 'lucide-react';
+import {
+  MoreVertical,
+  Pencil,
+  Trash2,
+  CalendarClock,
+  Plus,
+  X,
+  BarChart2,
+  ChevronDown,
+  ChevronRight
+} from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import {
@@ -25,14 +35,21 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getAllIncomes, deleteIncome, patchIncome } from '@/lib/api';
+import {
+  deleteIncome,
+  getAllIncomes,
+  getAccounts,
+  getIncomeTransactions,
+  patchIncome,
+} from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import IncomeDialog from '@/components/IncomeDialog';
 import TransactionFilterDialog from './TransactionFilterDialog';
-import IncomeTransactionSummary from './income-transaction-summary';
+import TransactionSummaryInline from './transaction-summary-inline';
 import { IconFilterDollar } from '@tabler/icons-react';
+import AccountOverviewPopover from './AccountOverviewPopover';
 
-export function IncomeTable({ accountId }) {
+export function IncomeTable() {
   const queryClient = useQueryClient();
   const [editingIncome, setEditingIncome] = useState(null);
   const [editingSchedule, setEditingSchedule] = useState(null);
@@ -51,13 +68,23 @@ export function IncomeTable({ accountId }) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [incomeToFilter, setIncomeToFilter] = useState(null);
-  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
-  const [incomeToSummarize, setIncomeToSummarize] = useState(null);
+  const [expandedIncomeId, setExpandedIncomeId] = useState(null);
 
-  const { data: incomes, isLoading, error } = useQuery({
+  const { data: incomes, isLoading: incomesLoading, error: incomesError } = useQuery({
     queryKey: ['incomes', 'all'],
     queryFn: () => getAllIncomes(),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const { data: accounts, isLoading: accountsLoading } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: getAccounts,
+  });
+
+  const { data: transactions, isLoading: transactionsLoading, error: transactionsError } = useQuery({
+    queryKey: ['incomeTransactions', expandedIncomeId],
+    queryFn: () => getIncomeTransactions(expandedIncomeId),
+    enabled: !!expandedIncomeId,
   });
 
   const deleteIncomeMutation = useMutation({
@@ -245,8 +272,7 @@ export function IncomeTable({ accountId }) {
   };
 
   const handleSummary = (income) => {
-    setIncomeToSummarize(income);
-    setSummaryDialogOpen(true);
+    setExpandedIncomeId(expandedIncomeId === income.id ? null : income.id);
   };
 
   const handleSummaryDialogClose = (open) => {
@@ -256,113 +282,156 @@ export function IncomeTable({ accountId }) {
     }
   };
 
-  if (error) {
-    return <div className="text-left p-4 text-red-500">Error loading incomes: {error.message}</div>;
+  if (incomesError) {
+    return <div className="text-left p-4 text-red-500">Error loading incomes: {incomesError.message}</div>;
   }
 
-  const filteredIncomes = incomes?.filter(income => income.account_id === accountId) || [];
+  if (incomesLoading || accountsLoading) {
+    return <div className="text-left p-4">Loading incomes...</div>;
+  }
 
-  if (!filteredIncomes.length) {
+  if (!incomes || incomes.length === 0) {
     return (
       <div className="text-left p-4">
-        <p className="text-gray-500">No Income added to this Account.</p>
+        <p className="text-gray-500">No Income added to any Account.</p>
       </div>
     );
   }
+
+  // Create a map of account IDs to account names for quick lookup
+  const accountMap = accounts?.reduce((acc, account) => {
+    acc[account.id] = account.name;
+    return acc;
+  }, {}) || {};
 
   return (
     <div className="w-full">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="text-left"></TableHead>
+            <TableHead className="text-center">
+              <BarChart2 className="h-4 w-4 mx-auto" />
+            </TableHead>
             <TableHead className="text-left">Name</TableHead>
+            <TableHead className="text-left">Account</TableHead>
             <TableHead className="text-left">Amount</TableHead>
-            <TableHead className="text-left">Frequency</TableHead>
+            <TableHead className="text-center">Raises</TableHead>
+            <TableHead className="text-center">Frequency</TableHead>
             <TableHead className="text-left">Start Date</TableHead>
             <TableHead className="text-left">End Date</TableHead>
-            <TableHead className="text-left">Filters</TableHead>
+            <TableHead className="text-center">Filters</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredIncomes.map((income) => (
-            <TableRow key={income.id}>
-              <TableCell className="text-left">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleSummary(income)}
-                >
-                  <BarChart2 className="h-4 w-4" />
-                  <span className="sr-only">View transactions</span>
-                </Button>
-              </TableCell>
-              <TableCell className="font-medium text-left">
-                {income.name}
-              </TableCell>
-              <TableCell className="text-left text-green-500">
-                <div className="flex items-center gap-2">
+          {incomes.map((income) => (
+            <>
+              <TableRow key={income.id}>
+                <TableCell className="text-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleSummary(income)}
+                  >
+                    {expandedIncomeId === income.id ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    <span className="sr-only">Toggle Summary</span>
+                  </Button>
+                </TableCell>
+                <TableCell className="font-medium text-left">
+                  {income.name}
+                </TableCell>
+                <TableCell className="text-left">
+                  <AccountOverviewPopover account={income.account}>
+                    <Button
+                      variant="link"
+                      className="h-auto p-0"
+                    >
+                      {income.account.name}
+                    </Button>
+                  </AccountOverviewPopover>
+                </TableCell>
+                <TableCell className="text-left text-green-500">
                   ${(income.effective_amount || income.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  {income.raise_schedule?.length > 0 && (
+                </TableCell>
+                <TableCell className="text-center">
+                  {income.raise_schedule && income.raise_schedule.length > 0 ? (
                     <Badge 
-                      variant="secondary" 
-                      className="text-xs cursor-pointer hover:bg-secondary/80"
+                      variant="outline" 
+                      className="hover:bg-slate-100 cursor-pointer" 
                       onClick={() => handleEditSchedule(income)}
                     >
-                      {income.raise_schedule.length} Raise{income.raise_schedule.length === 1 ? '' : 's'}
+                      {income.raise_schedule.length}
                     </Badge>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="text-left">{income.frequency ? `${income.frequency.value} ${income.frequency.unit}` : '-'}</TableCell>
-              <TableCell className="text-left">{income.start_date ? new Date(income.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</TableCell>
-              <TableCell className="text-left">{income.end_date ? new Date(income.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span className="text-gray-400">Never</span>}</TableCell>
-              <TableCell className="text-left">
-                {income.transaction_filters && income.transaction_filters.length > 0 ? (
-                  <Badge 
-                    variant="outline" 
-                    className="hover:bg-slate-100 cursor-pointer" 
-                    onClick={() => handleFilter(income)}
-                  >
-                    {income.transaction_filters.reduce((total, group) => total + group.length, 0)}
-                  </Badge>
-                ) : '-'}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="p-1 hover:bg-muted rounded-md">
-                    <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => handleEdit(income)}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleEditSchedule(income)}>
-                      <CalendarClock className="h-4 w-4 mr-2" />
-                      Edit Raises
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleFilter(income)}>
-                      <IconFilterDollar className="h-4 w-4 mr-2" />
-                      Transaction Filters
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleSummary(income)}>
-                      <BarChart2 className="h-4 w-4 mr-2" />
-                      Transaction Summary
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleDelete(income)}
-                      className="text-red-500 focus:text-red-500"
+                  ) : '-'}
+                </TableCell>
+                <TableCell className="text-center">{income.frequency ? `${income.frequency.value} ${income.frequency.unit}` : '-'}</TableCell>
+                <TableCell className="text-left">{income.start_date ? new Date(income.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</TableCell>
+                <TableCell className="text-left">{income.end_date ? new Date(income.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : <span className="text-gray-400">Never</span>}</TableCell>
+                <TableCell className="text-center">
+                  {income.transaction_filters && income.transaction_filters.length > 0 ? (
+                    <Badge 
+                      variant="outline" 
+                      className="hover:bg-slate-100 cursor-pointer" 
+                      onClick={() => handleFilter(income)}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
+                      {income.transaction_filters.reduce((total, group) => total + group.length, 0)}
+                    </Badge>
+                  ) : '-'}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="p-1 hover:bg-muted rounded-md">
+                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => handleEdit(income)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleEditSchedule(income)}>
+                        <CalendarClock className="h-4 w-4 mr-2" />
+                        Edit Raises
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleFilter(income)}>
+                        <IconFilterDollar className="h-4 w-4 mr-2" />
+                        Transaction Filters
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleSummary(income)}>
+                        <BarChart2 className="h-4 w-4 mr-2" />
+                        Transaction Summary
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(income)}
+                        className="text-red-500 focus:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+              {expandedIncomeId === income.id && (
+                <TableRow>
+                  <TableCell colSpan={10} className="p-4">
+                    <TransactionSummaryInline
+                      title={income.name}
+                      transactions={transactions}
+                      isLoading={transactionsLoading}
+                      error={transactionsError}
+                      budgetAmount={income.amount}
+                      frequency={income.frequency}
+                      reversedYAxis={false}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
+            </>
           ))}
         </TableBody>
       </Table>
@@ -380,7 +449,7 @@ export function IncomeTable({ accountId }) {
       <IncomeDialog 
         isOpen={isEditDialogOpen}
         onOpenChange={handleEditDialogClose}
-        accountId={accountId}
+        accountId={editingIncome?.account_id}
         incomeId={editingIncome?.id}
       />
 
@@ -388,15 +457,6 @@ export function IncomeTable({ accountId }) {
         isOpen={filterDialogOpen}
         onOpenChange={handleFilterDialogClose}
         incomeId={incomeToFilter?.id}
-      />
-
-      <IncomeTransactionSummary
-        isOpen={summaryDialogOpen}
-        onOpenChange={handleSummaryDialogClose}
-        incomeId={incomeToSummarize?.id}
-        incomeName={incomeToSummarize?.name}
-        incomeAmount={incomeToSummarize?.amount}
-        incomeFrequency={incomeToSummarize?.frequency}
       />
 
       <Dialog open={!!editingSchedule} onOpenChange={(open) => !open && setEditingSchedule(null)}>

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { IconExternalLink, IconTrash } from "@tabler/icons-react";
+import { IconExternalLink, IconTrash, IconMoneybag } from "@tabler/icons-react";
 import { useQueryClient } from '@tanstack/react-query';
 import { patchTransaction } from '@/lib/api';
 
@@ -55,6 +55,7 @@ export default function IncomeSummaryPopover({
             size="sm"
             className={cn("text-green-600 hover:text-green-700", className)}
           >
+            <IconMoneybag className="h-4 w-4" />
             {income.name}
           </Button>
         )}
