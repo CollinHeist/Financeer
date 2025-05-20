@@ -84,6 +84,13 @@ def get_transactions(
     unassigned_only: bool = Query(default=False),
     db: Session = Depends(get_database),
 ) -> Page[ReturnTransactionSchema]:
+    """
+    Get all Transactions which match the provided filters.
+
+    - date: Optional date to filter by.
+    - unassigned_only: Whether to only include Transactions which are not
+    associated with an Expense or Income.
+    """
 
     filters = []
     if contains is not None:
@@ -168,6 +175,12 @@ def get_transaction_by_id(
     transaction_id: int,
     db: Session = Depends(get_database),
 ) -> ReturnTransactionSchema:
+    """
+    Get the details of a Transaction.
+
+    - transaction_id: ID of the Transaction to get details for.
+    """
+
 
     return require_transaction(db, transaction_id)
 
@@ -438,3 +451,5 @@ def get_transfer_transactions(
             .order_by(Transaction.date.desc())
             .all()
     ) # type: ignore
+
+
