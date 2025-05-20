@@ -16,6 +16,7 @@ from app.db.query import (
     require_expense,
     require_income,
     require_transaction,
+    require_transfer,
 )
 from app.models.expense import Expense
 from app.models.income import Income
@@ -55,6 +56,8 @@ def create_transaction(
         require_expense(db, new_transaction.expense_id)
     if new_transaction.income_id is not None:
         require_income(db, new_transaction.income_id)
+    if new_transaction.transfer_id is not None:
+        require_transfer(db, new_transaction.transfer_id)
     related_transactions = []
     if new_transaction.related_transaction_ids:
         related_transactions = [
@@ -205,6 +208,8 @@ def update_transaction(
         require_expense(db, updated_transaction.expense_id)
     if updated_transaction.income_id is not None:
         require_income(db, updated_transaction.income_id)
+    if updated_transaction.transfer_id is not None:
+        require_transfer(db, updated_transaction.transfer_id)
     related_transactions = []
     if updated_transaction.related_transaction_ids:
         related_transactions = [
@@ -236,17 +241,20 @@ def partial_update_transaction(
     """
 
     # Get the existing Transaction
-    transaction = require_transaction(db, transaction_id, raise_exception=True)
+    transaction = require_transaction(db, transaction_id)
     
     # Verify IDs if they're being updated
     if 'account_id' in updated_transaction.model_fields_set:
-        require_account(db, updated_transaction.account_id, raise_exception=True)
+        require_account(db, updated_transaction.account_id)
     if ('expense_id' in updated_transaction.model_fields_set
         and updated_transaction.expense_id is not None):
-        require_expense(db, updated_transaction.expense_id, raise_exception=True)
+        require_expense(db, updated_transaction.expense_id)
     if ('income_id' in updated_transaction.model_fields_set
         and updated_transaction.income_id is not None):
-        require_income(db, updated_transaction.income_id, raise_exception=True)
+        require_income(db, updated_transaction.income_id)
+    if ('transfer_id' in updated_transaction.model_fields_set
+        and updated_transaction.transfer_id is not None):
+        require_transfer(db, updated_transaction.transfer_id)
     related_transactions = []
     if ('related_transaction_ids' in updated_transaction.model_fields_set
         and updated_transaction.related_transaction_ids is not None):
@@ -415,3 +423,18 @@ def get_account_expense_breakdown(
         total_expenses=total_expenses,
         breakdown=breakdown
     )
+
+
+@transaction_router.get('/transfer/{transfer_id}')
+def get_transfer_transactions(
+    transfer_id: int,
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchemaNoAccount]:
+    """Get all Transactions associated with the given Transfer."""
+
+    return (
+        db.query(Transaction)
+            .filter(Transaction.transfer_id == transfer_id)
+            .order_by(Transaction.date.desc())
+            .all()
+    ) # type: ignore
