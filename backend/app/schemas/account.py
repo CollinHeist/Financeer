@@ -41,7 +41,7 @@ class ReturnAccountSchema(BaseModel):
     account_number: int | None
     routing_number: int | None
     interest: float
-    last_balance: ReturnBalanceSchema | None
+    last_balance: ReturnBalanceSchema | None = None
 
 class ReturnAccountSummarySchema(BaseModel):
     balance: float

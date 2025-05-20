@@ -3,14 +3,15 @@ from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.schemas.income import FrequencyDict
+from app.schemas.income import Frequency
+from app.schemas.account import ReturnAccountSchema
 
 
 class NewTransferSchema(BaseModel):
     name: str
     description: str = ''
     amount: float = Field(gt=0)
-    frequency: FrequencyDict | None
+    frequency: Frequency | None
     start_date: date
     end_date: date | None = None
     from_account_id: int
@@ -30,7 +31,7 @@ class UpdateTransferSchema(BaseModel):
     name: str = None
     description: str = None
     amount: float = Field(gt=0, default=None)
-    frequency: FrequencyDict | None = None
+    frequency: Frequency | None = None
     start_date: date = None
     end_date: date | None = None
     from_account_id: int = None
@@ -42,9 +43,11 @@ class ReturnTransferSchema(BaseModel):
     name: str
     description: str
     amount: float
-    frequency: FrequencyDict | None
+    frequency: Frequency | None
     start_date: date
     end_date: date | None
     from_account_id: int
+    from_account: ReturnAccountSchema
     to_account_id: int
+    to_account: ReturnAccountSchema
     payoff_balance: bool
