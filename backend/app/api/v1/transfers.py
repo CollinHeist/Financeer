@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
@@ -17,7 +18,23 @@ transfers_router = APIRouter(
 )
 
 
-@transfers_router.post('/new')
+@transfers_router.get('/all')
+def get_all_transfers(
+    db: Session = Depends(get_database),
+) -> list[ReturnTransferSchema]:
+    """Get all Transfers from the database."""
+
+    return (
+        db.query(Transfer)
+            .options(
+                joinedload(Transfer.from_account),
+                joinedload(Transfer.to_account)
+            )
+            .all()
+    ) # type: ignore
+
+
+@transfers_router.post('/transfer/new')
 def create_new_transfer(
     new_transfer: NewTransferSchema = Body(...),
     db: Session = Depends(get_database),
@@ -117,3 +134,18 @@ def patch_transfer(
     db.commit()
 
     return transfer
+
+
+@transfers_router.delete('/transfer/{transfer_id}')
+def delete_transfer(
+    transfer_id: int,
+    db: Session = Depends(get_database),
+) -> None:
+    """
+    Delete a Transfer by its ID.
+
+    - transfer_id: The ID of the Transfer to delete.
+    """
+
+    db.delete(require_transfer(db, transfer_id))
+    db.commit()
