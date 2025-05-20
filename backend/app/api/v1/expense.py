@@ -226,3 +226,125 @@ def apply_all_expense_filters(
     db.commit()
 
     return None
+
+
+@expense_router.get('/suggest')
+def suggest_expenses(
+    min_similarity: float = Query(0.8, ge=0.0, le=1.0),
+    min_occurrences: int = Query(2, ge=1),
+    db: Session = Depends(get_database),
+) -> list[dict]:
+    """
+    Suggest possible Expenses based on similar Transactions.
+    
+    - min_similarity: Minimum similarity score between transaction descriptions (0.0 to 1.0)
+    - min_occurrences: Minimum number of similar transactions to suggest an expense
+    """
+    from difflib import SequenceMatcher
+    from collections import defaultdict
+    from statistics import mean, stdev
+
+    # Get all unassigned transactions
+    transactions = (
+        db.query(Transaction)
+            .filter(Transaction.expense_id.is_(None))
+            .filter(Transaction.income_id.is_(None))
+            .filter(Transaction.transfer_id.is_(None))
+            .order_by(Transaction.date.desc())
+            .all()
+    )
+
+    # Group Transactions by similar descriptions and amounts
+    groups = defaultdict(list)
+    processed = set()
+
+    for i, t1 in enumerate(transactions):
+        if t1.id in processed:
+            continue
+
+        current_group = [t1]
+        processed.add(t1.id)
+
+        # Compare with other transactions
+        for t2 in transactions[i+1:]:
+            if t2.id in processed:
+                continue
+
+            # Calculate similarity between descriptions
+            similarity = SequenceMatcher(None, t1.description.lower(), t2.description.lower()).ratio()
+
+            # Check if amounts are similar (within 10% of each other)
+            amount_diff = abs(t1.amount - t2.amount) / max(abs(t1.amount), abs(t2.amount))
+
+            if similarity >= min_similarity and amount_diff <= 0.1:
+                current_group.append(t2)
+                processed.add(t2.id)
+
+        # Only keep groups with enough occurrences
+        if len(current_group) >= min_occurrences:
+            # Use the most common description as the group key
+            desc_counts = defaultdict(int)
+            for t in current_group:
+                desc_counts[t.description.lower()] += 1
+            group_key = max(desc_counts.items(), key=lambda x: x[1])[0]
+            groups[group_key].extend(current_group)
+
+    # Convert groups to expense suggestions
+    suggestions = []
+    for desc, transactions in groups.items():
+        amounts = [t.amount for t in transactions]
+        dates = [t.date for t in transactions]
+
+        # Calculate average amount and standard deviation
+        avg_amount = mean(amounts)
+        amount_std = stdev(amounts) if len(amounts) > 1 else 0
+
+        # Calculate average days between transactions
+        date_diffs = []
+        for i in range(len(dates)-1):
+            date_diffs.append((dates[i] - dates[i+1]).days)
+        avg_days = mean(date_diffs) if date_diffs else None
+
+        # Determine frequency
+        frequency = None
+        if avg_days is not None:
+            if 27 <= avg_days <= 31:
+                frequency = {"type": "monthly", "day": dates[0].day}
+            elif 6 <= avg_days <= 8:
+                frequency = {"type": "weekly", "day": dates[0].weekday()}
+            elif 13 <= avg_days <= 15:
+                frequency = {"type": "biweekly", "day": dates[0].weekday()}
+
+        # Create transaction filter
+        filter_value = desc
+        if len(desc) > 3:
+            # Try to find a common prefix
+            words = desc.split()
+            if len(words) > 1:
+                filter_value = words[0]
+
+        suggestion = {
+            "name": desc.title(),
+            "description": f"Suggested expense based on {len(transactions)} similar transactions",
+            "amount": round(avg_amount, 2),
+            "amount_std": round(amount_std, 2),
+            "frequency": frequency,
+            "start_date": min(dates),
+            "transaction_count": len(transactions),
+            "transaction_filters": [[{
+                "on": "description",
+                "type": "contains",
+                "value": filter_value
+            }]],
+            "example_transactions": [
+                {
+                    "date": t.date,
+                    "description": t.description,
+                    "amount": t.amount
+                }
+                for t in transactions[:3]  # Show first 3 examples
+            ]
+        }
+        suggestions.append(suggestion)
+
+    return suggestions
