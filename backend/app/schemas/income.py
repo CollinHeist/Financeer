@@ -4,6 +4,7 @@ from datetime import date
 from pydantic.main import BaseModel
 from pydantic import Field, model_validator
 
+from app.schemas.account import ReturnAccountSchema
 from app.schemas.core import TransactionFilter
 
 
@@ -93,5 +94,6 @@ class ReturnIncomeSchema(BaseModel):
     start_date: date
     end_date: date | None
     account_id: int
+    account: ReturnAccountSchema
     raise_schedule: list[RaiseItem]
     transaction_filters: list[list[TransactionFilter]]
