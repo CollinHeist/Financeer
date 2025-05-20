@@ -1,7 +1,14 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreVertical, Pencil, Trash2, BarChart2 } from 'lucide-react';
+import {
+  BarChart2,
+  ChevronDown,
+  ChevronRight,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -18,12 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useState } from 'react';
-import { getAllAccountExpenses, getAccounts, deleteExpense } from '@/lib/api';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { getAllAccountExpenses, deleteExpense } from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import ExpenseDialog from './ExpenseDialog';
 import TransactionFilterDialog from './TransactionFilterDialog';
@@ -39,17 +41,11 @@ export function ExpenseTable({ accountId }) {
   const [expenseToEdit, setExpenseToEdit] = useState(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [expenseToFilter, setExpenseToFilter] = useState(null);
-  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
-  const [expenseToSummarize, setExpenseToSummarize] = useState(null);
+  const [expandedExpenseId, setExpandedExpenseId] = useState(null);
 
   const { data: expenses, isLoading, error } = useQuery({
     queryKey: ['expenses', accountId],
     queryFn: () => getAllAccountExpenses(accountId)
-  });
-
-  const { data: accounts } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: getAccounts
   });
 
   const deleteExpenseMutation = useMutation({
@@ -100,15 +96,7 @@ export function ExpenseTable({ accountId }) {
   };
 
   const handleSummary = (expense) => {
-    setExpenseToSummarize(expense);
-    setSummaryDialogOpen(true);
-  };
-
-  const handleSummaryDialogClose = (open) => {
-    setSummaryDialogOpen(open);
-    if (!open) {
-      setExpenseToSummarize(null);
-    }
+    setExpandedExpenseId(expandedExpenseId === expense.id ? null : expense.id);
   };
 
   if (error) {
@@ -131,7 +119,9 @@ export function ExpenseTable({ accountId }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="text-left"></TableHead>
+          <TableHead className="text-center">
+              <BarChart2 className="h-4 w-4 mx-auto" />
+            </TableHead>
             <TableHead className="text-left">Name</TableHead>
             <TableHead className="text-left">Description</TableHead>
             <TableHead className="text-left">Amount</TableHead>
@@ -143,81 +133,100 @@ export function ExpenseTable({ accountId }) {
         </TableHeader>
         <TableBody>
           {expenses.map((expense) => (
-            <TableRow key={expense.id}>
-              <TableCell className="text-left">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleSummary(expense)}
-                >
-                  <BarChart2 className="h-4 w-4" />
-                  <span className="sr-only">View Transactions</span>
-                </Button>
-              </TableCell>
-              <TableCell className="font-medium text-left">
-                {expense.name}
-              </TableCell>
-              <TableCell className="text-left">{expense.description || '-'}</TableCell>
-              <TableCell className={`text-left ${expense.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                {expense.amount < 0 ? '-' : ''}${Math.abs(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </TableCell>
-              <TableCell className="text-left">
-                {expense.start_date ? (
-                  expense.type === 'one_time' ? (
-                    `On ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  ) : (
-                    `Every ${expense.frequency.value} ${expense.frequency.unit} starting ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  )
-                ) : '-'}
-              </TableCell>
-              <TableCell className="text-left">
-                {expense.end_date ? new Date(expense.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
-                  expense.type === 'one_time' ? '-' : <span className="text-gray-400">Never</span>}
-              </TableCell>
-              <TableCell className="text-left">
-                {expense.transaction_filters && expense.transaction_filters.length > 0 ? (
-                  <Badge 
-                    variant="outline" 
-                    className="hover:bg-slate-100 cursor-pointer" 
-                    onClick={() => handleFilter(expense)}
+            <>
+              <TableRow key={expense.id}>
+                <TableCell className="text-center">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleSummary(expense)}
                   >
-                    {expense.transaction_filters.reduce((total, group) => total + group.length, 0)}
-                  </Badge>
-                ) : '-'}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Open menu</span>
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEdit(expense)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleFilter(expense)}>
-                      <IconFilterDollar className="mr-2 h-4 w-4" />
-                      Transaction Filters
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSummary(expense)}>
-                      <BarChart2 className="mr-2 h-4 w-4" />
-                      Transaction Summary
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleDelete(expense)}
-                      className="text-red-600"
+                    {expandedExpenseId === expense.id ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    <span className="sr-only">Toggle Summary</span>
+                  </Button>
+                </TableCell>
+                <TableCell className="font-medium text-left">
+                  {expense.name}
+                </TableCell>
+                <TableCell className="text-left">{expense.description || '-'}</TableCell>
+                <TableCell className={`text-left ${expense.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  {expense.amount < 0 ? '-' : ''}${Math.abs(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </TableCell>
+                <TableCell className="text-left">
+                  {expense.start_date ? (
+                    expense.type === 'one_time' ? (
+                      `On ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                    ) : (
+                      `Every ${expense.frequency.value} ${expense.frequency.unit} starting ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                    )
+                  ) : '-'}
+                </TableCell>
+                <TableCell className="text-left">
+                  {expense.end_date ? new Date(expense.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
+                    expense.type === 'one_time' ? '-' : <span className="text-gray-400">Never</span>}
+                </TableCell>
+                <TableCell className="text-left">
+                  {expense.transaction_filters && expense.transaction_filters.length > 0 ? (
+                    <Badge 
+                      variant="outline" 
+                      className="hover:bg-slate-100 cursor-pointer" 
+                      onClick={() => handleFilter(expense)}
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
+                      {expense.transaction_filters.reduce((total, group) => total + group.length, 0)}
+                    </Badge>
+                  ) : '-'}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(expense)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleFilter(expense)}>
+                        <IconFilterDollar className="mr-2 h-4 w-4" />
+                        Transaction Filters
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSummary(expense)}>
+                        <BarChart2 className="mr-2 h-4 w-4" />
+                        {expandedExpenseId === expense.id ? 'Hide Summary' : 'Show Summary'}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(expense)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+              {expandedExpenseId === expense.id && (
+                <TableRow>
+                  <TableCell colSpan={8} className="p-4">
+                    <ExpenseTransactionSummary
+                      isInline={true}
+                      expenseId={expense.id}
+                      expenseName={expense.name}
+                      expenseAmount={expense.amount}
+                      expenseFrequency={expense.frequency}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
+            </>
           ))}
         </TableBody>
       </Table>
@@ -243,15 +252,6 @@ export function ExpenseTable({ accountId }) {
         isOpen={filterDialogOpen}
         onOpenChange={handleFilterDialogClose}
         expenseId={expenseToFilter?.id}
-      />
-
-      <ExpenseTransactionSummary
-        isOpen={summaryDialogOpen}
-        onOpenChange={handleSummaryDialogClose}
-        expenseId={expenseToSummarize?.id}
-        expenseName={expenseToSummarize?.name}
-        expenseAmount={expenseToSummarize?.amount}
-        expenseFrequency={expenseToSummarize?.frequency}
       />
     </div>
   );

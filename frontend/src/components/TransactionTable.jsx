@@ -36,6 +36,7 @@ import {
   getAllExpenses,
   getAllIncomes,
   patchTransaction,
+  getAllTransfers,
 } from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import TransactionDialog from '@/components/TransactionDialog';
@@ -49,6 +50,8 @@ import {
 } from "@/components/ui/dialog";
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import TransferSummaryPopover from '@/components/TransferSummaryPopover';
+import AccountOverviewPopover from '@/components/AccountOverviewPopover';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -122,11 +125,31 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  const { data: transfers } = useQuery({
+    queryKey: ['transfers'],
+    queryFn: getAllTransfers,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   const handleCategorize = async (item) => {
     try {
       await patchTransaction(transaction.id, {
         expense_id: selectedType === 'expense' ? item.id : null,
         income_id: selectedType === 'income' ? item.id : null,
+        transfer_id: selectedType === 'transfer' ? item.id : null,
+        // Clear other IDs when setting a transfer
+        ...(selectedType === 'transfer' ? {
+          expense_id: null,
+          income_id: null
+        } : {}),
+        ...(selectedType === 'expense' ? {
+          income_id: null,
+          transfer_id: null
+        } : {}),
+        ...(selectedType === 'income' ? {
+          expense_id: null,
+          transfer_id: null
+        } : {})
       });
       await queryClient.invalidateQueries(['transactions']);
       onClose?.();
@@ -137,7 +160,9 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
 
   const filteredItems = selectedType === 'expense' 
     ? expenses?.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : incomes?.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    : selectedType === 'income'
+    ? incomes?.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : transfers?.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div>
@@ -145,6 +170,7 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
         <TabsList className="w-full">
           <TabsTrigger value="expense" className="flex-1">Expenses</TabsTrigger>
           <TabsTrigger value="income" className="flex-1">Income</TabsTrigger>
+          <TabsTrigger value="transfer" className="flex-1">Transfers</TabsTrigger>
         </TabsList>
         <div className="p-4">
           <div className="relative mb-4">
@@ -164,12 +190,21 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
                 className="justify-start w-full"
                 onClick={() => handleCategorize(item)}
               >
-                {item.name}
+                {selectedType === 'transfer' ? (
+                  <div className="flex flex-col items-start">
+                    <span>{item.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {item.from_account.name} → {item.to_account.name}
+                    </span>
+                  </div>
+                ) : (
+                  item.name
+                )}
               </Button>
             ))}
             {filteredItems?.length === 0 && (
               <div className="text-sm text-muted-foreground text-center py-2">
-                No {selectedType === 'expense' ? 'expenses' : 'income'} found
+                No {selectedType === 'expense' ? 'expenses' : selectedType === 'income' ? 'income' : 'transfers'} found
               </div>
             )}
           </div>
@@ -179,8 +214,8 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
   );
 };
 
-const CategoryCell = ({ expense, income, transaction }) => {
-  if (!expense && !income) {
+const CategoryCell = ({ expense, income, transfer_id, transaction }) => {
+  if (!expense && !income && !transfer_id) {
     return (
       <TableCell className="text-center">
         <DropdownMenu>
@@ -196,7 +231,7 @@ const CategoryCell = ({ expense, income, transaction }) => {
       </TableCell>
     );
   }
-  
+
   if (income) {
     return (
       <TableCell className="text-center">
@@ -204,7 +239,15 @@ const CategoryCell = ({ expense, income, transaction }) => {
       </TableCell>
     );
   }
-  
+
+  if (transfer_id) {
+    return (
+      <TableCell className="text-center">
+        <TransferSummaryPopover transfer_id={transfer_id} transaction={transaction} />
+      </TableCell>
+    );
+  }
+
   return (
     <TableCell className="text-center">
       <ExpenseSummaryPopover expense={expense} transaction={transaction} />
@@ -441,14 +484,14 @@ export default function TransactionTable({
                     )}
                   </TableCell>
                   <TableCell className="text-center">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>{transaction.account.name}</TooltipTrigger>
-                        <TooltipContent>
-                          Account #{transaction.account.account_number || 'N/A'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <AccountOverviewPopover account={transaction.account}>
+                      <Button
+                        variant="link"
+                        className="h-auto p-0"
+                      >
+                        {transaction.account.name}
+                      </Button>
+                    </AccountOverviewPopover>
                   </TableCell>
                   <TableCell className={cn(
                     transaction.amount >= 0 ? "text-green-600" : "text-red-600",
@@ -459,6 +502,7 @@ export default function TransactionTable({
                   <CategoryCell 
                     expense={transaction.expense} 
                     income={transaction.income}
+                    transfer_id={transaction.transfer_id}
                     transaction={transaction}
                   />
                   <RelatedTransactionsCell 

@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { IconExternalLink, IconTrash, IconCash } from "@tabler/icons-react";
-import { useQueryClient } from '@tanstack/react-query';
-import { patchTransaction } from '@/lib/api';
+import { IconExternalLink, IconTrash, IconArrowsDiff } from "@tabler/icons-react";
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { patchTransaction, getTransferById } from '@/lib/api';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -24,19 +24,26 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-export default function ExpenseSummaryPopover({ 
-  expense,
+export default function TransferSummaryPopover({ 
+  transfer_id,
   trigger = null,
   className,
   transaction
 }) {
   const queryClient = useQueryClient();
 
+  const { data: transfer, isLoading } = useQuery({
+    queryKey: ['transfer', transfer_id],
+    queryFn: () => getTransferById(transfer_id),
+    enabled: !!transfer_id
+  });
+
   const handleRemoveAssignment = async () => {
     try {
       await patchTransaction(transaction.id, {
         expense_id: null,
         income_id: null,
+        transfer_id: null,
       });
       await queryClient.invalidateQueries(['transactions']);
     } catch (error) {
@@ -44,7 +51,7 @@ export default function ExpenseSummaryPopover({
     }
   };
 
-  if (!expense) return null;
+  if (!transfer_id || isLoading) return null;
 
   return (
     <Popover>
@@ -53,10 +60,10 @@ export default function ExpenseSummaryPopover({
           <Button 
             variant="ghost" 
             size="sm"
-            className={cn("text-red-600 hover:text-red-700", className)}
+            className={cn("text-blue-600 hover:text-blue-700", className)}
           >
-            <IconCash className="h-4 w-4" />
-            {expense.name}
+            <IconArrowsDiff className="h-4 w-4" />
+            {transfer?.name || 'Loading...'}
           </Button>
         )}
       </PopoverTrigger>
@@ -64,7 +71,7 @@ export default function ExpenseSummaryPopover({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h4 className="font-medium">{expense.name}</h4>
+              <h4 className="font-medium">{transfer?.name}</h4>
               <Button
                 variant="ghost"
                 size="sm"
@@ -76,58 +83,40 @@ export default function ExpenseSummaryPopover({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                <a href="/expenses" className="hover:underline flex items-center gap-1">
-                  View Expenses
+                <a href="/transfers" className="hover:underline flex items-center gap-1">
+                  View Transfers
                   <IconExternalLink size={14} />
                 </a>
               </span>
             </div>
           </div>
 
-          {expense.description && expense.description !== expense.name && (
+          {transfer?.description && transfer.description !== transfer.name && (
             <p className="text-sm text-muted-foreground">
-              {expense.description}
+              {transfer.description}
             </p>
           )}
 
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status:</span>
-              <span className={cn(
-                "font-medium",
-                new Date(expense.end_date) > new Date() || !expense.end_date
-                  ? "text-green-600"
-                  : "text-red-600"
-              )}>
-                {new Date(expense.end_date) > new Date() || !expense.end_date
-                  ? "Active"
-                  : "Inactive"}
-              </span>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">From Account</span>
+              <p className="font-medium">{transfer?.from_account.name}</p>
             </div>
-
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Start Date:</span>
-              <span>{formatDate(expense.start_date)}</span>
+            <div>
+              <span className="text-muted-foreground">To Account</span>
+              <p className="font-medium">{transfer?.to_account.name}</p>
             </div>
-
-            {expense.end_date && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">End Date:</span>
-                <span>{formatDate(expense.end_date)}</span>
-              </div>
-            )}
+            <div>
+              <span className="text-muted-foreground">Amount</span>
+              <p className="font-medium">
+                {transfer?.payoff_balance ? 'Card Balance' : formatCurrency(transfer?.amount)}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Date</span>
+              <p className="font-medium">{formatDate(transfer?.start_date)}</p>
+            </div>
           </div>
-
-          {expense.amount && (
-            <div className="pt-2 border-t">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Amount:</span>
-                <span className="text-lg font-semibold text-red-600">
-                  {formatCurrency(expense.amount)}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </PopoverContent>
     </Popover>
