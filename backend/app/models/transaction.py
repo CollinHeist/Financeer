@@ -37,7 +37,6 @@ class Transaction(Base):
     upload: Mapped['Upload | None'] = relationship(back_populates='transactions')
 
     transfer_id: Mapped[int | None] = mapped_column(ForeignKey('transfers.id'))
-    transfer: Mapped['Transfer | None'] = relationship(back_populates='transactions')
 
     related_transactions: Mapped[list['Transaction']] = relationship(
         'Transaction',

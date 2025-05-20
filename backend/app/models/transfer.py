@@ -35,6 +35,29 @@ class Transfer(Base):
     end_date: Mapped[date | None] = mapped_column(Date, index=True)
     payoff_balance: Mapped[bool]
 
+    # To/from Transactions
+    from_transaction_id: Mapped[int | None] = mapped_column(
+        ForeignKey('transactions.id'),
+        index=True,
+        nullable=True
+    )
+    from_transaction: Mapped['Transaction | None'] = relationship(
+        'Transaction',
+        # back_populates='from_transfer',
+        foreign_keys=[from_transaction_id]
+    )
+
+    to_transaction_id: Mapped[int | None] = mapped_column(
+        ForeignKey('transactions.id'),
+        index=True,
+        nullable=True
+    )
+    to_transaction: Mapped['Transaction | None'] = relationship(
+        'Transaction',
+        # back_populates='to_transfer',
+        foreign_keys=[to_transaction_id]
+    )
+
     # Account relationships
     from_account_id: Mapped[int] = mapped_column(
         ForeignKey('accounts.id'),
@@ -54,13 +77,6 @@ class Transfer(Base):
         'Account',
         foreign_keys=[to_account_id],
         back_populates='incoming_transfers'
-    )
-
-    # Transaction relationship
-    transactions: Mapped[list["Transaction"]] = relationship(
-        'Transaction',
-        back_populates='transfer',
-        cascade='all, delete-orphan'
     )
 
 
