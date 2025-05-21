@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   BarChart2,
@@ -133,8 +134,8 @@ export function ExpenseTable({ accountId }) {
         </TableHeader>
         <TableBody>
           {expenses.map((expense) => (
-            <>
-              <TableRow key={expense.id}>
+            <React.Fragment key={expense.id}>
+              <TableRow>
                 <TableCell className="text-center">
                   <Button 
                     variant="ghost" 
@@ -226,7 +227,7 @@ export function ExpenseTable({ accountId }) {
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </React.Fragment>
           ))}
         </TableBody>
       </Table>

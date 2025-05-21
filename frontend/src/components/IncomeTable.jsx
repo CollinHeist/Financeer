@@ -11,7 +11,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -325,8 +325,8 @@ export function IncomeTable() {
         </TableHeader>
         <TableBody>
           {incomes.map((income) => (
-            <>
-              <TableRow key={income.id}>
+            <React.Fragment key={income.id}>
+              <TableRow>
                 <TableCell className="text-center">
                   <Button 
                     variant="ghost" 
@@ -431,7 +431,7 @@ export function IncomeTable() {
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </React.Fragment>
           ))}
         </TableBody>
       </Table>
