@@ -104,6 +104,7 @@ def get_transactions(
         filters.append(and_(
             Transaction.expense_id.is_(None),
             Transaction.income_id.is_(None),
+            Transaction.transfer_id.is_(None),
         ))
 
     return paginate(
