@@ -53,7 +53,7 @@ def create_new_transfer(
     # Verify the recieving Account is a Credit Card if the Transfer is
     # marked as a payoff
     if new_transfer.payoff_balance:
-        if to_account.type != 'credit_card':
+        if to_account.type != 'credit':
             raise HTTPException(
                 status_code=400,
                 detail='Credit Card Account is required for payoff transfers'
