@@ -26,6 +26,7 @@ def get_all_transfers(
 
     return (
         db.query(Transfer)
+            .order_by(Transfer.name)
             .options(
                 joinedload(Transfer.from_account),
                 joinedload(Transfer.to_account)
