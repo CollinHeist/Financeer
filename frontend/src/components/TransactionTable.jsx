@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -14,13 +14,13 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@/components/ui/tooltip";
-import { IconSearch, IconDotsVertical, IconEdit, IconTrash, IconPlus } from "@tabler/icons-react";
-import { cn } from "@/lib/utils";
+  IconSearch,
+  IconDotsVertical,
+  IconEdit,
+  IconTrash,
+  IconPlus,
+} from "@tabler/icons-react";
+import { cn, formatAmount } from "@/lib/utils";
 import IncomeSummaryPopover from '@/components/IncomeSummaryPopover';
 import ExpenseSummaryPopover from '@/components/ExpenseSummaryPopover';
 import {
@@ -493,11 +493,8 @@ export default function TransactionTable({
                       </Button>
                     </AccountOverviewPopover>
                   </TableCell>
-                  <TableCell className={cn(
-                    transaction.amount >= 0 ? "text-green-600" : "text-red-600",
-                    "text-right"
-                  )}>
-                    {formatCurrency(transaction.amount)}
+                  <TableCell className="text-right">
+                    {formatAmount(transaction.amount)}
                   </TableCell>
                   <CategoryCell 
                     expense={transaction.expense} 
