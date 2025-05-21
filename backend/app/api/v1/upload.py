@@ -11,9 +11,9 @@ from app.core.upload import (
 )
 from app.services.apple import parse_apple_upload
 from app.schemas.transaction import ReturnTransactionSchema
+from app.services.chase import parse_chase_upload
 from app.services.citi import parse_citi_upload
 from app.services.iccu import parse_iccu_upload
-
 
 upload_router = APIRouter(
     prefix='/upload',
@@ -43,46 +43,6 @@ def upload_generic_transactions(
     return add_transactions_to_database(transactions, upload.id, db)
 
 
-@upload_router.post('/new/iccu')
-def upload_iccu_transactions(
-    file: UploadFile,
-    account_id: int = Query(...),
-    db: Session = Depends(get_database),
-) -> list[ReturnTransactionSchema]:
-    """
-    Upload an Idaho Central Credit Union (ICCU) TransactionCSV file.
-
-    - account_id: The ID of the Account to upload the Transactions to.
-    """
-
-    upload = create_upload(file, account_id, db)
-
-    balances, transactions = parse_iccu_upload(upload)
-
-    add_balances_to_database(balances, db)
-
-    return add_transactions_to_database(transactions, upload.id, db) # type: ignore
-
-
-@upload_router.post('/new/citi')
-def upload_citi_transactions(
-    file: UploadFile,
-    account_id: int = Query(...),
-    db: Session = Depends(get_database),
-) -> list[ReturnTransactionSchema]:
-    """
-    Upload an Citi Bank Transaction .csv file.
-
-    - account_id: The ID of the Account to upload the Transactions to.
-    """
-
-    upload = create_upload(file, account_id, db)
-
-    transactions = parse_citi_upload(upload)
-
-    return add_transactions_to_database(transactions, upload.id, db) # type: ignore
-
-
 @upload_router.post('/new/apple')
 def upload_apple_transactions(
     files: list[UploadFile],
@@ -106,3 +66,62 @@ def upload_apple_transactions(
         )
 
     return transactions
+
+
+@upload_router.post('/new/chase')
+def upload_chase_transactions(
+    file: UploadFile,
+    account_id: int = Query(...),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """
+    Upload an Chase Bank Transaction .csv file.
+
+    - account_id: The ID of the Account to upload the Transactions to.
+    """
+
+    upload = create_upload(file, account_id, db)
+
+    transactions = parse_chase_upload(upload)
+
+    return add_transactions_to_database(transactions, upload.id, db) # type: ignore
+
+
+@upload_router.post('/new/citi')
+def upload_citi_transactions(
+    file: UploadFile,
+    account_id: int = Query(...),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """
+    Upload an Citi Bank Transaction .csv file.
+
+    - account_id: The ID of the Account to upload the Transactions to.
+    """
+
+    upload = create_upload(file, account_id, db)
+
+    transactions = parse_citi_upload(upload)
+
+    return add_transactions_to_database(transactions, upload.id, db) # type: ignore
+
+
+@upload_router.post('/new/iccu')
+def upload_iccu_transactions(
+    file: UploadFile,
+    account_id: int = Query(...),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """
+    Upload an Idaho Central Credit Union (ICCU) TransactionCSV file.
+
+    - account_id: The ID of the Account to upload the Transactions to.
+    """
+
+    upload = create_upload(file, account_id, db)
+
+    balances, transactions = parse_iccu_upload(upload)
+
+    add_balances_to_database(balances, db)
+
+    return add_transactions_to_database(transactions, upload.id, db) # type: ignore
