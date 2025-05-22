@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from app.schemas.account import ReturnAccountSchema
 from app.schemas.expense import ReturnExpenseSchema
 from app.schemas.income import ReturnIncomeSchema
-from app.schemas.transfers import ReturnTransferSchema
+from app.schemas.budget import ReturnBudgetSchema
 
 
 class NewTransactionSchema(BaseModel):
@@ -18,6 +18,7 @@ class NewTransactionSchema(BaseModel):
     income_id: int | None = None
     transfer_id: int | None = None
     related_transaction_ids: list[int] | None = None
+    budget_ids: list[int] = []
 
 class UpdateTransactionSchema(BaseModel):
     date: date_type = None
@@ -29,6 +30,7 @@ class UpdateTransactionSchema(BaseModel):
     income_id: int | None = None
     transfer_id: int | None = None
     related_transaction_ids: list[int] | None = None
+    budget_ids: list[int] = None
 
 class ReturnRelatedTransactionSchema(BaseModel):
     id: int
@@ -49,6 +51,7 @@ class ReturnTransactionSchemaNoAccount(BaseModel):
     transfer_id: int | None
     related_transactions: list[ReturnRelatedTransactionSchema] = []
     related_to_transactions: list[ReturnRelatedTransactionSchema] = []
+    budgets: list[ReturnBudgetSchema] = []
 
 class ReturnTransactionSchema(ReturnTransactionSchemaNoAccount):
     account: ReturnAccountSchema

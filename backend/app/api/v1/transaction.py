@@ -17,6 +17,7 @@ from app.db.query import (
     require_income,
     require_transaction,
     require_transfer,
+    require_budget,
 )
 from app.models.expense import Expense
 from app.models.income import Income
@@ -64,13 +65,21 @@ def create_transaction(
             require_transaction(db, id)
             for id in new_transaction.related_transaction_ids
         ]
+    budgets = []
+    if new_transaction.budget_ids:
+        budgets = [
+            require_budget(db, id)
+            for id in new_transaction.budget_ids
+        ]
 
-    # Create and add to the database; exclude related_transaction_ids
+    # Create and add to the database; exclude related_transaction_ids and budget_ids
     # as these will be set after the Transaction is created
-    transaction = Transaction(
-        **new_transaction.model_dump(exclude={'related_transaction_ids'})
-    )
+    transaction = Transaction(**new_transaction.model_dump(
+        exclude={'related_transaction_ids', 'budget_ids'}
+    ))
     transaction.related_transactions = related_transactions
+    transaction.budgets = budgets
+
     db.add(transaction)
     db.commit()
 
@@ -79,6 +88,7 @@ def create_transaction(
 
 @transaction_router.get('/all')
 def get_transactions(
+    account_ids: list[int] | None = Query(default=None),
     contains: str | None = Query(default=None),
     date: date | None = Query(default=None),
     unassigned_only: bool = Query(default=False),
@@ -87,12 +97,17 @@ def get_transactions(
     """
     Get all Transactions which match the provided filters.
 
+    - account_ids: Optional Account IDs to filter by.
+    - contains: Optional string to filter by in the Transaction's
+    description or note.
     - date: Optional date to filter by.
     - unassigned_only: Whether to only include Transactions which are not
     associated with an Expense or Income.
-    """
+    """ 
 
     filters = []
+    if account_ids is not None:
+        filters.append(Transaction.account_id.in_(account_ids))
     if contains is not None:
         filters.append(or_(
             Transaction.description.contains(contains),
@@ -230,11 +245,18 @@ def update_transaction(
             require_transaction(db, id)
             for id in updated_transaction.related_transaction_ids
         ]
+    budgets = []
+    if updated_transaction.budget_ids:
+        budgets = [
+            require_budget(db, id)
+            for id in updated_transaction.budget_ids
+        ]
 
     for key, value in updated_transaction.model_dump().items():
-        if key != 'related_transaction_ids':
+        if key not in {'related_transaction_ids', 'budget_ids'}:
             setattr(transaction, key, value)
     transaction.related_transactions = related_transactions
+    transaction.budgets = budgets
 
     db.commit()
 
@@ -269,19 +291,24 @@ def partial_update_transaction(
     if ('transfer_id' in updated_transaction.model_fields_set
         and updated_transaction.transfer_id is not None):
         require_transfer(db, updated_transaction.transfer_id)
-    related_transactions = []
     if ('related_transaction_ids' in updated_transaction.model_fields_set
         and updated_transaction.related_transaction_ids is not None):
-        related_transactions = [
+        transaction.related_transactions = [
             require_transaction(db, id)
             for id in updated_transaction.related_transaction_ids
+        ]
+    if ('budget_ids' in updated_transaction.model_fields_set
+        and updated_transaction.budget_ids is not None):
+        transaction.budgets = [
+            require_budget(db, id)
+            for id in updated_transaction.budget_ids
         ]
 
     # Update only the provided fields
     for key, value in updated_transaction.model_dump().items():
         if key in updated_transaction.model_fields_set:
-            setattr(transaction, key, value)
-    transaction.related_transactions = related_transactions
+            if key not in {'related_transaction_ids', 'budget_ids'}:
+                setattr(transaction, key, value)
 
     db.commit()
 
