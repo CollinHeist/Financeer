@@ -98,6 +98,7 @@ export default function TransactionsPage() {
   const [pageSize] = useState(25);
   const [searchTerm, setSearchTerm] = useState('');
   const [showUncategorizedOnly, setShowUncategorizedOnly] = useState(false);
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
   const queryClient = useQueryClient();
 
   const {
@@ -106,19 +107,27 @@ export default function TransactionsPage() {
     error,
     isPreviousData
   } = useQuery({
-    queryKey: ['transactions', { page, pageSize, searchTerm, showUncategorizedOnly }],
-    queryFn: () => getAllTransactions(page, pageSize, null, searchTerm, showUncategorizedOnly),
+    queryKey: ['transactions', { page, pageSize, searchTerm, showUncategorizedOnly, selectedAccounts }],
+    queryFn: () => getAllTransactions(
+      page, 
+      pageSize, 
+      null, 
+      searchTerm, 
+      showUncategorizedOnly,
+      selectedAccounts.length > 0 ? selectedAccounts : null
+    ),
     staleTime: 1000 * 60 * 5, // 5 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes
     keepPreviousData: true,
     placeholderData: (previousData) => previousData,
   });
 
-  const handleSearchChange = (value) => {
-    // Only do something if the search term actually changed
-    if (value !== searchTerm) {
+  const handleSearchChange = (value, accounts) => {
+    // Only do something if the search term or accounts actually changed
+    if (value !== searchTerm || JSON.stringify(accounts) !== JSON.stringify(selectedAccounts)) {
       setSearchTerm(value);
-      // Reset to page 1 when search changes
+      setSelectedAccounts(accounts);
+      // Reset to page 1 when search or filters change
       if (page !== 1) {
         setPage(1);
       }
