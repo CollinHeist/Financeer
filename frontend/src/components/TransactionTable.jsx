@@ -19,6 +19,7 @@ import {
   IconEdit,
   IconTrash,
   IconPlus,
+  IconFilter,
 } from "@tabler/icons-react";
 import { cn, formatAmount } from "@/lib/utils";
 import IncomeSummaryPopover from '@/components/IncomeSummaryPopover';
@@ -28,8 +29,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import {
   deleteTransaction,
   applyAllFilters,
@@ -37,6 +39,7 @@ import {
   getAllIncomes,
   patchTransaction,
   getAllTransfers,
+  getAccounts,
 } from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import TransactionDialog from '@/components/TransactionDialog';
@@ -48,7 +51,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransferSummaryPopover from '@/components/TransferSummaryPopover';
 import AccountOverviewPopover from '@/components/AccountOverviewPopover';
@@ -324,10 +326,19 @@ export default function TransactionTable({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const [showFilterConfirmation, setShowFilterConfirmation] = useState(false);
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
   const queryClient = useQueryClient();
+
+  // Fetch accounts
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: getAccounts,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   // Add debounce effect for search with ref to track previous value
   const prevSearchValueRef = useRef(filterValue);
+  const prevSelectedAccountsRef = useRef(selectedAccounts);
   const isFirstRender = useRef(true);
   
   useEffect(() => {
@@ -338,18 +349,20 @@ export default function TransactionTable({
     }
     
     // Only set timer if value actually changed
-    if (prevSearchValueRef.current !== filterValue) {
+    if (prevSearchValueRef.current !== filterValue || 
+        JSON.stringify(prevSelectedAccountsRef.current) !== JSON.stringify(selectedAccounts)) {
       const timer = setTimeout(() => {
         if (onSearchChange) {
-          onSearchChange(filterValue);
-          // Update ref after search is triggered
+          onSearchChange(filterValue, selectedAccounts);
+          // Update refs after search is triggered
           prevSearchValueRef.current = filterValue;
+          prevSelectedAccountsRef.current = selectedAccounts;
         }
       }, 500); // 500ms debounce
       
       return () => clearTimeout(timer);
     }
-  }, [filterValue, onSearchChange]);
+  }, [filterValue, selectedAccounts, onSearchChange]);
 
   // Use transactions directly without sorting
   const sortedTransactions = transactions;
@@ -391,6 +404,36 @@ export default function TransactionTable({
               className="pl-9"
             />
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9">
+                <IconFilter className="h-4 w-4 mr-2" />
+                Accounts
+                {selectedAccounts.length > 0 && (
+                  <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs">
+                    {selectedAccounts.length}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[200px]">
+              {accounts.map((account) => (
+                <DropdownMenuCheckboxItem
+                  key={account.id}
+                  checked={selectedAccounts.includes(account.id)}
+                  onCheckedChange={(checked) => {
+                    setSelectedAccounts(prev => 
+                      checked 
+                        ? [...prev, account.id]
+                        : prev.filter(id => id !== account.id)
+                    );
+                  }}
+                >
+                  {account.name}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div className="flex items-center space-x-2">
             <Checkbox 
               id="uncategorized" 
