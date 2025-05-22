@@ -102,6 +102,7 @@ export const getUpcomingAccountTransactions = async (accountID, days = 14) => {
  * @param {?Date} date The date to filter transactions by
  * @param {?string} contains The string to filter transactions by
  * @param {boolean} unassigned_only Whether to only fetch unassigned transactions
+ * @param {?Array<number>} account_ids Optional array of account IDs to filter by
  * @returns {Promise<Object>} Paginated transaction data
  * @throws {Error} If the API request fails
  */
@@ -111,17 +112,25 @@ export const getAllTransactions = async (
   date = null,
   contains = null,
   unassigned_only = false,
+  account_ids = null,
 ) => {
   try {
-    const { data } = await api.get(`/transaction/all?page=${page}&size=${size}`, {
-      params: {
-        page,
-        size,
-        date: date === null ? null : date?.toISOString().split('T')[0],
-        contains,
-        unassigned_only,
-      },
-    });
+    const params = {
+      page,
+      size,
+      date: date === null ? null : date?.toISOString().split('T')[0],
+      contains,
+      unassigned_only,
+    };
+
+    // Add account_ids as repeated parameters if they exist
+    if (account_ids && account_ids.length > 0) {
+      account_ids.forEach(id => {
+        params['account_ids'] = id;
+      });
+    }
+
+    const { data } = await api.get(`/transaction/all`, { params });
     return data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching transactions:', error);
@@ -678,3 +687,131 @@ export const getTransferTransactions = async (transferId) => {
     throw error;
   }
 }
+
+/**
+ * Create a new transfer
+ * @param {Object} transferData The transfer data to create
+ * @returns {Promise<Object>} The created transfer data
+ * @throws {Error} If the API request fails
+ */
+export const createTransfer = async (transferData) => {
+  try {
+    const response = await api.post('/transfers/transfer/new', transferData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error creating transfer:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a transfer
+ * @param {number} transferId The ID of the transfer to update
+ * @param {Object} transferData The transfer data to update
+ * @returns {Promise<Object>} The updated transfer data
+ * @throws {Error} If the API request fails
+ */
+export const updateTransfer = async (transferId, transferData) => {
+  try {
+    const response = await api.put(`/transfers/transfer/${transferId}`, transferData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error updating transfer:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches all budgets from the API
+ * @returns {Promise<Array>} Array of budget data
+ * @throws {Error} If the API request fails
+ */
+export const getAllBudgets = async () => {
+  try {
+    const { data } = await api.get('/budgets/all');
+    return data;
+  } catch (error) {
+    console.error('Error fetching budgets:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to fetch budgets');
+  }
+};
+
+/**
+ * Fetches a budget by ID
+ * @param {number} budgetId The ID of the budget to fetch
+ * @returns {Promise<Object>} The budget data
+ * @throws {Error} If the API request fails
+ */
+export const getBudgetById = async (budgetId) => {
+  try {
+    const { data } = await api.get(`/budgets/budget/${budgetId}`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching budget:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to fetch budget');
+  }
+};
+
+/**
+ * Fetches budget status by ID
+ * @param {number} budgetId The ID of the budget to fetch status for
+ * @returns {Promise<Object>} The budget status data
+ * @throws {Error} If the API request fails
+ */
+export const getBudgetStatus = async (budgetId) => {
+  try {
+    const { data } = await api.get(`/budgets/budget/${budgetId}/status`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching budget status:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to fetch budget status');
+  }
+};
+
+/**
+ * Creates a new budget
+ * @param {Object} budgetData The budget data to create
+ * @returns {Promise<Object>} The created budget data
+ * @throws {Error} If the API request fails
+ */
+export const createBudget = async (budgetData) => {
+  try {
+    const { data } = await api.post('/budgets/budget/new', budgetData);
+    return data;
+  } catch (error) {
+    console.error('Error creating budget:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to create budget');
+  }
+};
+
+/**
+ * Updates a budget
+ * @param {number} budgetId The ID of the budget to update
+ * @param {Object} budgetData The updated budget data
+ * @returns {Promise<Object>} The updated budget data
+ * @throws {Error} If the API request fails
+ */
+export const updateBudget = async (budgetId, budgetData) => {
+  try {
+    const { data } = await api.put(`budgets/budget/${budgetId}`, budgetData);
+    return data;
+  } catch (error) {
+    console.error('Error updating budget:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to update budget');
+  }
+};
+
+/**
+ * Deletes a budget
+ * @param {number} budgetId The ID of the budget to delete
+ * @returns {Promise<void>}
+ * @throws {Error} If the API request fails
+ */
+export const deleteBudget = async (budgetId) => {
+  try {
+    await api.delete(`/budgets/budget/${budgetId}`);
+  } catch (error) {
+    console.error('Error deleting budget:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to delete budget');
+  }
+};
