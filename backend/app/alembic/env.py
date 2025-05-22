@@ -16,7 +16,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-from app.models import Account, Expense, Income, Transaction, Upload
+from app.models import *
 from app.db.base import Base
 target_metadata = Base.metadata
 
