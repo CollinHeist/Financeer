@@ -4,8 +4,17 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getAccounts, getAllExpenses, getAllIncomes, createTransaction, updateTransaction, getTransactionById } from '@/lib/api';
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea"
+import { getAccounts, createTransaction, updateTransaction, getTransactionById } from '@/lib/api';
 import { IconInfoCircle } from '@tabler/icons-react';
+import { ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function TransactionDialog({ isOpen, onOpenChange, transactionId = null }) {
   const isEditMode = !!transactionId;
@@ -15,27 +24,13 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
     description: '',
     amount: '',
     account_id: '',
-    note: '',
-    expense_id: '',
-    income_id: ''
+    note: ''
   });
   const [errors, setErrors] = useState({});
 
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
     queryFn: getAccounts,
-    enabled: isOpen
-  });
-
-  const { data: expenses } = useQuery({
-    queryKey: ['expenses'],
-    queryFn: getAllExpenses,
-    enabled: isOpen
-  });
-
-  const { data: incomes } = useQuery({
-    queryKey: ['incomes'],
-    queryFn: getAllIncomes,
     enabled: isOpen
   });
 
@@ -52,9 +47,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
         description: existingTransaction.description,
         amount: Math.abs(existingTransaction.amount).toString(),
         account_id: existingTransaction.account.id.toString(),
-        note: existingTransaction.note || '',
-        expense_id: existingTransaction.expense?.id.toString() || '',
-        income_id: existingTransaction.income?.id.toString() || ''
+        note: existingTransaction.note || ''
       });
     }
   }, [existingTransaction]);
@@ -89,9 +82,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
       description: '',
       amount: '',
       account_id: '',
-      note: '',
-      expense_id: '',
-      income_id: ''
+      note: ''
     });
     setErrors({});
   };
@@ -119,9 +110,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
     const transactionData = {
       ...formData,
       amount: parseFloat(formData.amount) * (existingTransaction?.amount < 0 ? -1 : 1),
-      account_id: parseInt(formData.account_id),
-      expense_id: formData.expense_id ? parseInt(formData.expense_id) : null,
-      income_id: formData.income_id ? parseInt(formData.income_id) : null
+      account_id: parseInt(formData.account_id)
     };
     
     if (isEditMode) {
@@ -168,7 +157,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="date" className="text-sm font-medium">Date</label>
-                <input
+                <Input
                   type="date"
                   id="date"
                   name="date"
@@ -183,7 +172,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
                 <label htmlFor="amount" className="text-sm font-medium">Amount</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                  <input
+                  <Input
                     type="number"
                     id="amount"
                     name="amount"
@@ -199,7 +188,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
 
             <div className="space-y-2">
               <label htmlFor="description" className="text-sm font-medium">Description</label>
-              <input
+              <Input
                 type="text"
                 id="description"
                 name="description"
@@ -212,62 +201,43 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
 
             <div className="space-y-2">
               <label htmlFor="account_id" className="text-sm font-medium">Account</label>
-              <select
-                id="account_id"
-                name="account_id"
-                value={formData.account_id}
-                onChange={handleChange}
-                className={`w-full p-2 border rounded-md ${errors.account_id ? 'border-red-500' : ''}`}
-              >
-                <option value="">Select Account</option>
-                {accounts?.map(account => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={`w-full justify-between ${errors.account_id ? 'border-red-500' : ''}`}
+                  >
+                    {formData.account_id
+                      ? accounts?.find(a => a.id.toString() === formData.account_id)?.name || 'Select an account'
+                      : 'Select an account'}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-full">
+                  {accounts?.map(account => (
+                    <DropdownMenuItem
+                      key={account.id}
+                      onSelect={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          account_id: account.id.toString()
+                        }));
+                        if (errors.account_id) {
+                          setErrors(prev => ({ ...prev, account_id: undefined }));
+                        }
+                      }}
+                    >
+                      {account.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {errors.account_id && <p className="text-xs text-red-500">{errors.account_id}</p>}
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="expense_id" className="text-sm font-medium">Expense (Optional)</label>
-              <select
-                id="expense_id"
-                name="expense_id"
-                value={formData.expense_id}
-                onChange={handleChange}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="">None</option>
-                {expenses?.map(expense => (
-                  <option key={expense.id} value={expense.id}>
-                    {expense.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="income_id" className="text-sm font-medium">Income (Optional)</label>
-              <select
-                id="income_id"
-                name="income_id"
-                value={formData.income_id}
-                onChange={handleChange}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="">None</option>
-                {incomes?.map(income => (
-                  <option key={income.id} value={income.id}>
-                    {income.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
               <label htmlFor="note" className="text-sm font-medium">Note (Optional)</label>
-              <textarea
+              <Textarea
                 id="note"
                 name="note"
                 value={formData.note}
