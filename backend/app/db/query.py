@@ -6,6 +6,7 @@ from sqlalchemy.orm.session import Session
 
 from app.db.base import Base
 from app.models.account import Account
+from app.models.budget import Budget
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.transfer import Transfer
@@ -265,7 +266,7 @@ def require_transaction(
     raise_exception: bool = True,
 ) -> Transaction | None:
     """
-    Query and return a Transaction by ID
+    Query and return a Transaction by ID.
 
     Args:
         db: The database session.
@@ -274,4 +275,38 @@ def require_transaction(
 
     return _require_model(
         db, Transaction, transaction_id, raise_exception=raise_exception
+    )
+
+
+@overload
+def require_budget(
+    db: Session,
+    budget_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Budget: ...
+
+@overload
+def require_budget(
+    db: Session,
+    budget_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Budget | None: ...
+
+def require_budget(
+    db: Session,
+    budget_id: int,
+    raise_exception: bool = True,
+) -> Budget | None:
+    """
+    Query and return a Budget by ID.
+
+    Args:
+        db: The database session.
+        budget_id: The ID of the Budget to query.
+    """
+
+    return _require_model(
+        db, Budget, budget_id, raise_exception=raise_exception
     )
