@@ -8,10 +8,12 @@ from sqlalchemy import (
     JSON,
     String,
 )
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.dates import date_meets_frequency
 from app.db.base import Base
+from app.schemas.core import TransactionFilterDict
 from app.schemas.income import FrequencyDict
 
 if TYPE_CHECKING:
@@ -34,6 +36,10 @@ class Transfer(Base):
     start_date: Mapped[date] = mapped_column(Date, index=True)
     end_date: Mapped[date | None] = mapped_column(Date, index=True)
     payoff_balance: Mapped[bool]
+    transaction_filters: Mapped[list[TransactionFilterDict]] = mapped_column(
+        MutableList.as_mutable(JSON),
+        default=[],
+    )
 
     # To/from Transactions
     from_transaction_id: Mapped[int | None] = mapped_column(
