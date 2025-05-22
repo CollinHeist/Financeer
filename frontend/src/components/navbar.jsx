@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 const navigationItems = [
   { label: "Home", href: "/" },
   { label: "Accounts", href: "/accounts" },
+  { label: "Budgets", href: "/budgets" },
   { label: "Expenses", href: "/expenses" },
   { label: "Income", href: "/income" },
   { label: "Transfers", href: "/transfers" },
