@@ -3,6 +3,7 @@ from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.core import TransactionFilter
 from app.schemas.income import Frequency
 from app.schemas.account import ReturnAccountSchema
 
@@ -16,6 +17,7 @@ class NewTransferSchema(BaseModel):
     end_date: date | None = None
     from_account_id: int
     to_account_id: int
+    transaction_filters: list[list[TransactionFilter]] = []
     payoff_balance: bool = False
 
     @model_validator(mode='after')
@@ -36,6 +38,7 @@ class UpdateTransferSchema(BaseModel):
     end_date: date | None = None
     from_account_id: int = None
     to_account_id: int = None
+    transaction_filters: list[list[TransactionFilter]] = None
     payoff_balance: bool = None
 
 class ReturnTransferSchema(BaseModel):
@@ -50,4 +53,5 @@ class ReturnTransferSchema(BaseModel):
     from_account: ReturnAccountSchema
     to_account_id: int
     to_account: ReturnAccountSchema
+    transaction_filters: list[list[TransactionFilter]]
     payoff_balance: bool
