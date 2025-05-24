@@ -17,7 +17,7 @@ from app.services.iccu import parse_iccu_upload
 from app.services.vanguard import parse_vanguard_upload
 
 upload_router = APIRouter(
-    prefix='/upload',
+    prefix='/uploads',
     tags=['Uploads'],
 )
 

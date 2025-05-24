@@ -8,7 +8,7 @@ from .expense import expense_router
 from .income import income_router
 from .transaction import transaction_router
 from .transfers import transfers_router
-from .upload import upload_router
+from .uploads import upload_router
 
 v1_router = APIRouter(prefix='/v1')
 
