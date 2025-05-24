@@ -17,12 +17,12 @@ from app.schemas.account import (
 
 
 account_router = APIRouter(
-    prefix='/account',
+    prefix='/accounts',
     tags=['Account'],
 )
 
 
-@account_router.post('/new')
+@account_router.post('/account/new')
 def create_account(
     new_account: NewAccountSchema = Body(...),
     db: Session = Depends(get_database),
@@ -71,7 +71,7 @@ def get_bank_accounts(
     ]
 
 
-@account_router.get('/{account_id}')
+@account_router.get('/account/{account_id}')
 def get_account_by_id(
     account_id: int,
     db: Session = Depends(get_database),
@@ -80,20 +80,17 @@ def get_account_by_id(
     return require_account(db, account_id, raise_exception=True)
 
 
-@account_router.delete('/{account_id}')
+@account_router.delete('/account/{account_id}')
 def delete_account(
     account_id: int,
     db: Session = Depends(get_database),
 ) -> None:
 
-    account = require_account(db, account_id, raise_exception=True)
-    db.delete(account)
+    db.delete(require_account(db, account_id, raise_exception=True))
     db.commit()
 
-    return None
 
-
-@account_router.get('/{account_id}/summary')
+@account_router.get('/account/{account_id}/summary')
 def get_account_summary(
     account_id: int,
     time_period: SummaryTimePeriod = Query(default='this month'),
