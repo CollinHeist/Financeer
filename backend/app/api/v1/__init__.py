@@ -4,7 +4,7 @@ from .account import account_router
 from .balance import balance_router
 from .bills import bill_router
 from .cashflow import cashflow_router
-from .expense import expense_router
+from .expenses import expense_router
 from .income import income_router
 from .transaction import transaction_router
 from .transfers import transfers_router
