@@ -60,8 +60,10 @@ def parse_generic_upload(upload: Upload) -> list[NewTransactionSchema]:
             description=line[1],
             note=line[2],
             amount=line[3],
-            expense_id=line[4] or None,
+            bill_id=line[4] or None,
+            expense_id=line[6] or None,
             income_id=line[5] or None,
+            transfer_id=line[7] or None,
             account_id=upload.account_id,
         )
         for line in reader
@@ -127,13 +129,7 @@ def add_transactions_to_database(
     db_transactions = []
     for transaction in remove_redundant_transactions(transactions, db):
         new_transaction = Transaction(
-            date=transaction.date,
-            description=transaction.description,
-            note=transaction.note,
-            amount=transaction.amount,
-            account_id=transaction.account_id,
-            expense_id=transaction.expense_id,
-            income_id=transaction.income_id,
+            **transaction.model_dump(exclude={'related_transaction_ids'}),
             upload_id=upload_id,
         )
         db.add(new_transaction)
