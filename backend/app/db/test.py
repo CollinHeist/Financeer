@@ -2,10 +2,11 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from random import randint, random
 
+from app.models.balance import Balance
 from sqlalchemy.orm import Session
 
-from app.core.upload import add_transactions_to_database
-from app.models import Account, Expense, Income, Transaction, Upload
+from app.core.upload import add_balances_to_database, add_transactions_to_database
+from app.models import Account, Bill, Income, Transaction, Upload
 from app.services.citi import parse_citi_upload
 from app.services.iccu import parse_iccu_upload
 from app.utils.logging import log
@@ -128,8 +129,9 @@ def upload_bank_transactions(db: Session) -> bool:
             account_id=1,
         )
         db.add(upload)
-        transactions = parse_iccu_upload(upload)
+        balances, transactions = parse_iccu_upload(upload)
         add_transactions_to_database(transactions, upload.id, db)
+        add_balances_to_database(balances, db)
         log.debug(
             f'Uploaded {len(transactions)} transactions from {upload.filename}'
         )
@@ -182,8 +184,16 @@ def initialize_test_data(db: Session) -> None:
     db.add(credit_card)
     db.commit()
 
-    # Add test expenses
-    car_loan = Expense(
+    for acct in [account, savings_account, credit_card]:
+        db.add(Balance(
+            date=date(2020, 1, 1),
+            balance=0,
+            account_id=acct.id,
+        ))
+    db.commit()
+
+    # Add test bills
+    car_loan = Bill(
         name='Car Loan',
         description='Car Loan',
         amount=-950,
@@ -198,7 +208,7 @@ def initialize_test_data(db: Session) -> None:
         ]
     )
     db.add(car_loan)
-    student_loan = Expense(
+    student_loan = Bill(
         name='Student Loan',
         description='Student Loan',
         amount=-350,
@@ -218,7 +228,7 @@ def initialize_test_data(db: Session) -> None:
         ]
     )
     db.add(student_loan)
-    downpayment = Expense(
+    downpayment = Bill(
         name='Downpayment',
         description='Downpayment on new house',
         amount=-25000,
@@ -227,7 +237,7 @@ def initialize_test_data(db: Session) -> None:
         account_id=account.id,
     )
     db.add(downpayment)
-    car_insurance = Expense(
+    car_insurance = Bill(
         name='Car Insurance',
         description='Car Insurance',
         amount=-500,
@@ -240,7 +250,7 @@ def initialize_test_data(db: Session) -> None:
         ]
     )
     db.add(car_insurance)
-    car_wash = Expense(
+    car_wash = Bill(
         name='Car Wash',
         description='Car Wash',
         amount=-25,
@@ -255,7 +265,7 @@ def initialize_test_data(db: Session) -> None:
         ],
     )
     db.add(car_wash)
-    spotify = Expense(
+    spotify = Bill(
         name='Spotify',
         description='Spotify',
         amount=-14.99,
@@ -270,52 +280,6 @@ def initialize_test_data(db: Session) -> None:
         ],
     )
     db.add(spotify)
-    pets = Expense(
-        name='Pets',
-        description='',
-        amount=-75,
-        type='recurring',
-        frequency={'value': 1, 'unit': 'months'},
-        start_date=date(2021, 1, 1),
-        end_date=None,
-        account_id=credit_card.id,
-        change_schedule=[],
-        transaction_filters=[
-            [{"on": "description", "type": "contains", "value": "Petco"}],
-            [{"on": "description", "type": "contains", "value": "PetSmart"}],
-        ],
-    )
-    db.add(pets)
-    power_bill = Expense(
-        name='Power Bill',
-        description='Power Bill',
-        amount=-70,
-        type='recurring',
-        frequency={'value': 1, 'unit': 'months'},
-        start_date=date(2021, 1, 1),
-        end_date=None,
-        account_id=account.id,
-        change_schedule=[],
-        transaction_filters=[
-            [{"on": "description", "type": "contains", "value": "Payment to Idaho Power"}],
-        ],
-    )
-    db.add(power_bill)
-    groceries = Expense(
-        name='Groceries',
-        description='Groceries',
-        amount=-85,
-        type='recurring',
-        frequency={'value': 1, 'unit': 'weeks'},
-        start_date=date(2020, 12, 2),
-        end_date=None,
-        account_id=account.id,
-        change_schedule=[],
-        transaction_filters=[
-            [{"on": "description", "type": "contains", "value": "WinCo Foods"}],
-        ],
-    )
-    db.add(groceries)
 
     # Add test incomes
     base_income = Income(
