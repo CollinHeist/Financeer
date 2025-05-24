@@ -3,7 +3,7 @@ import * as api_types from './api_types';
 
 const API_URL = 'http://localhost:8000/api/v1/';
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -20,22 +20,6 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
-
-/**
- * Fetches all accounts from the API
- * @returns {Promise<Array>} Array of account data
- * @throws {Error} If the API request fails
- */
-export const getAccounts = async () => {
-  // Add an intentional delay for development/testing purposes
-  try {
-    const { data } = await api.get('/account/all');
-    return data;
-  } catch (error) {
-    console.error('Error fetching accounts:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to fetch accounts');
-  }
-};
 
 /**
  * Fetches all bank accounts from the API
@@ -96,131 +80,6 @@ export const getUpcomingAccountTransactions = async (accountID, days = 14) => {
 }
 
 /**
- * Fetches all Transactions from the API
- * @param {number} page The page number to fetch
- * @param {number} size The number of items per page
- * @param {?Date} date The date to filter transactions by
- * @param {?string} contains The string to filter transactions by
- * @param {boolean} unassigned_only Whether to only fetch unassigned transactions
- * @param {?Array<number>} account_ids Optional array of account IDs to filter by
- * @returns {Promise<Object>} Paginated transaction data
- * @throws {Error} If the API request fails
- */
-export const getAllTransactions = async (
-  page = 1,
-  size = 25,
-  date = null,
-  contains = null,
-  unassigned_only = false,
-  account_ids = null,
-) => {
-  try {
-    const params = {
-      page,
-      size,
-      date: date === null ? null : date?.toISOString().split('T')[0],
-      contains,
-      unassigned_only,
-    };
-
-    // Add account_ids as repeated parameters if they exist
-    if (account_ids && account_ids.length > 0) {
-      account_ids.forEach(id => {
-        params['account_ids'] = id;
-      });
-    }
-
-    const { data } = await api.get(`/transaction/all`, { params });
-    return data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching transactions:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches a transaction by ID
- * @param {number} transactionId The ID of the transaction to fetch
- * @returns {Promise<Object>} The transaction data
- * @throws {Error} If the API request fails
- */
-export const getTransactionById = async (transactionId) => {
-  try {
-    const { data } = await api.get(`/transaction/${transactionId}`);
-    return data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching transaction:', error);
-    throw error;
-  }
-}
-
-
-/**
- * Deletes a transaction
- * @param {number} transactionId The ID of the transaction to delete
- * @returns {Promise<void>}
- * @throws {Error} If the API request fails
- */
-export const deleteTransaction = async (transactionId) => {
-  try {
-    await api.delete(`/transaction/${transactionId}`);
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error deleting transaction:', error);
-    throw error;
-  }
-}
-
-/**
- * Updates a transaction
- * @param {number} transactionId The ID of the transaction to update
- * @param {Object} transactionData The updated transaction data
- * @returns {Promise<Object>} The updated transaction data
- * @throws {Error} If the API request fails
- */
-export const updateTransaction = async (transactionId, transactionData) => {
-  try {
-    const response = await api.put(`/transaction/${transactionId}`, transactionData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error updating transaction:', error);
-    throw error;
-  }
-}
-
-/**
- * Partially updates a transaction
- * @param {number} transactionId The ID of the transaction to patch
- * @param {Object} transactionData The partial transaction data to update
- * @returns {Promise<Object>} The updated transaction data
- * @throws {Error} If the API request fails
- */
-export const patchTransaction = async (transactionId, transactionData) => {
-  try {
-    const response = await api.patch(`/transaction/${transactionId}`, transactionData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error patching transaction:', error);
-    throw error;
-  }
-}
-
-/**
- * Creates a new transaction
- * @param {Object} transactionData The transaction data to create
- * @returns {Promise<Object>} The created transaction data
- * @throws {Error} If the API request fails
- */
-export const createTransaction = async (transactionData) => {
-  try {
-    const response = await api.post('/transaction/new', transactionData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error creating transaction:', error);
-    throw error;
-  }
-}
-
-/**
  * Fetches all to and from expenses for an account from the API
  * @param {number} accountId The ID of the account to fetch expenses for
  * @returns {Promise<Array>} Array of expense data
@@ -228,96 +87,10 @@ export const createTransaction = async (transactionData) => {
  */
 export const getAllAccountExpenses = async (accountId) => {
   try {
-    const response = await api.get(`/expenses/account/${accountId}/all`);
+    const response = await api.get(`/expenses/account/${accountId}`);
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching expenses:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches all expenses from the API
- * @param {string} [date] Optional date to filter expenses by
- * @returns {Promise<Array>} Array of expense data
- * @throws {Error} If the API request fails
- */
-export const getAllExpenses = async (date = null) => {
-  try {
-    const response = await api.get('/expenses/all', {
-      params: {
-        on: date ? new Date(date).toISOString().split('T')[0] : null
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching expenses:', error);
-    throw error;
-  }
-}
-
-
-/**
- * Creates a new expense record
- * @param {Object} expenseData The expense data to create
- * @returns {Promise<Object>} The created expense data
- * @throws {Error} If the API request fails
- */
-export const createExpense = async (expenseData) => {
-  try {
-    const response = await api.post('/expenses/expense/new', expenseData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error creating expense:', error);
-    throw error;
-  }
-}
-
-/**
- * Updates an expense record
- * @param {number} expenseId The ID of the expense to update
- * @param {Object} expenseData The updated expense data
- * @returns {Promise<Object>} The updated expense data
- * @throws {Error} If the API request fails
- */
-export const updateExpense = async (expenseId, expenseData) => {
-  try {
-    const response = await api.put(`/expenses/expense/${expenseId}`, expenseData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error updating expense:', error);
-    throw error;
-  }
-}
-
-/**
- * Partially updates an expense record
- * @param {number} expenseId The ID of the expense to patch
- * @param {Object} expenseData The partial expense data to update
- * @returns {Promise<Object>} The updated expense data
- * @throws {Error} If the API request fails
- */
-export const patchExpense = async (expenseId, expenseData) => {
-  try {
-    const response = await api.patch(`/expenses/expense/${expenseId}`, expenseData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error patching expense:', error);
-    throw error;
-  }
-}
-
-/**
- * Deletes an expense record
- * @param {number} expenseId The ID of the expense to delete
- * @returns {Promise<void>}
- * @throws {Error} If the API request fails
- */
-export const deleteExpense = async (expenseId) => {
-  try {
-    await api.delete(`/expenses/expense/${expenseId}`);
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error deleting expense:', error);
     throw error;
   }
 }
@@ -488,45 +261,9 @@ export const createBalance = async (balanceData) => {
 }
 
 /**
- * Fetches transactions from the API based on filters
- * @param {number} id The ID of the expense/income to fetch transactions for
- * @param {Array} filters The filters to apply
- * @param {string} type The type of item ('expense' or 'income')
- * @returns {Promise<Array>} Array of transaction data
- * @throws {Error} If the API request fails
- */
-export const getTransactionsFromFilters = async (id, filters, type) => {
-  try {
-    const endpoint = type === 'expense' ? 'expense-filters' : 'income-filters';
-    const response = await api.post(`/transaction/${endpoint}?${type}_id=${id}`, filters);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || `Error fetching transactions from ${type} filters:`, error);
-    throw error;
-  }
-}
-
-/**
- * Applies all filters to all transactions
- * @param {string} type The type of item ('expense' or 'income')
- * @returns {Promise<void>}
- * @throws {Error} If the API request fails
- */
-export const applyAllFilters = async (type) => {
-  try {
-    const endpoint = type === 'expense' ? 'expense-filters' : 'income-filters';
-    const response = await api.post(`/${type}s/${endpoint}`);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || `Error applying all ${type} filters:`, error);
-    throw error;
-  }
-}
-
-/**
  * Fetches all transactions from an expense
  * @param {number} expenseId The ID of the expense to fetch transactions for
- * @returns {Promise<api_types.ReturnTransactionSchemaNoAccount[]>} Array of transaction data
+ * @returns {Promise<ReturnTransactionSchemaNoAccount[]>} Array of transaction data
  * @throws {Error} If the API request fails
  */
 export const getExpenseTransactions = async (expenseId) => {
@@ -547,33 +284,10 @@ export const getExpenseTransactions = async (expenseId) => {
  */
 export const getIncomeTransactions = async (incomeId) => {
   try {
-    const response = await api.get(`/transaction/income/${incomeId}`);
+    const response = await api.get(`/transactions/income/${incomeId}`);
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching income transactions:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches monthly cash flow data for an account
- * @param {number} accountId The ID of the account to fetch cash flow for
- * @param {string} startDate The start date in YYYY-MM-DD format
- * @param {string} endDate The end date in YYYY-MM-DD format
- * @returns {Promise<Array>} Array of monthly cash flow data
- * @throws {Error} If the API request fails
- */
-export const getMonthlyCashFlow = async (accountId, startDate, endDate) => {
-  try {
-    const response = await api.get(`/cash-flow/monthly/${accountId}`, {
-      params: {
-        start_date: startDate,
-        end_date: endDate
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching monthly cash flow:', error);
     throw error;
   }
 }
@@ -586,9 +300,9 @@ export const getMonthlyCashFlow = async (accountId, startDate, endDate) => {
  * @returns {Promise<Array>} Array of expense breakdown data
  * @throws {Error} If the API request fails
  */
-export const getAccountExpenseBreakdown = async (accountId, startDate, endDate) => {
+export const getAccountBillBreakdown = async (accountId, startDate, endDate) => {
   try {
-    const response = await api.get(`/transaction/account/${accountId}/expense-breakdown`, {
+    const response = await api.get(`/transactions/account/${accountId}/bill-breakdown`, {
       params: {
         start_date: startDate,
         end_date: endDate
@@ -596,7 +310,7 @@ export const getAccountExpenseBreakdown = async (accountId, startDate, endDate) 
     });
     return response.data;
   } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching expense breakdown:', error);
+    console.error(error.response?.data?.detail || 'Error fetching bill breakdown:', error);
     throw error;
   }
 }
@@ -624,194 +338,3 @@ export const getDailyBalances = async (accountId, startDate, endDate) => {
     throw error;
   }
 }
-
-/**
- * Fetches all transfers from the API
- * @returns {Promise<api_types.ReturnTransferSchema>} Array of transfer data
- * @throws {Error} If the API request fails
- */
-export const getAllTransfers = async () => {
-  try {
-    const response = await api.get('/transfers/all');
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching transfers:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches a transfer by ID
- * @param {number} transferId The ID of the transfer to fetch
- * @returns {Promise<api_types.ReturnTransferSchema>} The transfer data
- * @throws {Error} If the API request fails
- */
-export const getTransferById = async (transferId) => {
-  try {
-    const response = await api.get(`/transfers/transfer/${transferId}`);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching transfer:', error);
-    throw error;
-  }
-}
-
-/**
- * Deletes a transfer
- * @param {number} transferId The ID of the transfer to delete
- * @returns {Promise<void>}
- * @throws {Error} If the API request fails
- */
-export const deleteTransfer = async (transferId) => {
-  try {
-    const response = await api.delete(`/transfers/transfer/${transferId}`);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error deleting transfer:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches all transactions associated with a transfer
- * @param {number} transferId The ID of the transfer to fetch transactions for
- * @returns {Promise<api_types.ReturnTransactionSchemaNoAccount[]>} Array of transaction data
- * @throws {Error} If the API request fails
- */
-export const getTransferTransactions = async (transferId) => {
-  try {
-    const response = await api.get(`/transaction/transfer/${transferId}`);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching transfer transactions:', error);
-    throw error;
-  }
-}
-
-/**
- * Create a new transfer
- * @param {Object} transferData The transfer data to create
- * @returns {Promise<Object>} The created transfer data
- * @throws {Error} If the API request fails
- */
-export const createTransfer = async (transferData) => {
-  try {
-    const response = await api.post('/transfers/transfer/new', transferData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error creating transfer:', error);
-    throw error;
-  }
-}
-
-/**
- * Update a transfer
- * @param {number} transferId The ID of the transfer to update
- * @param {Object} transferData The transfer data to update
- * @returns {Promise<Object>} The updated transfer data
- * @throws {Error} If the API request fails
- */
-export const updateTransfer = async (transferId, transferData) => {
-  try {
-    const response = await api.put(`/transfers/transfer/${transferId}`, transferData);
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error updating transfer:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches all budgets from the API
- * @returns {Promise<Array>} Array of budget data
- * @throws {Error} If the API request fails
- */
-export const getAllBudgets = async () => {
-  try {
-    const { data } = await api.get('/budgets/all');
-    return data;
-  } catch (error) {
-    console.error('Error fetching budgets:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to fetch budgets');
-  }
-};
-
-/**
- * Fetches a budget by ID
- * @param {number} budgetId The ID of the budget to fetch
- * @returns {Promise<Object>} The budget data
- * @throws {Error} If the API request fails
- */
-export const getBudgetById = async (budgetId) => {
-  try {
-    const { data } = await api.get(`/budgets/budget/${budgetId}`);
-    return data;
-  } catch (error) {
-    console.error('Error fetching budget:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to fetch budget');
-  }
-};
-
-/**
- * Fetches budget status by ID
- * @param {number} budgetId The ID of the budget to fetch status for
- * @returns {Promise<Object>} The budget status data
- * @throws {Error} If the API request fails
- */
-export const getBudgetStatus = async (budgetId) => {
-  try {
-    const { data } = await api.get(`/budgets/budget/${budgetId}/status`);
-    return data;
-  } catch (error) {
-    console.error('Error fetching budget status:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to fetch budget status');
-  }
-};
-
-/**
- * Creates a new budget
- * @param {Object} budgetData The budget data to create
- * @returns {Promise<Object>} The created budget data
- * @throws {Error} If the API request fails
- */
-export const createBudget = async (budgetData) => {
-  try {
-    const { data } = await api.post('/budgets/budget/new', budgetData);
-    return data;
-  } catch (error) {
-    console.error('Error creating budget:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to create budget');
-  }
-};
-
-/**
- * Updates a budget
- * @param {number} budgetId The ID of the budget to update
- * @param {Object} budgetData The updated budget data
- * @returns {Promise<Object>} The updated budget data
- * @throws {Error} If the API request fails
- */
-export const updateBudget = async (budgetId, budgetData) => {
-  try {
-    const { data } = await api.put(`budgets/budget/${budgetId}`, budgetData);
-    return data;
-  } catch (error) {
-    console.error('Error updating budget:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to update budget');
-  }
-};
-
-/**
- * Deletes a budget
- * @param {number} budgetId The ID of the budget to delete
- * @returns {Promise<void>}
- * @throws {Error} If the API request fails
- */
-export const deleteBudget = async (budgetId) => {
-  try {
-    await api.delete(`/budgets/budget/${budgetId}`);
-  } catch (error) {
-    console.error('Error deleting budget:', error);
-    throw new Error(error.response?.data?.detail || 'Failed to delete budget');
-  }
-};
