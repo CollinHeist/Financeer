@@ -8,7 +8,7 @@ from app.api.deps import get_database
 from app.core.dates import date_range
 from app.db.query import require_account, require_balance
 from app.models.balance import Balance
-from app.models.expense import Expense
+from app.models.bill import Bill
 from app.models.income import Income
 from app.models.transfer import Transfer
 from app.schemas.balance import (
@@ -16,7 +16,6 @@ from app.schemas.balance import (
     ReturnBalanceSchema,
     ReturnDailyBalanceSchema,
 )
-from app.utils.logging import log
 
 
 balance_router = APIRouter(
@@ -86,7 +85,7 @@ def get_daily_balances(
     """
     Get or project daily balances for a given Account between start and end dates.
     If a balance doesn't exist for a particular date, it will project the balance
-    using the Account's expenses and the most recent known balance.
+    using the Account's bills and the most recent known balance.
 
     - account_id: The ID of the Account to get the balances for
     - start_date: The start date for the balance range (inclusive)
@@ -104,13 +103,13 @@ def get_daily_balances(
         .all()
     )
 
-    # Get all Expenses, Transfers, and Incomes for this Account
-    expenses = (
-        db.query(Expense)
+    # Get all Bills, Transfers, and Incomes for this Account
+    bills = (
+        db.query(Bill)
         .filter(
-            Expense.account_id == account_id,
-            Expense.start_date <= end_date,
-            (Expense.end_date >= start_date) | (Expense.end_date.is_(None))
+            Bill.account_id == account_id,
+            Bill.start_date <= end_date,
+            (Bill.end_date >= start_date) | (Bill.end_date.is_(None))
         )
         .all()
     )
@@ -147,25 +146,20 @@ def get_daily_balances(
     last_known_balance: float | None = None
 
     for current_date in date_range(start_date, end_date):
-        log.info(f'[{current_date.strftime("%Y-%m-%d")}] ${last_known_balance or 0.0:,.02f}')
         # Use actual Balance if it exists
         if current_date in balance_dict:
             last_known_balance = balance_dict[current_date].balance
-        # Project the balance using known Expenses
+        # Project the balance using known Bills
         elif last_known_balance:
             projected_balance = last_known_balance
-            for expense in expenses:
-                if (amt := expense.get_effective_amount(current_date)) != 0:
-                    log.debug(f'[{current_date.strftime("%Y-%m-%d")}] ${projected_balance:,.02f} + Expense[{expense.name}, {amt:,.02f}]')
-                    projected_balance += amt
+            for bill in bills:
+                projected_balance += bill.get_effective_amount(current_date)
             for income in incomes:
-                if (amt := income.get_effective_amount(current_date)) != 0:
-                    log.debug(f'[{current_date.strftime("%Y-%m-%d")}] ${projected_balance:,.02f} + Income[{income.name}, {amt:,.02f}]')
-                    projected_balance += amt
+                projected_balance += income.get_effective_amount(current_date)
             for transfer in transfers:
-                if (amt := transfer.get_effective_amount(current_date, account_id)) != 0:
-                    log.debug(f'[{current_date.strftime("%Y-%m-%d")}] ${projected_balance:,.02f} + Transfer[{transfer.name}, {amt:,.02f}]')
-                    projected_balance += amt
+                projected_balance += transfer.get_effective_amount(
+                    current_date, account_id
+                )
 
             last_known_balance = projected_balance
 
