@@ -6,7 +6,7 @@ from .bills import bill_router
 from .cashflow import cashflow_router
 from .expenses import expense_router
 from .income import income_router
-from .transaction import transaction_router
+from .transactions import transaction_router
 from .transfers import transfers_router
 from .uploads import upload_router
 
