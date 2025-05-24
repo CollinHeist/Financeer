@@ -48,7 +48,10 @@ def create_balance(
 
 
 @balance_router.delete('/balance/{balance_id}')
-def delete_balance(balance_id: int, db: Session =Depends(get_database)) -> None:
+def delete_balance(
+    balance_id: int,
+    db: Session = Depends(get_database),
+) -> None:
     """
     Delete a Balance from the database.
 
