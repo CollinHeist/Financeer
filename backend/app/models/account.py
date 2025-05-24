@@ -10,6 +10,7 @@ from app.schemas.account import AccountType
 
 if TYPE_CHECKING:
     from app.models.balance import Balance
+    from app.models.bill import Bill
     from app.models.expense import Expense
     from app.models.income import Income
     from app.models.transaction import Transaction
@@ -33,6 +34,12 @@ class Account(Base):
         nullable=True,
     )
     interest: Mapped[float] = mapped_column(Float, default=0.0)
+
+    bills: Mapped[list['Bill']] = relationship(
+        'Bill',
+        back_populates='account',
+        cascade='all, delete, delete-orphan',
+    )
 
     expenses: Mapped[list['Expense']] = relationship(
         'Expense',

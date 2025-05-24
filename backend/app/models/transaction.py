@@ -8,8 +8,8 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.account import Account
-    from app.models.budget import Budget
     from app.models.expense import Expense
+    from app.models.bill import Bill
     from app.models.income import Income
     from app.models.upload import Upload
 
@@ -24,11 +24,14 @@ class Transaction(Base):
     note: Mapped[str] = mapped_column(String, default='')
     amount: Mapped[float] = mapped_column(Float)
 
-    account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
-    account: Mapped['Account'] = relationship(back_populates='transactions')
+    account_id: Mapped[int | None] = mapped_column(ForeignKey('accounts.id'))
+    account: Mapped['Account | None'] = relationship(back_populates='transactions')
+
+    bill_id: Mapped[int | None] = mapped_column(ForeignKey('bills.id'))
+    bill: Mapped['Bill | None'] = relationship(back_populates='transactions')
 
     expense_id: Mapped[int | None] = mapped_column(ForeignKey('expenses.id'))
-    expense: Mapped['Expense'] = relationship(back_populates='transactions')
+    expense: Mapped['Expense | None'] = relationship(back_populates='transactions')
 
     income_id: Mapped[int | None] = mapped_column(ForeignKey('incomes.id'))
     income: Mapped['Income | None'] = relationship(back_populates='transactions')
@@ -37,12 +40,6 @@ class Transaction(Base):
     upload: Mapped['Upload | None'] = relationship(back_populates='transactions')
 
     transfer_id: Mapped[int | None] = mapped_column(ForeignKey('transfers.id'))
-
-    budgets: Mapped[list['Budget']] = relationship(
-        'Budget',
-        secondary='budget_transactions',
-        back_populates='transactions'
-    )
 
     related_transactions: Mapped[list['Transaction']] = relationship(
         'Transaction',
