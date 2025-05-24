@@ -31,7 +31,7 @@ class NewAccountSchema(BaseModel):
     type: AccountType
     account_number: int | None = None
     routing_number: int | None = None
-    interest: float
+    interest: float = 0.0
     balance: NewAccountBalanceSchema
 
 class ReturnAccountSchema(BaseModel):
