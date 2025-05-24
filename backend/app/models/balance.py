@@ -18,7 +18,10 @@ class Balance(Base):
     date: Mapped[date_type] = mapped_column(Date, index=True)
     balance: Mapped[float]
 
-    account_id: Mapped[int] = mapped_column(ForeignKey('accounts.id'))
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey('accounts.id', ondelete='cascade'),
+        index=True,
+    )
     account: Mapped['Account'] = relationship(
         'Account',
         back_populates='balances',
