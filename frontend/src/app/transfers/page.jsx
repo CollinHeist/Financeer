@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 
 import TransfersTable from "@/components/transfers/table";
 import TransferDialog from "@/components/transfers/dialog";
+
 
 export default function TransfersPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -21,10 +20,6 @@ export default function TransfersPage() {
             create new transfers, and monitor your account balances in one place.
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Transfer
-        </Button>
       </div>
       <div className="space-y-8 mt-6">
         <Suspense fallback={<div>Loading transfers...</div>}>
