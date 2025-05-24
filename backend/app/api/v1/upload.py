@@ -14,6 +14,7 @@ from app.schemas.transaction import ReturnTransactionSchema
 from app.services.chase import parse_chase_upload
 from app.services.citi import parse_citi_upload
 from app.services.iccu import parse_iccu_upload
+from app.services.vanguard import parse_vanguard_upload
 
 upload_router = APIRouter(
     prefix='/upload',
@@ -113,7 +114,7 @@ def upload_iccu_transactions(
     db: Session = Depends(get_database),
 ) -> list[ReturnTransactionSchema]:
     """
-    Upload an Idaho Central Credit Union (ICCU) TransactionCSV file.
+    Upload an Idaho Central Credit Union (ICCU) Transaction .csv file.
 
     - account_id: The ID of the Account to upload the Transactions to.
     """
@@ -123,5 +124,24 @@ def upload_iccu_transactions(
     balances, transactions = parse_iccu_upload(upload)
 
     add_balances_to_database(balances, db)
+
+    return add_transactions_to_database(transactions, upload.id, db) # type: ignore
+
+
+@upload_router.post('/new/vanguard')
+def upload_vanguard_transactions(
+    file: UploadFile,
+    account_id: int = Query(...),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """
+    Upload a Vanguard Transaction .csv file.
+
+    - account_id: The ID of the Account to upload the Transactions to.
+    """
+
+    upload = create_upload(file, account_id, db)
+
+    transactions = parse_vanguard_upload(upload)
 
     return add_transactions_to_database(transactions, upload.id, db) # type: ignore
