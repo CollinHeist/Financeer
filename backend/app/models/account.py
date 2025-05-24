@@ -37,11 +37,13 @@ class Account(Base):
     expenses: Mapped[list['Expense']] = relationship(
         'Expense',
         back_populates='account',
+        cascade='all, delete, delete-orphan',
     )
 
     incomes: Mapped[list['Income']] = relationship(
         'Income',
         back_populates='account',
+        cascade='all, delete, delete-orphan',
     )
 
     transactions: Mapped[list['Transaction']] = relationship(
@@ -58,6 +60,7 @@ class Account(Base):
         'Balance',
         back_populates='account',
         order_by='desc(Balance.date)',
+        cascade='all, delete, delete-orphan',
     )
 
     # Transfer relationships
