@@ -23,6 +23,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/accounts/[account_id]/page.jsx", "components/expenses-by-account.jsx", "components/expense-table.jsx", "app/expenses/page.jsx", "app/expenses/layout.jsx", "lib/utils.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/accounts/[account_id]/page.jsx", "components/bills/BillsByAccount.jsx", "components/bills/table.jsx", "app/bills/page.jsx", "app/bills/layout.jsx", "lib/utils.jsx"],
   "exclude": ["node_modules"]
 }
