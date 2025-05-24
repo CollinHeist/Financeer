@@ -22,8 +22,6 @@ import {
   IconFilter,
 } from "@tabler/icons-react";
 import { cn, formatAmount } from "@/lib/utils";
-import IncomeSummaryPopover from '@/components/IncomeSummaryPopover';
-import ExpenseSummaryPopover from '@/components/ExpenseSummaryPopover';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,15 +30,6 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import {
-  deleteTransaction,
-  applyAllFilters,
-  getAllExpenses,
-  getAllIncomes,
-  patchTransaction,
-  getAllTransfers,
-  getAccounts,
-} from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import TransactionDialog from '@/components/TransactionDialog';
 import {
@@ -52,8 +41,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import TransferSummaryPopover from '@/components/TransferSummaryPopover';
-import AccountOverviewPopover from '@/components/AccountOverviewPopover';
+
+import AccountOverviewPopover from '@/components/accounts/overview-popover';
+import BillSummaryPopover from '@/components/bills/summary-popover';
+import ExpenseSummaryPopover from '@/components/expenses/summary-popover';
+import IncomeSummaryPopover from '@/components/income/summary-popover';
+import TransferSummaryPopover from '@/components/transfers/summary-popover';
+
+import { getAllAccounts } from '@/lib/api/accounts';
+import { getAllExpenses } from '@/lib/api/expenses';
+import { getAllTransfers } from '@/lib/api/transfers';
+import {
+  applyTransactionFilters,
+  deleteTransaction,
+  patchTransaction,
+} from '@/lib/api/transactions';
+import { getAllIncomes } from '@/lib/api';
+import { getAllAccountBills } from '@/lib/api/bills';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -133,23 +137,38 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  const { data: bills } = useQuery({
+    queryKey: ['bills', transaction.account.id],
+    queryFn: () => getAllAccountBills(transaction.account.id),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   const handleCategorize = async (item) => {
     try {
       await patchTransaction(transaction.id, {
         expense_id: selectedType === 'expense' ? item.id : null,
         income_id: selectedType === 'income' ? item.id : null,
         transfer_id: selectedType === 'transfer' ? item.id : null,
-        // Clear other IDs when setting a transfer
+        bill_id: selectedType === 'bill' ? item.id : null,
+        // Clear other IDs when setting a new category
         ...(selectedType === 'transfer' ? {
           expense_id: null,
-          income_id: null
+          income_id: null,
+          bill_id: null
         } : {}),
         ...(selectedType === 'expense' ? {
           income_id: null,
-          transfer_id: null
+          transfer_id: null,
+          bill_id: null
         } : {}),
         ...(selectedType === 'income' ? {
           expense_id: null,
+          transfer_id: null,
+          bill_id: null
+        } : {}),
+        ...(selectedType === 'bill' ? {
+          expense_id: null,
+          income_id: null,
           transfer_id: null
         } : {})
       });
@@ -164,12 +183,15 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
     ? expenses?.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()))
     : selectedType === 'income'
     ? incomes?.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : transfers?.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    : selectedType === 'transfer'
+    ? transfers?.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : bills?.filter(b => b.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div>
       <Tabs defaultValue="expense" onValueChange={setSelectedType} className="">
         <TabsList className="w-full">
+          <TabsTrigger value="bill" className="flex-1">Bills</TabsTrigger>
           <TabsTrigger value="expense" className="flex-1">Expenses</TabsTrigger>
           <TabsTrigger value="income" className="flex-1">Income</TabsTrigger>
           <TabsTrigger value="transfer" className="flex-1">Transfers</TabsTrigger>
@@ -199,6 +221,13 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
                       {item.from_account.name} → {item.to_account.name}
                     </span>
                   </div>
+                ) : selectedType === 'bill' ? (
+                  <div className="flex flex-col items-start">
+                    <span>{item.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(item.start_date)} {item.end_date ? `- ${formatDate(item.end_date)}` : ''}
+                    </span>
+                  </div>
                 ) : (
                   item.name
                 )}
@@ -206,7 +235,7 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
             ))}
             {filteredItems?.length === 0 && (
               <div className="text-sm text-muted-foreground text-center py-2">
-                No {selectedType === 'expense' ? 'expenses' : selectedType === 'income' ? 'income' : 'transfers'} found
+                No {selectedType === 'expense' ? 'expenses' : selectedType === 'income' ? 'income' : selectedType === 'transfer' ? 'transfers' : 'bills'} found
               </div>
             )}
           </div>
@@ -216,8 +245,8 @@ const QuickCategorizePopover = ({ transaction, onClose }) => {
   );
 };
 
-const CategoryCell = ({ expense, income, transfer_id, transaction }) => {
-  if (!expense && !income && !transfer_id) {
+const CategoryCell = ({ expense, income, transfer_id, bill, transaction }) => {
+  if (!expense && !income && !transfer_id && !bill) {
     return (
       <TableCell className="text-center">
         <DropdownMenu>
@@ -250,6 +279,14 @@ const CategoryCell = ({ expense, income, transfer_id, transaction }) => {
     );
   }
 
+  if (bill) {
+    return (
+      <TableCell className="text-center">
+        <BillSummaryPopover bill={bill} transaction={transaction} />
+      </TableCell>
+    );
+  }
+
   return (
     <TableCell className="text-center">
       <ExpenseSummaryPopover expense={expense} transaction={transaction} />
@@ -260,7 +297,30 @@ const CategoryCell = ({ expense, income, transfer_id, transaction }) => {
 const ActionsCell = ({ transaction }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [isShiftHeld, setIsShiftHeld] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Shift') {
+        setIsShiftHeld(true);
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.key === 'Shift') {
+        setIsShiftHeld(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const handleDelete = async () => {
     try {
@@ -271,6 +331,16 @@ const ActionsCell = ({ transaction }) => {
       console.error('Failed to delete transaction:', error);
     } finally {
       setShowDeleteDialog(false);
+    }
+  };
+
+  const handleDeleteClick = (e) => {
+    if (e.shiftKey) {
+      // If shift is held, delete immediately without confirmation
+      handleDelete();
+    } else {
+      // Otherwise show confirmation dialog
+      setShowDeleteDialog(true);
     }
   };
 
@@ -288,11 +358,11 @@ const ActionsCell = ({ transaction }) => {
             Edit
           </DropdownMenuItem>
           <DropdownMenuItem 
-            onClick={() => setShowDeleteDialog(true)}
+            onClick={handleDeleteClick}
             className="text-red-600 focus:text-red-600"
           >
             <IconTrash className="mr-2 h-4 w-4" />
-            Delete
+            {isShiftHeld ? 'Delete (No Confirmation)' : 'Delete'}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -332,7 +402,7 @@ export default function TransactionTable({
   // Fetch accounts
   const { data: accounts = [] } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
@@ -380,7 +450,7 @@ export default function TransactionTable({
   const handleApplyFilters = async () => {
     try {
       setIsApplyingFilters(true);
-      await applyAllFilters('expense');
+      await applyTransactionFilters();
       // Invalidate and refetch transactions
       await queryClient.invalidateQueries(['transactions']);
     } catch (error) {
@@ -540,6 +610,7 @@ export default function TransactionTable({
                     {formatAmount(transaction.amount)}
                   </TableCell>
                   <CategoryCell 
+                    bill={transaction.bill}
                     expense={transaction.expense} 
                     income={transaction.income}
                     transfer_id={transaction.transfer_id}

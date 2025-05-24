@@ -18,16 +18,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
-import { getAccount, createIncome, patchIncome, getIncomeById, getAccounts } from '@/lib/api';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
-const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
-  const isEditMode = !!incomeId;
+import { getAllAccounts, getAccount } from '@/lib/api/accounts';
+import { createExpense, patchExpense, getExpenseById } from '@/lib/api/expenses';
+
+const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) => {
+  const isEditMode = !!expenseId;
   const queryClient = useQueryClient();
   
   // Fetch all accounts
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
     enabled: isOpen,
   });
   
@@ -38,24 +42,22 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
     enabled: !!accountId && isOpen,
   });
   
-  // Fetch existing income if in edit mode
-  const { data: existingIncome, isLoading: incomeLoading } = useQuery({
-    queryKey: ['income', incomeId],
-    queryFn: () => getIncomeById(incomeId),
-    enabled: !!incomeId && isOpen,
+  // Fetch existing expense if in edit mode
+  const { data: existingExpense, isLoading: expenseLoading } = useQuery({
+    queryKey: ['expense', expenseId],
+    queryFn: () => getExpenseById(expenseId),
+    enabled: !!expenseId && isOpen,
   });
   
   const [formData, setFormData] = useState({
     name: '',
+    description: '',
     amount: '',
-    frequency: {
-      value: 1,
-      unit: 'months'
-    },
-    start_date: new Date().toISOString().split('T')[0],
-    end_date: '',
+    is_active: true,
+    allow_rollover: false,
+    max_rollover_amount: null,
     account_id: accountId ? Number(accountId) : null,
-    raise_schedule: []
+    transaction_filters: []
   });
   
   // Update formData when accountId prop changes
@@ -65,63 +67,62 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
     }
   }, [accountId]);
   
-  // Update formData when existing income is loaded
+  // Update formData when existing expense is loaded
   useEffect(() => {
-    if (existingIncome) {
+    if (existingExpense) {
       setFormData({
-        name: existingIncome.name,
-        amount: existingIncome.amount,
-        frequency: existingIncome.frequency || { value: 1, unit: 'months' },
-        start_date: existingIncome.start_date || new Date().toISOString().split('T')[0],
-        end_date: existingIncome.end_date || '',
-        account_id: Number(existingIncome.account_id),
-        raise_schedule: existingIncome.raise_schedule || []
+        name: existingExpense.name,
+        description: existingExpense.description || '',
+        amount: existingExpense.amount,
+        is_active: existingExpense.is_active,
+        allow_rollover: existingExpense.allow_rollover,
+        max_rollover_amount: existingExpense.max_rollover_amount,
+        account_id: Number(existingExpense.account_id),
+        transaction_filters: existingExpense.transaction_filters || []
       });
     }
-  }, [existingIncome]);
+  }, [existingExpense]);
   
   const [error, setError] = useState(null);
 
-  // Use the createIncome API function
-  const createIncomeMutation = useMutation({
-    mutationFn: createIncome,
+  // Use the createExpense API function
+  const createExpenseMutation = useMutation({
+    mutationFn: createExpense,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['incomes'] });
-      queryClient.invalidateQueries({ queryKey: ['incomes', accountId] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', accountId] });
       onOpenChange(false);
       resetForm();
     },
     onError: (err) => {
-      setError(err.message || 'Failed to create income');
+      setError(err.message || 'Failed to create expense');
     }
   });
   
-  // Use the updateIncome API function
-  const updateIncomeMutation = useMutation({
-    mutationFn: (data) => patchIncome(incomeId, data),
+  // Use the updateExpense API function
+  const updateExpenseMutation = useMutation({
+    mutationFn: (data) => patchExpense(expenseId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['incomes'] });
-      queryClient.invalidateQueries({ queryKey: ['incomes', accountId] });
-      queryClient.invalidateQueries({ queryKey: ['income', incomeId] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', accountId] });
+      queryClient.invalidateQueries({ queryKey: ['expense', expenseId] });
       onOpenChange(false);
     },
     onError: (err) => {
-      setError(err.message || 'Failed to update income');
+      setError(err.message || 'Failed to update expense');
     }
   });
 
   const resetForm = () => {
     setFormData({
       name: '',
+      description: '',
       amount: '',
-      frequency: {
-        value: 1,
-        unit: 'months'
-      },
-      start_date: new Date().toISOString().split('T')[0],
-      end_date: '',
+      is_active: true,
+      allow_rollover: false,
+      max_rollover_amount: null,
       account_id: accountId ? Number(accountId) : null,
-      raise_schedule: []
+      transaction_filters: []
     });
     setError(null);
   };
@@ -129,23 +130,7 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    if (name === 'frequencyValue') {
-      setFormData(prev => ({
-        ...prev,
-        frequency: {
-          ...prev.frequency,
-          value: parseInt(value) || 1
-        }
-      }));
-    } else if (name === 'frequencyUnit') {
-      setFormData(prev => ({
-        ...prev,
-        frequency: {
-          ...prev.frequency,
-          unit: value
-        }
-      }));
-    } else if (name === 'account_id') {
+    if (name === 'account_id') {
       setFormData(prev => ({
         ...prev,
         account_id: value ? Number(value) : null
@@ -162,28 +147,28 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
     e.preventDefault();
     
     // Format the data according to the API requirements
-    const incomeData = {
+    const expenseData = {
       ...formData,
       amount: parseFloat(formData.amount),
-      // Include end_date only if it's not empty
-      end_date: formData.end_date || null,
       // Ensure account_id is a number
-      account_id: Number(formData.account_id)
+      account_id: Number(formData.account_id),
+      // Convert max_rollover_amount to number if it exists
+      max_rollover_amount: formData.max_rollover_amount ? parseFloat(formData.max_rollover_amount) : null
     };
     
     if (isEditMode) {
-      updateIncomeMutation.mutate(incomeData);
+      updateExpenseMutation.mutate(expenseData);
     } else {
-      createIncomeMutation.mutate(incomeData);
+      createExpenseMutation.mutate(expenseData);
     }
   };
 
   const isLoading = 
     accountLoading || 
     accountsLoading ||
-    (isEditMode && incomeLoading) || 
-    createIncomeMutation.isPending || 
-    updateIncomeMutation.isPending;
+    (isEditMode && expenseLoading) || 
+    createExpenseMutation.isPending || 
+    updateExpenseMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -193,7 +178,7 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditMode ? 'Edit Income' : 'Add New Income'}
+            {isEditMode ? 'Edit Expense' : 'Add New Expense'}
             {account && ` for ${account.name}`}
           </DialogTitle>
         </DialogHeader>
@@ -244,6 +229,15 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
                 />
               </div>
               <div>
+                <label className="text-sm font-medium">Description</label>
+                <Input
+                  type="text"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                />
+              </div>
+              <div>
                 <label className="text-sm font-medium">Amount</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
@@ -258,68 +252,50 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Frequency</label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    name="frequencyValue"
-                    value={formData.frequency.value}
-                    onChange={handleChange}
-                    min="1"
-                    required
-                    className="w-1/3"
-                  />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-2/3 justify-between"
-                      >
-                        {formData.frequency.unit.charAt(0).toUpperCase() + formData.frequency.unit.slice(1)}
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {['days', 'weeks', 'months', 'years'].map((unit) => (
-                        <DropdownMenuItem
-                          key={unit}
-                          onSelect={() => {
-                            setFormData(prev => ({
-                              ...prev,
-                              frequency: {
-                                ...prev.frequency,
-                                unit
-                              }
-                            }));
-                          }}
-                        >
-                          {unit.charAt(0).toUpperCase() + unit.slice(1)}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="is_active" className="text-sm font-medium">Active</Label>
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      is_active: checked
+                    }));
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="allow_rollover" className="text-sm font-medium">Allow Rollover</Label>
+                <Switch
+                  id="allow_rollover"
+                  checked={formData.allow_rollover}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      allow_rollover: checked,
+                      max_rollover_amount: checked ? prev.max_rollover_amount : null
+                    }));
+                  }}
+                />
+              </div>
+              {formData.allow_rollover && (
+                <div>
+                  <label className="text-sm font-medium">Maximum Rollover Amount</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                    <Input
+                      type="number"
+                      name="max_rollover_amount"
+                      value={formData.max_rollover_amount || ''}
+                      onChange={handleChange}
+                      step="0.01"
+                      className="pl-7"
+                      placeholder="Leave empty for unlimited"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Start Date</label>
-                <Input
-                  type="date"
-                  name="start_date"
-                  value={formData.start_date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">End Date (Optional)</label>
-                <Input
-                  type="date"
-                  name="end_date"
-                  value={formData.end_date}
-                  onChange={handleChange}
-                />
-              </div>
+              )}
               
               {error && (
                 <div className="text-red-500 text-sm p-2 bg-red-50 rounded-md">
@@ -343,7 +319,7 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
             >
               {isLoading 
                 ? (isEditMode ? 'Updating...' : 'Creating...') 
-                : (isEditMode ? 'Update Income' : 'Create Income')}
+                : (isEditMode ? 'Update Expense' : 'Create Expense')}
             </Button>
           </DialogFooter>
         </form>
@@ -352,4 +328,4 @@ const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
   );
 };
 
-export default IncomeDialog; 
+export default ExpenseDialog;

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { IncomeTable } from "@/components/IncomeTable";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import IncomeDialog from "@/components/IncomeDialog";
+
+import IncomeTable from "@/components/income/table";
+import IncomeDialog from "@/components/income/dialog";
 
 export default function IncomePage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);

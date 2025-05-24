@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { getAllTransfers, deleteTransfer, getTransferTransactions } from '@/lib/api';
 import {
   Table,
   TableHeader,
@@ -10,6 +9,7 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,30 +18,37 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  MoreVertical,
-  Pencil,
-  Trash2,
-  CalendarClock,
-  Plus,
-  X,
   BarChart2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Plus
 } from 'lucide-react';
-import { IconDotsVertical, IconEdit, IconTrash, IconChartLine } from "@tabler/icons-react";
-import { formatCurrency, formatDate } from '@/lib/utils';
-import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
-import AccountOverviewPopover from './AccountOverviewPopover';
+import { IconDotsVertical, IconEdit, IconTrash, IconFilterDollar } from "@tabler/icons-react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import TransactionSummaryDialog from './transaction-summary-dialog';
-import TransactionSummaryInline from './transaction-summary-inline';
+
+import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+import AccountOverviewPopover from '@/components/accounts/overview-popover';
+import TransactionSummaryInline from '@/components/transactions/summary-inline';
+import TransferDialog from '@/components/transfers/dialog';
+import TransactionFilterDialog from '@/components/transactions/filter-dialog';
+
+import { formatCurrency, formatDate } from '@/lib/utils';
+import {
+  deleteTransfer,
+  getAllTransfers,
+  getTransferTransactions,
+} from '@/lib/api/transfers';
 
 export default function TransfersTable() {
   const queryClient = useQueryClient();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
-  const [selectedTransferForTransactions, setSelectedTransferForTransactions] = useState(null);
   const [expandedTransferId, setExpandedTransferId] = useState(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTransferId, setEditingTransferId] = useState(null);
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
+  const [filteringTransferId, setFilteringTransferId] = useState(null);
 
   const { data: transfers, isLoading, error } = useQuery({
     queryKey: ['transfers'],
@@ -69,12 +76,17 @@ export default function TransfersTable() {
   };
 
   const handleEdit = (transfer) => {
-    // TODO: Implement edit functionality
-    console.log('Edit transfer:', transfer);
+    setEditingTransferId(transfer.id);
+    setIsEditDialogOpen(true);
   };
 
   const handleViewTransactions = (transfer) => {
     setExpandedTransferId(expandedTransferId === transfer.id ? null : transfer.id);
+  };
+
+  const handleFilter = (transfer) => {
+    setFilteringTransferId(transfer.id);
+    setIsFilterDialogOpen(true);
   };
 
   if (isLoading) {
@@ -100,7 +112,8 @@ export default function TransfersTable() {
             <TableHead className="text-center">To Account</TableHead>
             <TableHead className="text-center">Start Date</TableHead>
             <TableHead className="text-center">End Date</TableHead>
-            <TableHead className="text-center"></TableHead>
+            <TableHead className="text-center">Filters</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -161,6 +174,17 @@ export default function TransfersTable() {
                   <TableCell className="text-center">{formatDate(transfer.start_date)}</TableCell>
                   <TableCell className="text-center">{formatDate(transfer.end_date)}</TableCell>
                   <TableCell className="text-center">
+                    {transfer.transaction_filters && transfer.transaction_filters.length > 0 ? (
+                      <Badge 
+                        variant="outline" 
+                        className="hover:bg-slate-100 cursor-pointer" 
+                        onClick={() => handleFilter(transfer)}
+                      >
+                        {transfer.transaction_filters.reduce((total, group) => total + group.length, 0)}
+                      </Badge>
+                    ) : '-'}
+                  </TableCell>
+                  <TableCell className="text-center">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -171,6 +195,10 @@ export default function TransfersTable() {
                         <DropdownMenuItem onClick={() => handleEdit(transfer)}>
                           <IconEdit className="mr-2 h-4 w-4" />
                           Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilter(transfer)}>
+                          <IconFilterDollar className="h-4 w-4 mr-2" />
+                          Transaction Filters
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => handleDelete(transfer)}
@@ -201,6 +229,18 @@ export default function TransfersTable() {
               </React.Fragment>
             ))
           )}
+          <TableRow className="hover:bg-muted/50">
+            <TableCell colSpan={9} className="text-center py-4">
+              <Button
+                variant="outline"
+                className="w-full max-w-[200px]"
+                onClick={() => setIsCreateDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Transfer
+              </Button>
+            </TableCell>
+          </TableRow>
         </TableBody>
       </Table>
 
@@ -212,6 +252,29 @@ export default function TransfersTable() {
         itemName={selectedTransfer?.name}
         itemType="Transfer"
         isDeleting={deleteMutation.isPending}
+      />
+
+      <TransferDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+      />
+
+      <TransferDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) setEditingTransferId(null);
+        }}
+        transferId={editingTransferId}
+      />
+
+      <TransactionFilterDialog
+        isOpen={isFilterDialogOpen}
+        onOpenChange={(open) => {
+          setIsFilterDialogOpen(open);
+          if (!open) setFilteringTransferId(null);
+        }}
+        transferId={filteringTransferId}
       />
     </div>
   );

@@ -6,7 +6,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"
-import { getAccounts, createTransaction, updateTransaction, getTransactionById } from '@/lib/api';
 import { IconInfoCircle } from '@tabler/icons-react';
 import { ChevronDown } from "lucide-react";
 import {
@@ -15,6 +14,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { getAllAccounts } from '@/lib/api/accounts';
+import { createTransaction, updateTransaction, getTransactionById } from '@/lib/api/transactions';
+
 
 export default function TransactionDialog({ isOpen, onOpenChange, transactionId = null }) {
   const isEditMode = !!transactionId;
@@ -30,7 +33,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
 
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
     enabled: isOpen
   });
 

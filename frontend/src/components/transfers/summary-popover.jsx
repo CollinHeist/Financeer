@@ -5,7 +5,9 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { IconExternalLink, IconTrash, IconArrowsDiff } from "@tabler/icons-react";
 import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { patchTransaction, getTransferById } from '@/lib/api';
+
+import { patchTransaction } from '@/lib/api/transactions';
+import { getTransferById } from '@/lib/api/transfers';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {

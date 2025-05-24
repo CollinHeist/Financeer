@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Suspense } from "react";
-import { title } from "@/components/primitives";
-import TransfersTable from "@/components/transfers-table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import TransferDialog from "@/components/TransferDialog";
+
+import TransfersTable from "@/components/transfers/table";
+import TransferDialog from "@/components/transfers/dialog";
 
 export default function TransfersPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);

@@ -41,7 +41,8 @@ import { Button } from "@/components/ui/button";
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import TransactionDialog from '@/components/TransactionDialog';
 import { useQueryClient } from '@tanstack/react-query';
-import { deleteTransaction } from '@/lib/api';
+
+import { deleteTransaction } from '@/lib/api/transactions';
 
 export default function TransactionSummaryInline({
   title,
@@ -162,7 +163,7 @@ export default function TransactionSummaryInline({
 
   const formatChartData = (transactions) => {
     if (!transactions) return [];
-    
+
     const aggregatedData = aggregateTransactions(transactions, frequency);
     
     const totalAmount = aggregatedData.reduce((sum, item) => sum + item.transactionAmount, 0);

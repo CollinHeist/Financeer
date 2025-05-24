@@ -11,11 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAccounts, createExpense, patchExpense, getExpenseById } from '@/lib/api';
-import { IconInfoCircle, ChevronDown } from '@tabler/icons-react';
+import { IconInfoCircle } from '@tabler/icons-react';
 
-export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expenseId = null }) {
-  const isEditMode = !!expenseId;
+import { getAllAccounts } from '@/lib/api/accounts';
+import { createBill, getBillById, patchBill } from '@/lib/api/bills';
+
+export default function BillDialog({ isOpen, onOpenChange, accountId, billId = null }) {
+  const isEditMode = !!billId;
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '',
@@ -32,53 +34,53 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
 
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
     enabled: isOpen
   });
 
-  const { data: existingExpense, isLoading: expenseLoading } = useQuery({
-    queryKey: ['expense', expenseId],
-    queryFn: () => getExpenseById(expenseId),
-    enabled: isOpen && !!expenseId,
+  const { data: existingBill, isLoading: billLoading } = useQuery({
+    queryKey: ['bill', billId],
+    queryFn: () => getBillById(billId),
+    enabled: isOpen && !!billId,
   });
 
   useEffect(() => {
-    if (existingExpense) {
+    if (existingBill) {
       setFormData({
-        name: existingExpense.name,
-        description: existingExpense.description || '',
-        amount: existingExpense.amount.toString(),
-        type: existingExpense.type,
-        start_date: existingExpense.start_date || new Date().toISOString().split('T')[0],
-        end_date: existingExpense.end_date || '',
-        account_id: existingExpense.account_id.toString(),
-        frequencyValue: existingExpense.frequency?.value || 1,
-        frequencyUnit: existingExpense.frequency?.unit || 'months'
+        name: existingBill.name,
+        description: existingBill.description || '',
+        amount: existingBill.amount.toString(),
+        type: existingBill.type,
+        start_date: existingBill.start_date || new Date().toISOString().split('T')[0],
+        end_date: existingBill.end_date || '',
+        account_id: existingBill.account_id.toString(),
+        frequencyValue: existingBill.frequency?.value || 1,
+        frequencyUnit: existingBill.frequency?.unit || 'months'
       });
     }
-  }, [existingExpense]);
+  }, [existingBill]);
 
-  const createExpenseMutation = useMutation({
-    mutationFn: createExpense,
+  const createBillMutation = useMutation({
+    mutationFn: createBill,
     onSuccess: () => {
-      queryClient.invalidateQueries(['expenses', accountId]);
+      queryClient.invalidateQueries(['bills', accountId]);
       onOpenChange(false);
       resetForm();
     },
     onError: (error) => {
-      console.error('Error creating expense:', error);
+      console.error('Error creating Bill:', error);
     },
   });
 
-  const updateExpenseMutation = useMutation({
-    mutationFn: (data) => patchExpense(expenseId, data),
+  const updateBillMutation = useMutation({
+    mutationFn: (data) => patchBill(billId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['expenses', accountId]);
-      queryClient.invalidateQueries(['expense', expenseId]);
+      queryClient.invalidateQueries(['bills', accountId]);
+      queryClient.invalidateQueries(['bill', billId]);
       onOpenChange(false);
     },
     onError: (error) => {
-      console.error('Error updating expense:', error);
+      console.error('Error updating Bill:', error);
     },
   });
 
@@ -126,7 +128,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
       return;
     }
     
-    const expenseData = {
+    const billData = {
       ...formData,
       amount: parseFloat(formData.amount),
       end_date: formData.end_date || null,
@@ -137,9 +139,9 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
     };
     
     if (isEditMode) {
-      updateExpenseMutation.mutate(expenseData);
+      updateBillMutation.mutate(billData);
     } else {
-      createExpenseMutation.mutate(expenseData);
+      createBillMutation.mutate(billData);
     }
   };
 
@@ -157,7 +159,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
     }
   };
 
-  const isLoading = createExpenseMutation.isLoading || updateExpenseMutation.isLoading || (isEditMode && expenseLoading);
+  const isLoading = createBillMutation.isLoading || updateBillMutation.isLoading || (isEditMode && billLoading);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -166,7 +168,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
     }}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit Expense' : 'Create New Expense'}</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Bill' : 'Create New Bill'}</DialogTitle>
           <div className="flex items-center gap-1">
             <IconInfoCircle className="text-blue-500 h-4 w-4" />
             <p className="text-xs text-gray-500">Use a negative amount to indicate money leaving the <span className="text-blue-500">From Account</span></p>
@@ -340,7 +342,7 @@ export default function ExpenseDialog({ isOpen, onOpenChange, accountId, expense
                 type="submit"
                 disabled={isLoading}
               >
-                {isLoading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Expense' : 'Create Expense')}
+                {isLoading ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Bill' : 'Create Bill')}
               </Button>
             </div>
           </form>

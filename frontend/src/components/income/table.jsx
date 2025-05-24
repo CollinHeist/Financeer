@@ -35,21 +35,24 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
+
+import IncomeDialog from '@/components/income/dialog';
+import TransactionFilterDialog from '@/components/transactions/filter-dialog';
+import TransactionSummaryInline from '@/components/transactions/summary-inline';
+import { IconFilterDollar } from '@tabler/icons-react';
+import AccountOverviewPopover from '@/components/accounts/overview-popover';
+
+import { getAllAccounts } from '@/lib/api/accounts';
 import {
   deleteIncome,
   getAllIncomes,
-  getAccounts,
   getIncomeTransactions,
   patchIncome,
 } from '@/lib/api';
-import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
-import IncomeDialog from '@/components/IncomeDialog';
-import TransactionFilterDialog from './TransactionFilterDialog';
-import TransactionSummaryInline from './transaction-summary-inline';
-import { IconFilterDollar } from '@tabler/icons-react';
-import AccountOverviewPopover from './AccountOverviewPopover';
 
-export function IncomeTable() {
+
+export default function IncomeTable() {
   const queryClient = useQueryClient();
   const [editingIncome, setEditingIncome] = useState(null);
   const [editingSchedule, setEditingSchedule] = useState(null);
@@ -69,6 +72,7 @@ export function IncomeTable() {
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [incomeToFilter, setIncomeToFilter] = useState(null);
   const [expandedIncomeId, setExpandedIncomeId] = useState(null);
+  const [newIncomeDialogOpen, setNewIncomeDialogOpen] = useState(false);
 
   const { data: incomes, isLoading: incomesLoading, error: incomesError } = useQuery({
     queryKey: ['incomes', 'all'],
@@ -78,7 +82,7 @@ export function IncomeTable() {
 
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
   });
 
   const { data: transactions, isLoading: transactionsLoading, error: transactionsError } = useQuery({
@@ -275,13 +279,6 @@ export function IncomeTable() {
     setExpandedIncomeId(expandedIncomeId === income.id ? null : income.id);
   };
 
-  const handleSummaryDialogClose = (open) => {
-    setSummaryDialogOpen(open);
-    if (!open) {
-      setIncomeToSummarize(null);
-    }
-  };
-
   if (incomesError) {
     return <div className="text-left p-4 text-red-500">Error loading incomes: {incomesError.message}</div>;
   }
@@ -433,6 +430,17 @@ export function IncomeTable() {
               )}
             </React.Fragment>
           ))}
+          <TableRow>
+            <TableCell colSpan={10} className="text-center">
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setNewIncomeDialogOpen(true)}
+              >
+                + Add New Income
+              </Button>
+            </TableCell>
+          </TableRow>
         </TableBody>
       </Table>
 
@@ -660,6 +668,11 @@ export function IncomeTable() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <IncomeDialog
+        isOpen={newIncomeDialogOpen}
+        onOpenChange={setNewIncomeDialogOpen}
+      />
     </div>
   );
 } 

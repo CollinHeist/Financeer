@@ -2,13 +2,14 @@
 
 import { useQuery } from '@tanstack/react-query';
 import {Card, CardHeader, CardBody, Link} from "@heroui/react";
-import { getAccounts } from '@/lib/api';
+
+import { getAllAccounts } from '@/lib/api/accounts';
 
 // This is a Client Component that fetches data using React Query
 export default function AccountList() {
   const { data: accounts, isLoading, error } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts
+    queryFn: getAllAccounts
   });
 
   if (isLoading) {

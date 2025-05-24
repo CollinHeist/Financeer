@@ -3,23 +3,25 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from "@/components/ui/card";
-import { getAccounts } from '@/lib/api';
-import { ExpenseTable } from './expense-table';
 import { Plus } from 'lucide-react';
-import ExpenseDialog from './ExpenseDialog';
 
-export default function ExpensesByAccount() {
+import BillDialog from '@/components/bills/dialog';
+import BillTable from '@/components/bills/table';
+
+import { getAllAccounts } from '@/lib/api/accounts';
+
+export default function BillsByAccount() {
   const [selectedAccount, setSelectedAccount] = useState(null);
-  const [isNewExpenseDialogOpen, setIsNewExpenseDialogOpen] = useState(false);
+  const [isNewBillDialogOpen, setIsNewBillDialogOpen] = useState(false);
 
   const { data: accounts, isLoading, error } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts
+    queryFn: getAllAccounts
   });
 
-  const handleAddExpenseClick = (accountId) => {
+  const handleAddBillClick = (accountId) => {
     setSelectedAccount(accountId);
-    setIsNewExpenseDialogOpen(true);
+    setIsNewBillDialogOpen(true);
   };
 
   if (isLoading) {
@@ -48,25 +50,18 @@ export default function ExpensesByAccount() {
                 {account.name}
               </a>
             </h2>
-            <button 
-              onClick={() => handleAddExpenseClick(account.id)}
-              className="p-1 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200"
-              title="Add new expense"
-            >
-              <Plus size={16} />
-            </button>
           </div>
-          <Card>
-            <CardContent className="pt-6">
-              <ExpenseTable accountId={account.id} />
-            </CardContent>
-          </Card>
+          {/* <Card> */}
+            {/* <CardContent className="pt-6"> */}
+              <BillTable accountId={account.id} />
+            {/* </CardContent> */}
+          {/* </Card> */}
         </section>
       ))}
 
-      <ExpenseDialog 
-        isOpen={isNewExpenseDialogOpen} 
-        onOpenChange={setIsNewExpenseDialogOpen} 
+      <BillDialog 
+        isOpen={isNewBillDialogOpen} 
+        onOpenChange={setIsNewBillDialogOpen} 
         accountId={selectedAccount} 
       />
     </div>

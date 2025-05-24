@@ -2,10 +2,14 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getAllTransactions } from '@/lib/api';
-import TransactionTable from '@/components/TransactionTable';
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { IconUpload } from '@tabler/icons-react';
+
+import TransactionTable from '@/components/transactions/table';
+import TransactionUploadDialog from '@/components/transactions/upload-dialog';
+
+import { getAllTransactions } from '@/lib/api/transactions';
 
 // Pagination controls component
 const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
@@ -99,6 +103,7 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showUncategorizedOnly, setShowUncategorizedOnly] = useState(false);
   const [selectedAccounts, setSelectedAccounts] = useState([]);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const {
@@ -154,7 +159,13 @@ export default function TransactionsPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Transactions</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Transactions</h1>
+        <Button onClick={() => setShowUploadDialog(true)}>
+          <IconUpload className="h-4 w-4 mr-2" />
+          Upload Transactions
+        </Button>
+      </div>
       <TransactionTable
         transactions={data?.items || []}
         isLoading={isLoading || isPreviousData}
@@ -169,6 +180,10 @@ export default function TransactionsPage() {
           onPageChange={setPage}
         />
       )}
+      <TransactionUploadDialog
+        isOpen={showUploadDialog}
+        onOpenChange={setShowUploadDialog}
+      />
     </div>
   );
 }

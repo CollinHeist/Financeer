@@ -1,4 +1,4 @@
-export default function ExpensesLayout({ children }) {
+export default function ExpensePageLayout({ children }) {
   return (
     <section className="flex flex-col md:py-10 w-full">
       <div className="w-full">

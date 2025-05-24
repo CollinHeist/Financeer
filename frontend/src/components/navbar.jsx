@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 const navigationItems = [
   { label: "Home", href: "/" },
   { label: "Accounts", href: "/accounts" },
-  { label: "Budgets", href: "/budgets" },
+  { label: "Bills", href: "/bills" },
   { label: "Expenses", href: "/expenses" },
   { label: "Income", href: "/income" },
   { label: "Transfers", href: "/transfers" },
@@ -48,7 +48,7 @@ export const Navbar = () => {
                   {item.label}
                 </NextLink>
               </NavbarItem>
-              {(index === 0 || index === 4) && (
+              {(index === 0 || index === 1 || index === 5) && (
                 <Separator orientation="vertical" className="h-6" />
               )}
             </React.Fragment>

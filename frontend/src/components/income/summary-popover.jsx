@@ -3,9 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { IconExternalLink, IconTrash, IconCash } from "@tabler/icons-react";
+import { IconExternalLink, IconTrash, IconMoneybag } from "@tabler/icons-react";
 import { useQueryClient } from '@tanstack/react-query';
-import { patchTransaction } from '@/lib/api';
+
+import { patchTransaction } from '@/lib/api/transactions';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -24,8 +25,8 @@ const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-export default function ExpenseSummaryPopover({ 
-  expense,
+export default function IncomeSummaryPopover({ 
+  income,
   trigger = null,
   className,
   transaction
@@ -44,7 +45,7 @@ export default function ExpenseSummaryPopover({
     }
   };
 
-  if (!expense) return null;
+  if (!income) return null;
 
   return (
     <Popover>
@@ -53,10 +54,10 @@ export default function ExpenseSummaryPopover({
           <Button 
             variant="ghost" 
             size="sm"
-            className={cn("text-red-600 hover:text-red-700", className)}
+            className={cn("text-green-600 hover:text-green-700", className)}
           >
-            <IconCash className="h-4 w-4" />
-            {expense.name}
+            <IconMoneybag className="h-4 w-4" />
+            {income.name}
           </Button>
         )}
       </PopoverTrigger>
@@ -64,7 +65,7 @@ export default function ExpenseSummaryPopover({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h4 className="font-medium">{expense.name}</h4>
+              <h4 className="font-medium">{income.name}</h4>
               <Button
                 variant="ghost"
                 size="sm"
@@ -76,17 +77,17 @@ export default function ExpenseSummaryPopover({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                <a href="/expenses" className="hover:underline flex items-center gap-1">
-                  View Expenses
+                <a href="/income" className="hover:underline flex items-center gap-1">
+                  View Income
                   <IconExternalLink size={14} />
                 </a>
               </span>
             </div>
           </div>
 
-          {expense.description && expense.description !== expense.name && (
+          {income.description && (
             <p className="text-sm text-muted-foreground">
-              {expense.description}
+              {income.description}
             </p>
           )}
 
@@ -95,11 +96,11 @@ export default function ExpenseSummaryPopover({
               <span className="text-muted-foreground">Status:</span>
               <span className={cn(
                 "font-medium",
-                new Date(expense.end_date) > new Date() || !expense.end_date
+                new Date(income.end_date) > new Date() || !income.end_date
                   ? "text-green-600"
                   : "text-red-600"
               )}>
-                {new Date(expense.end_date) > new Date() || !expense.end_date
+                {new Date(income.end_date) > new Date() || !income.end_date
                   ? "Active"
                   : "Inactive"}
               </span>
@@ -107,23 +108,23 @@ export default function ExpenseSummaryPopover({
 
             <div className="flex justify-between">
               <span className="text-muted-foreground">Start Date:</span>
-              <span>{formatDate(expense.start_date)}</span>
+              <span>{formatDate(income.start_date)}</span>
             </div>
 
-            {expense.end_date && (
+            {income.end_date && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">End Date:</span>
-                <span>{formatDate(expense.end_date)}</span>
+                <span>{formatDate(income.end_date)}</span>
               </div>
             )}
           </div>
 
-          {expense.amount && (
+          {income.amount && (
             <div className="pt-2 border-t">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Amount:</span>
-                <span className="text-lg font-semibold text-red-600">
-                  {formatCurrency(expense.amount)}
+                <span className="text-lg font-semibold text-green-600">
+                  {formatCurrency(income.amount)}
                 </span>
               </div>
             </div>

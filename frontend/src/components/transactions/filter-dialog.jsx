@@ -2,10 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { IconPlus, IconTrash, IconInfoCircle, IconBraces } from '@tabler/icons-react';
-import { getExpenseById, getIncomeById, patchExpense, patchIncome, getTransactionsFromFilters } from '@/lib/api';
+import { IconPlus, IconTrash, IconBraces } from '@tabler/icons-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,19 +18,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseId, incomeId }) {
+import { getBillById, patchBill } from '@/lib/api/bills';
+import { getExpenseById, patchExpense } from '@/lib/api/expenses';
+import { getIncomeById, patchIncome } from '@/lib/api';
+import { getTransferById, patchTransfer } from '@/lib/api/transfers';
+import { getTransactionsFromFilters } from '@/lib/api/transactions';
+
+export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseId, incomeId, billId, transferId }) {
   const queryClient = useQueryClient();
   const [filterGroups, setFilterGroups] = useState([]);
   const [previewTransactions, setPreviewTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState('edit');
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
-  const type = expenseId ? 'expense' : 'income';
-  const id = expenseId || incomeId;
+  const type = expenseId ? 'expense' : incomeId ? 'income' : billId ? 'bill' : 'transfer';
+  const id = expenseId || incomeId || billId || transferId;
 
   const { data: item, isLoading: itemLoading } = useQuery({
     queryKey: [type, id],
-    queryFn: () => type === 'expense' ? getExpenseById(id) : getIncomeById(id),
+    queryFn: () => {
+      switch (type) {
+        case 'expense':
+          return getExpenseById(id);
+        case 'income':
+          return getIncomeById(id);
+        case 'bill':
+          return getBillById(id);
+        case 'transfer':
+          return getTransferById(id);
+        default:
+          throw new Error(`Invalid type: ${type}`);
+      }
+    },
     enabled: isOpen && !!id,
   });
 
@@ -47,7 +71,20 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
   }, [item]);
 
   const updateItemMutation = useMutation({
-    mutationFn: (data) => type === 'expense' ? patchExpense(id, data) : patchIncome(id, data),
+    mutationFn: (data) => {
+      switch (type) {
+        case 'expense':
+          return patchExpense(id, data);
+        case 'income':
+          return patchIncome(id, data);
+        case 'bill':
+          return patchBill(id, data);
+        case 'transfer':
+          return patchTransfer(id, data);
+        default:
+          throw new Error(`Invalid type: ${type}`);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries([type, id]);
       queryClient.invalidateQueries([`${type}s`]);
@@ -166,13 +203,10 @@ export default function TransactionFilterDialog({ isOpen, onOpenChange, expenseI
       <DialogContent className="sm:max-w-[750px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Transaction Filters for {item?.name}</DialogTitle>
-          <div className="flex items-center gap-1">
-            <IconInfoCircle className="text-blue-500 h-4 w-4" />
-            <p className="text-xs text-gray-500">
-              Define filters to automatically match Transactions to this {type === 'expense' ? 'Expense' : 'Income'}. 
-              Filters within a group use AND logic (all must match), while different groups use OR logic (any group can match).
-            </p>
-          </div>
+          <DialogDescription>
+            Define filters to automatically match Transactions to this {type === 'expense' ? 'Expense' : type === 'income' ? 'Income' : type === 'bill' ? 'Bill' : 'Transfer'}. 
+            Filters within a group use AND logic (all must match), while different groups use OR logic (any group can match).
+          </DialogDescription>
         </DialogHeader>
 
         {itemLoading ? (

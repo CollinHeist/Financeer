@@ -1,16 +1,20 @@
-import { Suspense } from "react";
-import { title } from "@/components/primitives";
-import ExpensesByAccount from "@/components/expenses-by-account";
+'use client';
 
-export default function ExpensesPage() {
+import ExpenseTable from "@/components/expenses/table";
+
+export default function ExpensePage() {
   return (
     <div>
-      <h1 className={title()}>Expenses</h1>
-      <div className="space-y-8">
-        <Suspense fallback={<div>Loading...</div>}>
-          <ExpensesByAccount />
-        </Suspense>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
+          <p className="text-default-500 mt-2">
+            Create and manage budgets to track your spending. Set budget limits, 
+            monitor utilization, and stay on top of your financial goals.
+          </p>
+        </div>
       </div>
+      <ExpenseTable />
     </div>
   );
 }

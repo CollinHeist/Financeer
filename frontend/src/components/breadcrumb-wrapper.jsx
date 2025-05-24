@@ -92,4 +92,4 @@ export function BreadcrumbWrapper() {
       </BreadcrumbList>
     </Breadcrumb>
   );
-} 
+}

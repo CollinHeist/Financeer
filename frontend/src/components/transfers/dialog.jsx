@@ -2,9 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { getAccounts, createTransfer, updateTransfer, getTransferById } from '@/lib/api';
+import { Input } from "@/components/ui/input";
 import { IconInfoCircle } from '@tabler/icons-react';
 import { ChevronDown } from "lucide-react";
 import {
@@ -13,6 +19,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+import { getAllAccounts } from '@/lib/api/accounts';
+import { createTransfer, updateTransfer, getTransferById } from '@/lib/api/transfers';
 
 export default function TransferDialog({ isOpen, onOpenChange, transferId = null }) {
   const isEditMode = !!transferId;
@@ -33,7 +42,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
 
   const { data: accounts } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
     enabled: isOpen
   });
 
@@ -175,19 +184,18 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Transfer' : 'Create New Transfer'}</DialogTitle>
-          <div className="flex items-center gap-1">
-            <IconInfoCircle className="text-blue-500 h-4 w-4" />
-            <p className="text-xs text-gray-500">Transfers move money between accounts</p>
-          </div>
+          {/* <DialogDescription>
+            Transfers move money between accounts.
+          </DialogDescription> */}
         </DialogHeader>
-        
+
         {isLoading && !isEditMode ? (
           <div className="py-10 text-center">Loading...</div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium">Name</label>
-              <input
+              <Input
                 type="text"
                 id="name"
                 name="name"
@@ -200,7 +208,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
 
             <div className="space-y-2">
               <label htmlFor="description" className="text-sm font-medium">Description (Optional)</label>
-              <input
+              <Input
                 type="text"
                 id="description"
                 name="description"
@@ -287,7 +295,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
             {formData.to_account_id && accounts?.find(a => a.id.toString() === formData.to_account_id)?.type === 'credit' && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <input
+                  <Input
                     type="checkbox"
                     id="payoff_balance"
                     name="payoff_balance"
@@ -305,7 +313,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
                 <label htmlFor="amount" className="text-sm font-medium">Amount</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
-                  <input
+                  <Input
                     type="number"
                     id="amount"
                     name="amount"
@@ -322,7 +330,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="start_date" className="text-sm font-medium">Start Date</label>
-                <input
+                <Input
                   type="date"
                   id="start_date"
                   name="start_date"
@@ -335,7 +343,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
 
               <div className="space-y-2">
                 <label htmlFor="end_date" className="text-sm font-medium">End Date (Optional)</label>
-                <input
+                <Input
                   type="date"
                   id="end_date"
                   name="end_date"
@@ -349,7 +357,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
             <div className="space-y-2">
               <label htmlFor="frequency" className="text-sm font-medium">Frequency (Optional)</label>
               <div className="flex gap-2">
-                <input
+                <Input
                   type="number"
                   id="frequency_value"
                   name="frequency_value"

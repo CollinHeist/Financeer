@@ -2,30 +2,22 @@
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { IconExternalLink, IconTrash, IconMoneybag } from "@tabler/icons-react";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
+import { IconExternalLink, IconTrash, IconCash } from "@tabler/icons-react";
 import { useQueryClient } from '@tanstack/react-query';
-import { patchTransaction } from '@/lib/api';
 
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-};
+import { patchTransaction } from '@/lib/api/transactions';
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-};
+// const formatDate = (dateString) => {
+//   return new Date(dateString).toLocaleDateString('en-US', {
+//     year: 'numeric',
+//     month: 'short',
+//     day: 'numeric'
+//   });
+// };
 
-export default function IncomeSummaryPopover({ 
-  income,
+export default function ExpenseSummaryPopover({ 
+  expense,
   trigger = null,
   className,
   transaction
@@ -44,7 +36,7 @@ export default function IncomeSummaryPopover({
     }
   };
 
-  if (!income) return null;
+  if (!expense) return null;
 
   return (
     <Popover>
@@ -53,10 +45,10 @@ export default function IncomeSummaryPopover({
           <Button 
             variant="ghost" 
             size="sm"
-            className={cn("text-green-600 hover:text-green-700", className)}
+            className={cn("text-red-600 hover:text-red-700", className)}
           >
-            <IconMoneybag className="h-4 w-4" />
-            {income.name}
+            <IconCash className="h-4 w-4" />
+            {expense.name}
           </Button>
         )}
       </PopoverTrigger>
@@ -64,7 +56,7 @@ export default function IncomeSummaryPopover({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h4 className="font-medium">{income.name}</h4>
+              <h4 className="font-medium">{expense.name}</h4>
               <Button
                 variant="ghost"
                 size="sm"
@@ -76,17 +68,17 @@ export default function IncomeSummaryPopover({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                <a href="/income" className="hover:underline flex items-center gap-1">
-                  View Income
+                <a href="/expenses" className="hover:underline flex items-center gap-1">
+                  View Expenses
                   <IconExternalLink size={14} />
                 </a>
               </span>
             </div>
           </div>
 
-          {income.description && (
+          {expense.description && expense.description !== expense.name && (
             <p className="text-sm text-muted-foreground">
-              {income.description}
+              {expense.description}
             </p>
           )}
 
@@ -95,11 +87,11 @@ export default function IncomeSummaryPopover({
               <span className="text-muted-foreground">Status:</span>
               <span className={cn(
                 "font-medium",
-                new Date(income.end_date) > new Date() || !income.end_date
+                new Date(expense.end_date) > new Date() || !expense.end_date
                   ? "text-green-600"
                   : "text-red-600"
               )}>
-                {new Date(income.end_date) > new Date() || !income.end_date
+                {new Date(expense.end_date) > new Date() || !expense.end_date
                   ? "Active"
                   : "Inactive"}
               </span>
@@ -107,23 +99,23 @@ export default function IncomeSummaryPopover({
 
             <div className="flex justify-between">
               <span className="text-muted-foreground">Start Date:</span>
-              <span>{formatDate(income.start_date)}</span>
+              <span>{formatDate(expense.start_date)}</span>
             </div>
 
-            {income.end_date && (
+            {expense.end_date && (
               <div className="flex justify-between">
                 <span className="text-muted-foreground">End Date:</span>
-                <span>{formatDate(income.end_date)}</span>
+                <span>{formatDate(expense.end_date)}</span>
               </div>
             )}
           </div>
 
-          {income.amount && (
+          {expense.amount && (
             <div className="pt-2 border-t">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Amount:</span>
-                <span className="text-lg font-semibold text-green-600">
-                  {formatCurrency(income.amount)}
+                <span className="text-lg font-semibold text-red-600">
+                  {formatCurrency(expense.amount)}
                 </span>
               </div>
             </div>

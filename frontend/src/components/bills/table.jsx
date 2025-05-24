@@ -26,97 +26,99 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useState } from 'react';
-import { getAllAccountExpenses, deleteExpense } from '@/lib/api';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
-import ExpenseDialog from './ExpenseDialog';
-import TransactionFilterDialog from './TransactionFilterDialog';
-import ExpenseTransactionSummary from './expense-transaction-summary';
 import { IconFilterDollar } from '@tabler/icons-react';
 import { Badge } from "@/components/ui/badge";
 
-export function ExpenseTable({ accountId }) {
+import BillDialog from '@/components/bills/dialog';
+import TransactionFilterDialog from '@/components/transactions/filter-dialog';
+import BillTransactionSummary from '@/components/bills/BillTransactionSummary';
+
+import { getAllAccountBills } from '@/lib/api/bills';
+import { deleteBill } from '@/lib/api/bills';
+
+
+export default function BillTable({ accountId }) {
   const queryClient = useQueryClient();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState(null);
+  const [billToDelete, setBillToDelete] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [expenseToEdit, setExpenseToEdit] = useState(null);
+  const [billToEdit, setBillToEdit] = useState(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
-  const [expenseToFilter, setExpenseToFilter] = useState(null);
-  const [expandedExpenseId, setExpandedExpenseId] = useState(null);
+  const [billToFilter, setBillToFilter] = useState(null);
+  const [expandedBillId, setExpandedBillId] = useState(null);
+  const [newBillDialogOpen, setNewBillDialogOpen] = useState(false);
 
-  const { data: expenses, isLoading, error } = useQuery({
-    queryKey: ['expenses', accountId],
-    queryFn: () => getAllAccountExpenses(accountId)
+  const { data: bills, isLoading, error } = useQuery({
+    queryKey: ['bills', accountId],
+    queryFn: () => getAllAccountBills(accountId)
   });
 
-  const deleteExpenseMutation = useMutation({
-    mutationFn: (expenseId) => deleteExpense(expenseId),
+  const deleteBillMutation = useMutation({
+    mutationFn: (billId) => deleteBill(billId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['expenses', accountId]);
+      queryClient.invalidateQueries(['bills', accountId]);
       setDeleteConfirmOpen(false);
-      setExpenseToDelete(null);
+      setBillToDelete(null);
     },
     onError: (error) => {
-      console.error('Error deleting expense:', error);
+      console.error('Error deleting bill:', error);
     }
   });
 
-  const handleDelete = (expense) => {
-    setExpenseToDelete(expense);
+  const handleDelete = (bill) => {
+    setBillToDelete(bill);
     setDeleteConfirmOpen(true);
   };
 
   const confirmDelete = () => {
-    if (expenseToDelete) {
-      deleteExpenseMutation.mutate(expenseToDelete.id);
+    if (billToDelete) {
+      deleteBillMutation.mutate(billToDelete.id);
     }
   };
 
-  const handleEdit = (expense) => {
-    setExpenseToEdit(expense);
+  const handleEdit = (bill) => {
+    setBillToEdit(bill);
     setEditDialogOpen(true);
   };
 
   const handleEditDialogClose = (open) => {
     setEditDialogOpen(open);
     if (!open) {
-      setExpenseToEdit(null);
+      setBillToEdit(null);
     }
   };
 
-  const handleFilter = (expense) => {
-    setExpenseToFilter(expense);
+  const handleFilter = (bill) => {
+    setBillToFilter(bill);
     setFilterDialogOpen(true);
   };
   
   const handleFilterDialogClose = (open) => {
     setFilterDialogOpen(open);
     if (!open) {
-      setExpenseToFilter(null);
+      setBillToFilter(null);
     }
   };
 
-  const handleSummary = (expense) => {
-    setExpandedExpenseId(expandedExpenseId === expense.id ? null : expense.id);
+  const handleSummary = (bill) => {
+    setExpandedBillId(expandedBillId === bill.id ? null : bill.id);
   };
 
   if (error) {
-    return <div className="text-left p-4 text-red-500">Error loading Expenses: {error.message}</div>;
+    return <div className="text-left p-4 text-red-500">Error loading Bills: {error.message}</div>;
   }
 
-  if (!expenses || expenses.length === 0) {
+  if (!bills || bills.length === 0) {
     return (
       <div className="text-left p-4">
-        <p className="text-gray-500">No Expenses found for this Account.</p>
+        <p className="text-gray-500">No Bills found for this Account.</p>
       </div>
     );
   }
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Expenses</h3>
-      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -133,17 +135,17 @@ export function ExpenseTable({ accountId }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {expenses.map((expense) => (
-            <React.Fragment key={expense.id}>
+          {bills.map((bill) => (
+            <React.Fragment key={bill.id}>
               <TableRow>
                 <TableCell className="text-center">
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     className="h-8 w-8 p-0"
-                    onClick={() => handleSummary(expense)}
+                    onClick={() => handleSummary(bill)}
                   >
-                    {expandedExpenseId === expense.id ? (
+                    {expandedBillId === bill.id ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
                       <ChevronRight className="h-4 w-4" />
@@ -152,33 +154,33 @@ export function ExpenseTable({ accountId }) {
                   </Button>
                 </TableCell>
                 <TableCell className="font-medium text-left">
-                  {expense.name}
+                  {bill.name}
                 </TableCell>
-                <TableCell className="text-left">{expense.description || '-'}</TableCell>
-                <TableCell className={`text-left ${expense.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                  {expense.amount < 0 ? '-' : ''}${Math.abs(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <TableCell className="text-left">{bill.description || '-'}</TableCell>
+                <TableCell className={`text-left ${bill.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  {bill.amount < 0 ? '-' : ''}${Math.abs(bill.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell className="text-left">
-                  {expense.start_date ? (
-                    expense.type === 'one_time' ? (
-                      `On ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                  {bill.start_date ? (
+                    bill.type === 'one_time' ? (
+                      `On ${new Date(bill.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
                     ) : (
-                      `Every ${expense.frequency.value} ${expense.frequency.unit} starting ${new Date(expense.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                      `Every ${bill.frequency.value} ${bill.frequency.unit} starting ${new Date(bill.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
                     )
                   ) : '-'}
                 </TableCell>
                 <TableCell className="text-left">
-                  {expense.end_date ? new Date(expense.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
-                    expense.type === 'one_time' ? '-' : <span className="text-gray-400">Never</span>}
+                  {bill.end_date ? new Date(bill.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
+                    bill.type === 'one_time' ? '-' : <span className="text-gray-400">Never</span>}
                 </TableCell>
                 <TableCell className="text-left">
-                  {expense.transaction_filters && expense.transaction_filters.length > 0 ? (
+                  {bill.transaction_filters && bill.transaction_filters.length > 0 ? (
                     <Badge 
                       variant="outline" 
                       className="hover:bg-slate-100 cursor-pointer" 
-                      onClick={() => handleFilter(expense)}
+                      onClick={() => handleFilter(bill)}
                     >
-                      {expense.transaction_filters.reduce((total, group) => total + group.length, 0)}
+                      {bill.transaction_filters.reduce((total, group) => total + group.length, 0)}
                     </Badge>
                   ) : '-'}
                 </TableCell>
@@ -191,20 +193,20 @@ export function ExpenseTable({ accountId }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEdit(expense)}>
+                      <DropdownMenuItem onClick={() => handleEdit(bill)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleFilter(expense)}>
+                      <DropdownMenuItem onClick={() => handleFilter(bill)}>
                         <IconFilterDollar className="mr-2 h-4 w-4" />
                         Transaction Filters
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSummary(expense)}>
+                      <DropdownMenuItem onClick={() => handleSummary(bill)}>
                         <BarChart2 className="mr-2 h-4 w-4" />
-                        {expandedExpenseId === expense.id ? 'Hide Summary' : 'Show Summary'}
+                        {expandedBillId === bill.id ? 'Hide Summary' : 'Show Summary'}
                       </DropdownMenuItem>
                       <DropdownMenuItem 
-                        onClick={() => handleDelete(expense)}
+                        onClick={() => handleDelete(bill)}
                         className="text-red-600"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -214,45 +216,62 @@ export function ExpenseTable({ accountId }) {
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-              {expandedExpenseId === expense.id && (
+              {expandedBillId === bill.id && (
                 <TableRow>
                   <TableCell colSpan={8} className="p-4">
-                    <ExpenseTransactionSummary
+                    <BillTransactionSummary
                       isInline={true}
-                      expenseId={expense.id}
-                      expenseName={expense.name}
-                      expenseAmount={expense.amount}
-                      expenseFrequency={expense.frequency}
+                      billId={bill.id}
+                      billName={bill.name}
+                      billAmount={bill.amount}
+                      billFrequency={bill.frequency}
                     />
                   </TableCell>
                 </TableRow>
               )}
             </React.Fragment>
           ))}
+          <TableRow>
+            <TableCell colSpan={9} className="text-center">
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setNewBillDialogOpen(true)}
+              >
+                + Add New Bill
+              </Button>
+            </TableCell>
+          </TableRow>
         </TableBody>
       </Table>
 
       <DeleteConfirmation
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
-        title="Delete Expense"
-        itemName={expenseToDelete?.name}
-        itemType="expense"
+        title="Delete Bill"
+        itemName={billToDelete?.name}
+        itemType="bill"
         onConfirm={confirmDelete}
-        isDeleting={deleteExpenseMutation.isLoading}
+        isDeleting={deleteBillMutation.isLoading}
       />
 
-      <ExpenseDialog
+      <BillDialog
         isOpen={editDialogOpen}
         onOpenChange={handleEditDialogClose}
         accountId={accountId}
-        expenseId={expenseToEdit?.id}
+        billId={billToEdit?.id}
+      />
+
+      <BillDialog
+        isOpen={newBillDialogOpen}
+        onOpenChange={setNewBillDialogOpen}
+        accountId={accountId}
       />
 
       <TransactionFilterDialog
         isOpen={filterDialogOpen}
         onOpenChange={handleFilterDialogClose}
-        expenseId={expenseToFilter?.id}
+        billId={billToFilter?.id}
       />
     </div>
   );

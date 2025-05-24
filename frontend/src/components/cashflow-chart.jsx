@@ -16,7 +16,6 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from "@/components/ui/chart";
-import { getMonthlyCashFlow, getAccounts } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import {
   Select,
@@ -25,6 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+import { getAllAccounts } from "@/lib/api/accounts";
+import { getMonthlyCashFlow } from "@/lib/api/cashflow";
 
 const formatCurrency = (value) => {
   if (value >= 1000000000) {
@@ -64,7 +66,7 @@ export function CashFlowChart() {
   // Get all accounts with caching
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     cacheTime: 30 * 60 * 1000, // Keep data in cache for 30 minutes
   });

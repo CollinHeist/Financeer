@@ -11,12 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAccounts, getAccountExpenseBreakdown } from "@/lib/api";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+
+import { getAllAccounts } from "@/lib/api/accounts";
+import { getAccountBillBreakdown } from "@/lib/api";
 
 const DATE_RANGES = {
   CURRENT_MONTH: 'Current Month',
@@ -39,7 +41,7 @@ const chartConfig = {
   stroke: 'hsl(var(--background))',
   tooltip: {
     formatter: (value, name) => {
-      const total = expenseData?.total_expenses || 0;
+      const total = billData?.total_amount || 0;
       const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
       const formattedValue = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -74,7 +76,7 @@ export function ExpenseBreakdownChart() {
   // Get all accounts with caching
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     queryKey: ['accounts'],
-    queryFn: getAccounts,
+    queryFn: getAllAccounts,
     staleTime: 5 * 60 * 1000,
     cacheTime: 30 * 60 * 1000,
   });
@@ -131,9 +133,9 @@ export function ExpenseBreakdownChart() {
   const formatDate = (date) => date.toISOString().split('T')[0];
 
   // Fetch expense breakdown data
-  const { data: expenseData, isLoading: dataLoading, error } = useQuery({
-    queryKey: ['expenseBreakdown', selectedAccountId, formatDate(startDate), formatDate(endDate)],
-    queryFn: () => getAccountExpenseBreakdown(
+  const { data: billData, isLoading: dataLoading, error } = useQuery({
+    queryKey: ['billBreakdown', selectedAccountId, formatDate(startDate), formatDate(endDate)],
+    queryFn: () => getAccountBillBreakdown(
       selectedAccountId,
       formatDate(startDate),
       formatDate(endDate)
@@ -144,7 +146,7 @@ export function ExpenseBreakdownChart() {
     keepPreviousData: true,
   });
 
-  const isLoading = accountsLoading || (dataLoading && !expenseData);
+  const isLoading = accountsLoading || (dataLoading && !billData);
 
   if (isLoading) {
     return (
@@ -236,8 +238,8 @@ export function ExpenseBreakdownChart() {
     );
   }
 
-  const chartData = expenseData?.breakdown.map(item => ({
-    name: item.expense_name,
+  const chartData = billData?.breakdown.map(item => ({
+    name: item.bill_name,
     value: item.total_amount,
   })) || [];
 
@@ -303,7 +305,7 @@ export function ExpenseBreakdownChart() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <p className="text-sm text-gray-600">Total Expenses</p>
-            <p className="text-2xl font-bold">${expenseData?.total_expenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-2xl font-bold">${billData?.total_bill.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
         </div>
         <div className="flex-1 min-h-0">
@@ -346,7 +348,7 @@ export function ExpenseBreakdownChart() {
                   content={
                     <ChartTooltipContent 
                       formatter={(value, name, item) => {
-                        const total = expenseData?.total_expenses || 0;
+                        const total = billData?.total_bill || 0;
                         const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
                         return (
                           <>
