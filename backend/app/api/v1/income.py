@@ -6,6 +6,7 @@ from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
 from app.db.query import require_account, require_income
+from app.core.transactions import apply_transaction_filters
 from app.models.income import Income
 from app.schemas.core import TransactionFilter
 from app.schemas.income import (
@@ -81,16 +82,16 @@ def update_income(
 
     # Verify the income exists
     income = require_income(db, income_id, raise_exception=True)
-    
+
     # Verify the destination Account exists
-    _ = require_account(db, income_update.account_id, raise_exception=True)
-    
+    require_account(db, income_update.account_id, raise_exception=True)
+
     # Update income attributes
     for key, value in income_update.model_dump().items():
         setattr(income, key, value)
-    
+
     db.commit()
-    
+
     return income
 
 
@@ -107,15 +108,15 @@ def patch_income(
     # Verify the new Account exists if it's being updated
     if ('account_id' in income_update.model_fields_set
         and income_update.account_id is not None):
-        _ = require_account(db, income_update.account_id, raise_exception=True)
+        require_account(db, income_update.account_id, raise_exception=True)
 
     # Only update fields that were explicitly specified
     for field_name, value in income_update.model_dump().items():
         if field_name in income_update.model_fields_set:
             setattr(income, field_name, value)
-    
+
     db.commit()
-    
+
     return income
 
 
@@ -125,14 +126,14 @@ def apply_income_transaction_filters_(
     db: Session = Depends(get_database),
 ) -> list[ReturnTransactionSchemaNoAccount]:
     """
-    Apply the given Transaction filters of the given Expense to all
+    Apply the given Transaction filters of the given Income to all
     Transactions in the database. This only affects Transactions which
-    do not already have an associated Expense.
+    do not already have an associated Income.
 
-    - expense_id: The ID of the Expense to apply the filters to.
+    - income_id: The ID of the Income to apply the filters to.
     """
 
-    # Get the associated Expense
+    # Get the associated Income
     income = require_income(db, income_id, raise_exception=True)
     filters = [
         [TransactionFilter.model_validate(filter) for filter in filter_group]
@@ -143,10 +144,10 @@ def apply_income_transaction_filters_(
         return []
 
     # Associate the Expense with the matching Transactions
-    for transaction in apply_expense_filters(expense, filters, db).all():
-        transaction.expense = expense
+    for transaction in apply_transaction_filters(income, filters, db).all():
+        transaction.income = income
 
     db.commit()
 
     # Return the filtered Transactions
-    return expense.transactions # type: ignore
+    return income.transactions # type: ignore
