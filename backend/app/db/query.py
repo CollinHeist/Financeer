@@ -6,7 +6,7 @@ from sqlalchemy.orm.session import Session
 
 from app.db.base import Base
 from app.models.account import Account
-from app.models.budget import Budget
+from app.models.bill import Bill
 from app.models.expense import Expense
 from app.models.income import Income
 from app.models.transfer import Transfer
@@ -141,37 +141,37 @@ def require_balance(
 
 
 @overload
-def require_expense(
+def require_bill(
     db: Session,
-    expense_id: int,
+    bill_id: int,
     *,
     raise_exception: bool = True,
-) -> Expense: ...
+) -> Bill: ...
 
 @overload
-def require_expense(
+def require_bill(
     db: Session,
-    expense_id: int,
+    bill_id: int,
     *,
     raise_exception: bool = False,
-) -> Expense | None: ...
+) -> Bill | None: ...
 
-def require_expense(
+def require_bill(
     db: Session,
-    expense_id: int,
+    bill_id: int,
     *,
     raise_exception: bool = True,
-) -> Expense | None:
+) -> Bill | None:
     """
-    Query and return an Expense by ID
+    Query and return an Bill by ID
 
     Args:
         db: The database session.
-        expense_id: The ID of the Expense to query.
+        bill_id: The ID of the Bill to query.
     """
 
     return _require_model(
-        db, Expense, expense_id, raise_exception=raise_exception
+        db, Bill, bill_id, raise_exception=raise_exception
     )
 
 
@@ -206,6 +206,41 @@ def require_income(
     """
 
     return _require_model(db, Income, income_id,raise_exception=raise_exception)
+
+
+@overload
+def require_expense(
+    db: Session,
+    expense_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Expense: ...
+
+@overload
+def require_expense(
+    db: Session,
+    expense_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Expense | None: ...
+
+def require_expense(
+    db: Session,
+    expense_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Expense | None:
+    """
+    Query and return an Expense by ID
+
+    Args:
+        db: The database session.
+        expense_id: The ID of the Expense to query.
+    """
+
+    return _require_model(
+        db, Expense, expense_id, raise_exception=raise_exception
+    )
 
 
 @overload
@@ -275,38 +310,4 @@ def require_transaction(
 
     return _require_model(
         db, Transaction, transaction_id, raise_exception=raise_exception
-    )
-
-
-@overload
-def require_budget(
-    db: Session,
-    budget_id: int,
-    *,
-    raise_exception: bool = True,
-) -> Budget: ...
-
-@overload
-def require_budget(
-    db: Session,
-    budget_id: int,
-    *,
-    raise_exception: bool = False,
-) -> Budget | None: ...
-
-def require_budget(
-    db: Session,
-    budget_id: int,
-    raise_exception: bool = True,
-) -> Budget | None:
-    """
-    Query and return a Budget by ID.
-
-    Args:
-        db: The database session.
-        budget_id: The ID of the Budget to query.
-    """
-
-    return _require_model(
-        db, Budget, budget_id, raise_exception=raise_exception
     )
