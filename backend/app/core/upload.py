@@ -3,6 +3,7 @@ from datetime import datetime
 from io import StringIO
 
 from fastapi.datastructures import UploadFile
+from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
 
 from app.models.transaction import Transaction
@@ -94,8 +95,11 @@ def remove_redundant_transactions(
 
         redundant = db.query(Transaction).filter(
             Transaction.date == transaction.date,
-            Transaction.amount == transaction.amount,
             Transaction.account_id == transaction.account_id,
+            or_(
+                Transaction.amount == transaction.amount,
+                Transaction.description == transaction.description,
+            ),
         ).first()
 
         if redundant:
