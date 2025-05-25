@@ -28,6 +28,11 @@ const FILE_TYPES = {
     description: '',
     endpoint: 'apple'
   },
+  capital_one: {
+    name: 'Capital One',
+    description: '',
+    endpoint: 'capital-one'
+  },
   chase: {
     name: 'Chase (Amazon)',
     description: '',
@@ -47,12 +52,12 @@ const FILE_TYPES = {
     name: 'Vanguard',
     description: '',
     endpoint: 'vanguard'
-  }
+  },
 };
 
 export default function TransactionUploadDialog({ isOpen, onOpenChange }) {
   const [selectedAccount, setSelectedAccount] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedFileType, setSelectedFileType] = useState(null);
   const queryClient = useQueryClient();
 
@@ -64,7 +69,7 @@ export default function TransactionUploadDialog({ isOpen, onOpenChange }) {
 
   const uploadMutation = useMutation({
     mutationFn: async () => {
-      return uploadTransactions(selectedFileType.endpoint, selectedFile, selectedAccount.id);
+      return uploadTransactions(selectedFileType.endpoint, selectedFiles, selectedAccount.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['transactions']);
@@ -78,19 +83,19 @@ export default function TransactionUploadDialog({ isOpen, onOpenChange }) {
 
   const resetForm = () => {
     setSelectedAccount(null);
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setSelectedFileType(null);
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedFile(file);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setSelectedFiles(files);
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedAccount || !selectedFile || !selectedFileType) return;
+    if (!selectedAccount || selectedFiles.length === 0 || !selectedFileType) return;
     await uploadMutation.mutateAsync();
   };
 
@@ -166,19 +171,25 @@ export default function TransactionUploadDialog({ isOpen, onOpenChange }) {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Select File</label>
+            <label className="text-sm font-medium">Select Files</label>
             <div className="flex items-center gap-2">
               <Input
                 type="file"
                 accept=".csv"
                 onChange={handleFileChange}
                 className="flex-1"
+                multiple
               />
             </div>
-            {selectedFile && (
-              <p className="text-sm text-gray-500">
-                Selected: {selectedFile.name}
-              </p>
+            {selectedFiles.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-sm text-gray-500">Selected files:</p>
+                <ul className="text-sm text-gray-500 list-disc list-inside">
+                  {selectedFiles.map((file, index) => (
+                    <li key={index}>{file.name}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
 
@@ -194,7 +205,7 @@ export default function TransactionUploadDialog({ isOpen, onOpenChange }) {
             <Button
               type="submit"
               onClick={handleUpload}
-              disabled={isLoading || !selectedAccount || !selectedFile || !selectedFileType}
+              disabled={isLoading || !selectedAccount || selectedFiles.length === 0 || !selectedFileType}
             >
               {isLoading ? 'Uploading...' : 'Upload'}
             </Button>

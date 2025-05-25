@@ -6,16 +6,19 @@ import { ReturnTransactionSchema } from './types';
 /**
  * Uploads transactions to the API
  * @param {string} type - The type of transactions to upload
- * @param {File} file - The file to upload
+ * @param {File[]} files - The files to upload
  * @param {number} accountId - The ID of the account to upload the transactions to
  * @returns {Promise<ReturnTransactionSchema[]>} Array of transaction data
  * @throws {Error} If the API request fails
  */
-export const uploadTransactions = async (type, file, accountId) => {
+export const uploadTransactions = async (type, files, accountId) => {
   let url;
   switch (type) {
     case 'apple':
       url = '/uploads/new/apple';
+      break;
+    case 'capital-one':
+      url = '/uploads/new/capital-one';
       break;
     case 'chase':
       url = '/uploads/new/chase';
@@ -35,7 +38,9 @@ export const uploadTransactions = async (type, file, accountId) => {
 
   try {
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
     
     const response = await api.post(`${url}?account_id=${accountId}`, formData, {
       headers: {
