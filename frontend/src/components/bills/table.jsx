@@ -109,12 +109,8 @@ export default function BillTable({ accountId }) {
     return <div className="text-left p-4 text-red-500">Error loading Bills: {error.message}</div>;
   }
 
-  if (!bills || bills.length === 0) {
-    return (
-      <div className="text-left p-4">
-        <p className="text-gray-500">No Bills found for this Account.</p>
-      </div>
-    );
+  if (!bills) {
+    return <div>Loading...</div>;
   }
 
   return (
