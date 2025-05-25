@@ -16,7 +16,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { getAllAccounts } from '@/lib/api/accounts';
-import { createTransaction, updateTransaction, getTransactionById } from '@/lib/api/transactions';
+import {
+  createTransaction,
+  getTransactionById,
+  patchTransaction,
+} from '@/lib/api/transactions';
 
 
 export default function TransactionDialog({ isOpen, onOpenChange, transactionId = null }) {
@@ -68,7 +72,7 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
   });
 
   const updateTransactionMutation = useMutation({
-    mutationFn: (data) => updateTransaction(transactionId, data),
+    mutationFn: (data) => patchTransaction(transactionId, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['transactions']);
       queryClient.invalidateQueries(['transaction', transactionId]);
