@@ -27,6 +27,7 @@ from app.models.transfer import Transfer
 from app.models.transaction import Transaction
 from app.schemas.core import TransactionFilter
 from app.schemas.transaction import (
+    NewSplitTransactionSchema,
     NewTransactionSchema,
     ReturnTransactionSchema,
     ReturnTransactionSchemaNoAccount,
@@ -519,3 +520,39 @@ def get_transfer_transactions(
             .order_by(Transaction.date.desc())
             .all()
     ) # type: ignore
+
+
+@transaction_router.post('/transaction/{transaction_id}/split')
+def split_transaction(
+    transaction_id: int,
+    splits: list[NewSplitTransactionSchema] = Body(...),
+    db: Session = Depends(get_database),
+) -> list[ReturnTransactionSchema]:
+    """Split a Transaction into multiple Transactions."""
+
+    # Get the original Transaction
+    transaction = require_transaction(db, transaction_id)
+
+    # Create the new Transactions
+    new_transactions: list[Transaction] = []
+    for index, split in enumerate(splits):
+        new_transaction = Transaction(
+            account_id=transaction.account_id,
+            date=transaction.date,
+            description=(
+                f'{transaction.description} - Split {index + 1} of {len(splits)}'
+            ),
+            note=f'{transaction.note} - {split.note}',
+            amount=split.amount,
+        )
+        db.add(new_transaction)
+        new_transactions.append(new_transaction)
+    db.commit()
+
+    # Set the original Transaction amount to zero; associate with new
+    # Transactions
+    transaction.amount = 0.0
+    transaction.related_transactions = new_transactions
+    db.commit()
+
+    return new_transactions # type: ignore

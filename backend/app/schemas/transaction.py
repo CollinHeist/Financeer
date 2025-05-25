@@ -8,6 +8,10 @@ from app.schemas.expense import ReturnExpenseSchema
 from app.schemas.income import ReturnIncomeSchema
 
 
+class NewSplitTransactionSchema(BaseModel):
+    amount: float
+    note: str
+
 class NewTransactionSchema(BaseModel):
     date: date_type
     description: str
