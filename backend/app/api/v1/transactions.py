@@ -44,50 +44,10 @@ transaction_router = APIRouter(
 )
 
 
-@transaction_router.post('/new')
-def create_transaction(
-    new_transaction: NewTransactionSchema = Body(...),
-    db: Session = Depends(get_database),
-) -> ReturnTransactionSchema:
-    """
-    Create a new Transaction.
-
-    - new_transaction: The Transaction to create.
-    """
-
-    # Verify all associated models exist
-    require_account(db, new_transaction.account_id)
-    if new_transaction.bill_id is not None:
-        require_bill(db, new_transaction.bill_id)
-    if new_transaction.income_id is not None:
-        require_income(db, new_transaction.income_id)
-    if new_transaction.transfer_id is not None:
-        require_transfer(db, new_transaction.transfer_id)
-    related_transactions = []
-    if new_transaction.related_transaction_ids:
-        related_transactions = [
-            require_transaction(db, id)
-            for id in new_transaction.related_transaction_ids
-        ]
-
-    # Create and add to the database; exclude related_transaction_ids
-    # as these will be set after the Transaction is created
-    transaction = Transaction(**new_transaction.model_dump(
-        exclude={'related_transaction_ids'}
-    ))
-    transaction.related_transactions = related_transactions
-
-    db.add(transaction)
-    db.commit()
-
-    return transaction
-
-
 @transaction_router.get('/all')
 def get_transactions(
     account_ids: list[int] | None = Query(default=None),
     contains: str | None = Query(default=None),
-    date: date | None = Query(default=None),
     unassigned_only: bool = Query(default=False),
     db: Session = Depends(get_database),
 ) -> Page[ReturnTransactionSchema]:
@@ -97,7 +57,6 @@ def get_transactions(
     - account_ids: Optional Account IDs to filter by.
     - contains: Optional string to filter by in the Transaction's
     description or note.
-    - date: Optional date to filter by.
     - unassigned_only: Whether to only include Transactions which are not
     associated with an Bill or Income.
     """ 
@@ -110,8 +69,6 @@ def get_transactions(
             Transaction.description.contains(contains),
             Transaction.note.contains(contains),
         ))
-    if date is not None:
-        filters.append(Transaction.date == date)
     if unassigned_only:
         filters.append(and_(
             Transaction.bill_id.is_(None),
@@ -202,7 +159,46 @@ def apply_all_transaction_filters(
     return None
 
 
-@transaction_router.get('/{transaction_id}')
+@transaction_router.post('/transaction/new')
+def create_transaction(
+    new_transaction: NewTransactionSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnTransactionSchema:
+    """
+    Create a new Transaction.
+
+    - new_transaction: The Transaction to create.
+    """
+
+    # Verify all associated models exist
+    require_account(db, new_transaction.account_id)
+    if new_transaction.bill_id is not None:
+        require_bill(db, new_transaction.bill_id)
+    if new_transaction.income_id is not None:
+        require_income(db, new_transaction.income_id)
+    if new_transaction.transfer_id is not None:
+        require_transfer(db, new_transaction.transfer_id)
+    related_transactions = []
+    if new_transaction.related_transaction_ids:
+        related_transactions = [
+            require_transaction(db, id)
+            for id in new_transaction.related_transaction_ids
+        ]
+
+    # Create and add to the database; exclude related_transaction_ids
+    # as these will be set after the Transaction is created
+    transaction = Transaction(**new_transaction.model_dump(
+        exclude={'related_transaction_ids'}
+    ))
+    transaction.related_transactions = related_transactions
+
+    db.add(transaction)
+    db.commit()
+
+    return transaction
+
+
+@transaction_router.get('/transaction/{transaction_id}')
 def get_transaction_by_id(
     transaction_id: int,
     db: Session = Depends(get_database),
@@ -217,7 +213,7 @@ def get_transaction_by_id(
     return require_transaction(db, transaction_id)
 
 
-@transaction_router.delete('/{transaction_id}')
+@transaction_router.delete('/transaction/{transaction_id}')
 def delete_transaction(
     transaction_id: int,
     db: Session = Depends(get_database),
@@ -232,7 +228,7 @@ def delete_transaction(
     db.commit()
 
 
-@transaction_router.put('/{transaction_id}')
+@transaction_router.put('/transaction/{transaction_id}')
 def update_transaction(
     transaction_id: int,
     updated_transaction: NewTransactionSchema = Body(...),
@@ -251,6 +247,8 @@ def update_transaction(
     require_account(db, updated_transaction.account_id)
     if updated_transaction.bill_id is not None:
         require_bill(db, updated_transaction.bill_id)
+    if updated_transaction.expense_id is not None:
+        require_expense(db, updated_transaction.expense_id)
     if updated_transaction.income_id is not None:
         require_income(db, updated_transaction.income_id)
     if updated_transaction.transfer_id is not None:
@@ -261,25 +259,18 @@ def update_transaction(
             require_transaction(db, id)
             for id in updated_transaction.related_transaction_ids
         ]
-    budgets = []
-    if updated_transaction.budget_ids:
-        budgets = [
-            require_budget(db, id)
-            for id in updated_transaction.budget_ids
-        ]
 
     for key, value in updated_transaction.model_dump().items():
-        if key not in {'related_transaction_ids', 'budget_ids'}:
+        if key not in {'related_transaction_ids'}:
             setattr(transaction, key, value)
     transaction.related_transactions = related_transactions
-    transaction.budgets = budgets
 
     db.commit()
 
     return transaction
 
 
-@transaction_router.patch('/{transaction_id}')
+@transaction_router.patch('/transaction/{transaction_id}')
 def partial_update_transaction(
     transaction_id: int,
     updated_transaction: UpdateTransactionSchema = Body(...),
