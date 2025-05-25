@@ -14,6 +14,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  IconArrowsSplit,
   IconSearch,
   IconDotsVertical,
   IconEdit,
@@ -58,6 +59,7 @@ import {
 } from '@/lib/api/transactions';
 import { getAllIncomes } from '@/lib/api';
 import { getAllAccountBills } from '@/lib/api/bills';
+import { SplitDialog } from '@/components/transactions/split-dialog';
 
 const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -297,6 +299,7 @@ const CategoryCell = ({ expense, income, transfer_id, bill, transaction }) => {
 const ActionsCell = ({ transaction }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showSplitDialog, setShowSplitDialog] = useState(false);
   const [isShiftHeld, setIsShiftHeld] = useState(false);
   const queryClient = useQueryClient();
 
@@ -357,6 +360,10 @@ const ActionsCell = ({ transaction }) => {
             <IconEdit className="mr-2 h-4 w-4" />
             Edit
           </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setShowSplitDialog(true)}>
+            <IconArrowsSplit className="mr-2 h-4 w-4" />
+            Split
+          </DropdownMenuItem>
           <DropdownMenuItem 
             onClick={handleDeleteClick}
             className="text-red-600 focus:text-red-600"
@@ -380,6 +387,15 @@ const ActionsCell = ({ transaction }) => {
         isOpen={showEditDialog}
         onOpenChange={setShowEditDialog}
         transactionId={transaction.id}
+      />
+
+      <SplitDialog
+        transaction={transaction}
+        open={showSplitDialog}
+        onOpenChange={setShowSplitDialog}
+        onSuccess={() => {
+          queryClient.invalidateQueries(['transactions']);
+        }}
       />
     </TableCell>
   );
@@ -590,10 +606,10 @@ export default function TransactionTable({
               sortedTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell className="text-right whitespace-nowrap">{formatDate(transaction.date)}</TableCell>
-                  <TableCell>
-                    <div>{transaction.description}</div>
+                  <TableCell className="max-w-[750px]">
+                    <div className="truncate">{transaction.description}</div>
                     {transaction.note && (
-                      <div className="text-sm text-muted-foreground">{transaction.note}</div>
+                      <div className="text-sm text-muted-foreground truncate">{transaction.note}</div>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
@@ -606,7 +622,7 @@ export default function TransactionTable({
                       </Button>
                     </AccountOverviewPopover>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
                     {formatAmount(transaction.amount)}
                   </TableCell>
                   <CategoryCell 

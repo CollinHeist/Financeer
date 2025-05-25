@@ -1,5 +1,11 @@
 import { api } from '@/lib/api';
-import { ReturnTransactionSchemaNoAccount, UpdateTransactionSchema } from './types';
+import {
+  ReturnTransactionSchema,
+  ReturnTransactionSchemaNoAccount,
+  ReturnTransactionSchemaPage,
+  UpdateTransactionSchema,
+  SplitTransactionSchema,
+} from './types';
 
 /**
  * Fetches all Transactions from the API
@@ -9,7 +15,7 @@ import { ReturnTransactionSchemaNoAccount, UpdateTransactionSchema } from './typ
  * @param {?string} contains The string to filter transactions by
  * @param {boolean} unassigned_only Whether to only fetch unassigned transactions
  * @param {?Array<number>} account_ids Optional array of account IDs to filter by
- * @returns {Promise<Object>} Paginated transaction data
+ * @returns {Promise<ReturnTransactionSchemaPage>} Paginated transaction data
  * @throws {Error} If the API request fails
  */
 export const getAllTransactions = async (
@@ -21,18 +27,18 @@ export const getAllTransactions = async (
   account_ids = null,
 ) => {
   try {
-    const params = {
+    const params = new URLSearchParams({
       page,
       size,
       date: date === null ? null : date?.toISOString().split('T')[0],
       contains,
       unassigned_only,
-    };
+    });
 
     // Add account_ids as repeated parameters if they exist
     if (account_ids && account_ids.length > 0) {
       account_ids.forEach(id => {
-        params['account_ids'] = id;
+        params.append('account_ids', id);
       });
     }
 
@@ -46,7 +52,6 @@ export const getAllTransactions = async (
 
 /**
  * Applies all filters to all transactions
- * @param {string} type The type of item ('expense' or 'income')
  * @returns {Promise<void>}
  * @throws {Error} If the API request fails
  */
@@ -63,12 +68,12 @@ export const applyTransactionFilters = async () => {
 /**
  * Fetches a transaction by ID
  * @param {number} transactionId The ID of the transaction to fetch
- * @returns {Promise<ReturnTransactionSchemaNoAccount>} The transaction data
+ * @returns {Promise<ReturnTransactionSchema>} The transaction data
  * @throws {Error} If the API request fails
  */
 export const getTransactionById = async (transactionId) => {
   try {
-    const { data } = await api.get(`/transactions/${transactionId}`);
+    const { data } = await api.get(`/transactions/transaction/${transactionId}`);
     return data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching transaction:', error);
@@ -84,7 +89,7 @@ export const getTransactionById = async (transactionId) => {
  */
 export const deleteTransaction = async (transactionId) => {
   try {
-    await api.delete(`/transactions/${transactionId}`);
+    await api.delete(`/transactions/transaction/${transactionId}`);
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error deleting transaction:', error);
     throw error;
@@ -94,13 +99,13 @@ export const deleteTransaction = async (transactionId) => {
 /**
  * Updates a transaction
  * @param {number} transactionId The ID of the transaction to update
- * @param {UpdateTransactionSchema} transactionData The updated transaction data
+ * @param {NewTransactionSchema} transactionData The updated transaction data
  * @returns {Promise<ReturnTransactionSchema>} The updated transaction data
  * @throws {Error} If the API request fails
  */
 export const updateTransaction = async (transactionId, transactionData) => {
   try {
-    const response = await api.put(`/transactions/${transactionId}`, transactionData);
+    const response = await api.put(`/transactions/transaction/${transactionId}`, transactionData);
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error updating transaction:', error);
@@ -117,7 +122,7 @@ export const updateTransaction = async (transactionId, transactionData) => {
  */
 export const patchTransaction = async (transactionId, transactionData) => {
   try {
-    const response = await api.patch(`/transactions/${transactionId}`, transactionData);
+    const response = await api.patch(`/transactions/transaction/${transactionId}`, transactionData);
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error patching transaction:', error);
@@ -133,7 +138,7 @@ export const patchTransaction = async (transactionId, transactionData) => {
  */
 export const createTransaction = async (transactionData) => {
   try {
-    const response = await api.post('/transactions/new', transactionData);
+    const response = await api.post('/transactions/transaction/new', transactionData);
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error creating transaction:', error);
@@ -171,6 +176,23 @@ export const getExpenseTransactions = async (expenseId) => {
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || `Error fetching Expense transactions:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Splits a transaction into multiple transactions
+ * @param {number} transactionId The ID of the transaction to split
+ * @param {NewSplitTransactionSchema[]} splitData The data for the split transactions
+ * @returns {Promise<ReturnTransactionSchema[]>} Array of split transaction data
+ * @throws {Error} If the API request fails
+ */
+export const splitTransaction = async (transactionId, splitData) => {
+  try {
+    const response = await api.post(`/transactions/transaction/${transactionId}/split`, splitData);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || `Error splitting transaction:`, error);
     throw error;
   }
 }
