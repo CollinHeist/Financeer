@@ -72,12 +72,7 @@ class Bill(Base):
 
 
     def get_effective_amount(self, date: date) -> float:
-        """
-        Get the effective amount of the Bill for a given date.
-
-        Args:
-            date: The date to get the effective amount for.
-        """
+        """Get the effective amount of the Bill for a given date."""
 
         # If the Bill is not active for the given date, return 0.0
         if (self.start_date > date

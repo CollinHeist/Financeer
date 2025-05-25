@@ -47,7 +47,7 @@ def parse_chase_upload(upload: Upload) -> list[NewTransactionSchema]:
             date=row['Transaction Date'],
             description=row['Description'],
             note=get_note(row['Category'], row['Memo']),
-            amount=-row['Amount'],
+            amount=row['Amount'],
             account_id=upload.account_id,
         )
         for _, row in df.iterrows()

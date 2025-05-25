@@ -24,7 +24,7 @@ def parse_capital_one_upload(upload: Upload) -> list[NewTransactionSchema]:
     # Convert the posting date column to a datetime object
     df['Transaction Date'] = pd.to_datetime(
         df['Transaction Date'],
-        format='%m/%d/%Y'
+        format='%Y-%m-%d'
     )
 
     # Convert the Debit and Credit columns to floats - convert NaN to 0
@@ -35,7 +35,7 @@ def parse_capital_one_upload(upload: Upload) -> list[NewTransactionSchema]:
 
     return [
         NewTransactionSchema(
-            date=row['Date'],
+            date=row['Transaction Date'],
             description=f'{row["Description"]} ({row["Category"]})',
             # Purchases and payments are both positive
             amount=(-row['Debit'] or row['Credit']),

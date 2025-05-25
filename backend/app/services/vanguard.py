@@ -59,20 +59,23 @@ def parse_vanguard_upload(upload: Upload) -> list[NewTransactionSchema]:
 
     # Convert the Amount column to floats - convert NaN to 0 and then remove
     df['Net Amount'] = df['Net Amount'].fillna(0).astype(float)
-    df = df.loc[(df['Amount'] != 0)]
+    df = df.loc[(df['Net Amount'] != 0)]
 
     # Remove non deposit/withdrawal transactions
     df = df.loc[
+        # These are used for brokerage transactions
         (df['Transaction Type'] == 'Funds Received')
         | (df['Transaction Type'] == 'Withdrawal')
+        # Contributions are used for ROTH IRA deposits
+        | (df['Transaction Type'] == 'Contribution')
     ]
 
     return [
         NewTransactionSchema(
-            date=row['Transaction Date'],
+            date=row['Trade Date'],
             description=row['Transaction Description'],
             note='',
-            amount=-row['Net Amount'],
+            amount=row['Net Amount'],
             account_id=upload.account_id,
         )
         for _, row in df.iterrows()
