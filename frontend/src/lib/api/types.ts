@@ -3,6 +3,13 @@ interface Frequency {
   unit: "days" | "weeks" | "months" | "years";
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
 interface TransactionFilter {
   on: "description" | "note";
   type: "contains" | "regex";
@@ -108,6 +115,14 @@ export interface UpdateExpenseSchema {
   max_rollover_amount?: number;
 }
 
+export interface RaiseItem {
+  amount: number;
+  is_percentage: boolean;
+  start_date: string;
+  end_date: string | null;
+  frequency: Frequency | null;
+}
+
 export interface ReturnExpenseSchema {
   id: number;
   name: string;
@@ -117,6 +132,20 @@ export interface ReturnExpenseSchema {
   transaction_filters: Array<Array<TransactionFilter>>;
   allow_rollover: boolean;
   max_rollover_amount: number | null;
+}
+
+export interface ReturnIncomeSchema {
+  id: number;
+  name: string;
+  amount: number;
+  effective_amount: number;
+  frequency: Frequency | null;
+  start_date: string;
+  end_date: string | null;
+  account_id: number;
+  account: ReturnAccountSchema;
+  raise_schedule: RaiseItem[];
+  transaction_filters: TransactionFilter[][];
 }
 
 export interface NewTransferSchema {
@@ -147,4 +176,43 @@ export interface ReturnTransferSchema extends NewTransferSchema {
   id: number;
   from_account: ReturnAccountSchema;
   to_account: ReturnAccountSchema;
+}
+
+export interface ReturnRelatedTransactionSchema {
+  id: number;
+  date: string;
+  description: string;
+  note: string;
+  amount: number;
+}
+
+export interface ReturnTransactionSchemaNoAccount {
+  id: number;
+  date: string;
+  description: string;
+  note: string;
+  amount: number;
+  account_id: number;
+  bill_id: number | null;
+  expense_id: number | null;
+  income_id: number | null;
+  transfer_id: number | null;
+  related_transactions: ReturnRelatedTransactionSchema[];
+  related_to_transactions: ReturnRelatedTransactionSchema[];
+}
+
+export interface ReturnTransactionSchema extends ReturnTransactionSchemaNoAccount {
+  account: ReturnAccountSchema;
+  bill: ReturnBillSchema | null;
+  expense: ReturnExpenseSchema | null;
+  income: ReturnIncomeSchema | null;
+}
+
+export interface ReturnTransactionSchemaPage extends Pagination {
+  items: ReturnTransactionSchema[];
+}
+
+export interface NewSplitTransactionSchema {
+  amount: number;
+  note: string;
 }
