@@ -249,7 +249,7 @@ def require_transfer(
     transfer_id: int,
     *,
     raise_exception: bool = True,
-) -> Transaction: ...
+) -> Transfer: ...
 
 @overload
 def require_transfer(
@@ -257,14 +257,14 @@ def require_transfer(
     transfer_id: int,
     *,
     raise_exception: bool = False,
-) -> Transaction | None: ...
+) -> Transfer | None: ...
 
 def require_transfer(
     db: Session,
     transfer_id: int,
     *,
     raise_exception: bool = True,
-) -> Transaction | None:
+) -> Transfer | None:
     """
     Query and return a Transfer by ID.
 
