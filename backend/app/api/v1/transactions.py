@@ -464,15 +464,27 @@ def get_account_bill_breakdown(
             .all()
     )
 
-    # Get all Transaction IDs which are a part of a Transfer
     transfers = {
-        transfer.from_transaction_id: transfer.to_account.name
-        for transfer in
-        db.query(Transfer).filter(
-            Transfer.from_account_id == account_id,
-            Transfer.start_date >= start_date,
-            Transfer.end_date <= end_date,
+        transaction.id: require_transfer(
+            db, transaction.transfer_id
+        ).to_account.name
+        for transaction in db.query(Transaction).filter(
+            Transaction.transfer_id.in_([
+                transfer.id
+                for transfer in db.query(Transfer).filter(
+                    Transfer.from_account_id == account_id,
+                    Transfer.start_date <= end_date,
+                    or_(
+                        Transfer.end_date.is_(None),
+                        Transfer.end_date >= start_date,
+                    ),
+                ).all()
+            ]),
+            Transaction.account_id == account_id,
+            Transaction.date >= start_date,
+            Transaction.date <= end_date,
         ).all()
+        if transaction.transfer_id is not None
     }
 
     # Group Transactions by Bill/Expense/Transfer name and calculate totals
