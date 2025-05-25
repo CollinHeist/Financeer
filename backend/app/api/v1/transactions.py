@@ -500,10 +500,8 @@ def get_account_bill_breakdown(
         key=lambda x: x.total_amount, reverse=True
     )
 
-    total_bills = sum(item.total_amount for item in breakdown)
-
     return BillBreakdownResponse(
-        total_bill=total_bills,
+        total_bill=sum(item.total_amount for item in breakdown),
         breakdown=breakdown
     )
 
