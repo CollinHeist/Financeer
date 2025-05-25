@@ -1,16 +1,13 @@
 from datetime import date
 
 from fastapi import APIRouter, Body, Depends, Query
-from sqlalchemy import or_
+from sqlalchemy import and_
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
-from app.core.transactions import apply_transaction_filters
 from app.db.query import require_account, require_bill
 from app.models.bill import Bill
-from app.models.income import Income
 from app.models.transaction import Transaction
-from app.schemas.core import TransactionFilter
 from app.schemas.bill import (
     NewBillSchema,
     ReturnBillSchema,
@@ -171,7 +168,7 @@ def suggest_bills(
     transactions = (
         db.query(Transaction)
             .filter(
-                or_(
+                and_(
                     Transaction.bill_id.is_(None),
                     Transaction.expense_id.is_(None),
                     Transaction.income_id.is_(None),
