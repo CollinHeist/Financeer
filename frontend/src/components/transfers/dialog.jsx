@@ -317,6 +317,7 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
                     type="number"
                     id="amount"
                     name="amount"
+                    min="0.01"
                     value={formData.amount}
                     onChange={handleChange}
                     step="0.01"

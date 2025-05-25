@@ -94,8 +94,7 @@ class Account(Base):
     def get_card_balance(self, target_date: date, /) -> float:
         """
         Get the balance for the account on a specific date. This only
-        accounts for Expenses from the Account, not Incomes or
-        Transfers.
+        accounts for Bills from the Account, not Incomes or Transfers.
 
         Args:
             target_date: The date to get the balance for
@@ -108,7 +107,7 @@ class Account(Base):
         starting_balance = last_balance.balance
 
         for date_ in date_range(last_balance.date, target_date):
-            for expense in self.expenses:
-                starting_balance += expense.get_effective_amount(date_)
+            for bill in self.bills:
+                starting_balance += bill.get_effective_amount(date_)
 
         return starting_balance
