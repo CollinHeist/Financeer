@@ -229,6 +229,8 @@ def get_account_expenses(
 ) -> list[ReturnExpenseSchema]:
     """
     Get all Expenses associated with an Account.
+
+    - account_id: The ID of the Account to get Expenses for.
     """
 
     return require_account(db, account_id).expenses
