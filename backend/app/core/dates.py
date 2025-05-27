@@ -22,6 +22,22 @@ def date_range(start_date: date, end_date: date) -> Generator[date, None, None]:
         current_date += timedelta(days=1)
 
 
+def get_month_start(date: date) -> date:
+    """
+    Get the start of the month for a given date.
+    """
+
+    return date.replace(day=1)
+
+
+def get_month_end(date: date) -> date:
+    """Get the end of the month for a given date."""
+
+    if date.month == 12:
+        return date.replace(day=31)
+    return date.replace(day=1, month=date.month + 1) - timedelta(days=1)
+
+
 def date_meets_frequency(
     date: date,
     start_date: date,
