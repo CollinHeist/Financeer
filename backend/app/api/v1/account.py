@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from app.models.transaction import Transaction
 from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
@@ -8,6 +7,7 @@ from app.api.deps import get_database
 from app.db.query import require_account
 from app.models.account import Account
 from app.models.balance import Balance
+from app.models.transaction import Transaction
 from app.schemas.account import (
     NewAccountSchema,
     ReturnAccountSchema,
@@ -20,28 +20,6 @@ account_router = APIRouter(
     prefix='/accounts',
     tags=['Account'],
 )
-
-
-@account_router.post('/account/new')
-def create_account(
-    new_account: NewAccountSchema = Body(...),
-    db: Session = Depends(get_database),
-) -> ReturnAccountSchema:
-
-    # Add the new Account to the database
-    account = Account(**new_account.model_dump(exclude={'balance'}))
-    db.add(account)
-    db.commit()
-
-    # Add the starting Balance for the Account
-    db.add(Balance(
-        account_id=account.id,
-        date=new_account.balance.date,
-        balance=new_account.balance.balance,
-    ))
-    db.commit()
-
-    return account
 
 
 @account_router.get('/all')
@@ -69,6 +47,29 @@ def get_bank_accounts(
             )
             .all()
     ]
+
+
+@account_router.post('/account/new')
+def create_account(
+    new_account: NewAccountSchema = Body(...),
+    db: Session = Depends(get_database),
+) -> ReturnAccountSchema:
+
+    # Add the new Account to the database
+    account = Account(**new_account.model_dump(exclude={'balance'}))
+    db.add(account)
+    db.commit()
+
+    # Add the starting Balance for the Account
+    db.add(Balance(
+        account_id=account.id,
+        date=new_account.balance.date,
+        balance=new_account.balance.balance,
+    ))
+    db.commit()
+
+    return account
+
 
 
 @account_router.get('/account/{account_id}')
