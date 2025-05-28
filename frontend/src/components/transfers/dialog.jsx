@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { getAllAccounts } from '@/lib/api/accounts';
-import { createTransfer, updateTransfer, getTransferById } from '@/lib/api/transfers';
+import { createTransfer, patchTransfer, getTransferById } from '@/lib/api/transfers';
 
 export default function TransferDialog({ isOpen, onOpenChange, transferId = null }) {
   const isEditMode = !!transferId;
@@ -82,14 +82,11 @@ export default function TransferDialog({ isOpen, onOpenChange, transferId = null
   });
 
   const updateTransferMutation = useMutation({
-    mutationFn: (data) => updateTransfer(transferId, data),
+    mutationFn: (data) => patchTransfer(transferId, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['transfers']);
       queryClient.invalidateQueries(['transfer', transferId]);
       onOpenChange(false);
-    },
-    onError: (error) => {
-      console.error('Error updating transfer:', error);
     },
   });
 
