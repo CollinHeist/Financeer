@@ -11,36 +11,18 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-import { getAllAccounts, getAccount } from '@/lib/api/accounts';
-import { createExpense, patchExpense, getExpenseById } from '@/lib/api/expenses';
+import {
+  createExpense,
+  patchExpense,
+  getExpenseById,
+} from '@/lib/api/expenses';
 
-const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) => {
+const ExpenseDialog = ({ isOpen, onOpenChange, expenseId = null }) => {
   const isEditMode = !!expenseId;
   const queryClient = useQueryClient();
-  
-  // Fetch all accounts
-  const { data: accounts, isLoading: accountsLoading } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: getAllAccounts,
-    enabled: isOpen,
-  });
-  
-  // Fetch account details if accountId is provided
-  const { data: account, isLoading: accountLoading } = useQuery({
-    queryKey: ['account', accountId],
-    queryFn: () => accountId ? getAccount(accountId) : null,
-    enabled: !!accountId && isOpen,
-  });
   
   // Fetch existing expense if in edit mode
   const { data: existingExpense, isLoading: expenseLoading } = useQuery({
@@ -56,16 +38,8 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
     is_active: true,
     allow_rollover: false,
     max_rollover_amount: null,
-    account_id: accountId ? Number(accountId) : null,
     transaction_filters: []
   });
-  
-  // Update formData when accountId prop changes
-  useEffect(() => {
-    if (accountId) {
-      setFormData(prev => ({ ...prev, account_id: Number(accountId) }));
-    }
-  }, [accountId]);
   
   // Update formData when existing expense is loaded
   useEffect(() => {
@@ -77,7 +51,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
         is_active: existingExpense.is_active,
         allow_rollover: existingExpense.allow_rollover,
         max_rollover_amount: existingExpense.max_rollover_amount,
-        account_id: Number(existingExpense.account_id),
         transaction_filters: existingExpense.transaction_filters || []
       });
     }
@@ -90,7 +63,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
     mutationFn: createExpense,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', accountId] });
       onOpenChange(false);
       resetForm();
     },
@@ -104,7 +76,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
     mutationFn: (data) => patchExpense(expenseId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses', accountId] });
       queryClient.invalidateQueries({ queryKey: ['expense', expenseId] });
       onOpenChange(false);
     },
@@ -121,7 +92,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
       is_active: true,
       allow_rollover: false,
       max_rollover_amount: null,
-      account_id: accountId ? Number(accountId) : null,
       transaction_filters: []
     });
     setError(null);
@@ -129,18 +99,10 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'account_id') {
-      setFormData(prev => ({
-        ...prev,
-        account_id: value ? Number(value) : null
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = (e) => {
@@ -150,8 +112,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
     const expenseData = {
       ...formData,
       amount: parseFloat(formData.amount),
-      // Ensure account_id is a number
-      account_id: Number(formData.account_id),
       // Convert max_rollover_amount to number if it exists
       max_rollover_amount: formData.max_rollover_amount ? parseFloat(formData.max_rollover_amount) : null
     };
@@ -164,8 +124,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
   };
 
   const isLoading = 
-    accountLoading || 
-    accountsLoading ||
     (isEditMode && expenseLoading) || 
     createExpenseMutation.isPending || 
     updateExpenseMutation.isPending;
@@ -179,7 +137,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? 'Edit Expense' : 'Add New Expense'}
-            {account && ` for ${account.name}`}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
@@ -187,37 +144,6 @@ const ExpenseDialog = ({ isOpen, onOpenChange, accountId, expenseId = null }) =>
             <div className="py-4 text-center text-gray-500">Loading...</div>
           ) : (
             <div className="space-y-2">
-              <div>
-                <label className="text-sm font-medium">Account</label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between"
-                    >
-                      {formData.account_id
-                        ? accounts?.find(a => a.id === formData.account_id)?.name || 'Select an account'
-                        : 'Select an account'}
-                      <ChevronDown className="h-4 w-4 opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    {accounts?.map(account => (
-                      <DropdownMenuItem
-                        key={account.id}
-                        onSelect={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            account_id: account.id
-                          }));
-                        }}
-                      >
-                        {account.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
               <div>
                 <label className="text-sm font-medium">Name</label>
                 <Input

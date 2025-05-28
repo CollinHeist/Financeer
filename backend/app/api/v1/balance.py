@@ -2,14 +2,15 @@ from datetime import date
 
 from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy import or_
+from sqlalchemy.orm import load_only
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
+from app.core.balance import get_projected_balance, get_starting_balance
 from app.core.dates import date_range
 from app.db.query import require_account, require_balance
 from app.models.balance import Balance
 from app.models.bill import Bill
-from app.models.expense import Expense
 from app.models.income import Income
 from app.models.transfer import Transfer
 from app.schemas.balance import (
@@ -93,6 +94,12 @@ def get_daily_balances(
     - end_date: The end date for the balance range (inclusive)
     """
 
+    return [
+        ReturnDailyBalanceSchema(date=date, balance=balance)
+        for date, balance in
+        get_projected_balance(account_id, list(date_range(start_date, end_date)), db)
+    ]
+
     # Get all Balances for the Account up to the end date
     balances = (
         db.query(Balance)
@@ -101,8 +108,12 @@ def get_daily_balances(
             Balance.date <= end_date
         )
         .order_by(Balance.date.desc())
+        .options(load_only(Balance.account_id, Balance.date, Balance.balance))
         .all()
     )
+
+    if not balances:
+        return []
 
     # Get all Bills, Transfers, and Incomes for this Account
     bills = (
@@ -110,20 +121,13 @@ def get_daily_balances(
             .filter(
                 Bill.account_id == account_id,
                 Bill.start_date <= end_date,
-                (Bill.end_date >= start_date) | (Bill.end_date.is_(None))
+                or_(
+                    Bill.end_date >= start_date,
+                    Bill.end_date.is_(None),
+                )
             )
             .all()
     )
-
-    # expenses = (
-    #     db.query(Expense)
-    #         .filter(
-    #             Expense.account_id == account_id,
-    #             Expense.start_date <= end_date,
-    #             (Expense.end_date >= start_date) | (Expense.end_date.is_(None))
-    #         )
-    #         .all()
-    # )
 
     transfers = (
         db.query(Transfer)
@@ -151,55 +155,31 @@ def get_daily_balances(
     # Create a dictionary of date -> Balance for quick lookup
     balance_dict = {b.date: b for b in balances}
 
-    # Find the most recent balance before or on the end date
-    most_recent_balance = None
-    most_recent_date = None
-    for balance in balances:
-        if balance.date <= end_date:
-            most_recent_balance = balance.balance
-            most_recent_date = balance.date
-            break
-
-    if not most_recent_balance or not most_recent_date:
-        return []
-
-    # Generate daily balances
-    daily_balances = []
-    current_balance = most_recent_balance
-    current_date = most_recent_date
-
-    # First, project backwards from most recent balance to start date
-    while current_date > start_date:
-        current_date = current_date.replace(day=current_date.day - 1)
-        # Subtract the effects of bills, transfers, and incomes for this date
-        for bill in bills:
-            current_balance -= bill.get_effective_amount(current_date)
-        for income in incomes:
-            current_balance -= income.get_effective_amount(current_date)
-        for transfer in transfers:
-            current_balance -= transfer.get_effective_amount(current_date, account_id)
-        
-        # If we have an actual balance for this date, use it instead
-        if current_date in balance_dict:
-            current_balance = balance_dict[current_date].balance
+    # Apply net Transactions to the balance between current and start date
+    current_balance, start = get_starting_balance(account_id, start_date, db)
 
     # Now project forward from start date to end date
-    for current_date in date_range(start_date, end_date):
+    daily_balances = []
+    for date_ in date_range(start, end_date):
         # Use actual Balance if it exists
-        if current_date in balance_dict:
-            current_balance = balance_dict[current_date].balance
-        # Project the balance using known Bills
-        else:
-            for bill in bills:
-                current_balance += bill.get_effective_amount(current_date)
-            for income in incomes:
-                current_balance += income.get_effective_amount(current_date)
-            for transfer in transfers:
-                current_balance += transfer.get_effective_amount(current_date, account_id)
+        if date_ in balance_dict:
+            current_balance = balance_dict[date_].balance
+            continue
 
-        daily_balances.append(ReturnDailyBalanceSchema(
-            date=current_date,
-            balance=current_balance,
-        ))
+        # Project the balance using known Bills
+        for bill in bills:
+            current_balance += bill.get_effective_amount(date_)
+            # print(f'[{date_.strftime("%Y-%m-%d")}] {bill.name} {bill.get_effective_amount(date_):+,}')
+        for income in incomes:
+            current_balance += income.get_effective_amount(date_)
+        for transfer in transfers:
+            print(f'[{date_.strftime("%Y-%m-%d")}] {transfer.name} {transfer.get_effective_amount(date_, account_id):+,}')
+            current_balance += transfer.get_effective_amount(date_, account_id)
+
+        if date_ >= start_date:
+            daily_balances.append(ReturnDailyBalanceSchema(
+                date=date_,
+                balance=current_balance,
+            ))
 
     return daily_balances

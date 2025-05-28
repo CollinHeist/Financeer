@@ -71,7 +71,7 @@ const getColorVariation = (baseColor, index) => {
 
 export function ExpenseBreakdownChart() {
   const [dateRange, setDateRange] = useState(DATE_RANGES.CURRENT_MONTH);
-  const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [selectedAccountId, setSelectedAccountId] = useState('all');
 
   // Get all accounts with caching
   const { data: accounts, isLoading: accountsLoading } = useQuery({
@@ -83,8 +83,9 @@ export function ExpenseBreakdownChart() {
 
   // Set initial account when accounts are loaded
   useEffect(() => {
-    if (accounts?.length > 0 && !selectedAccountId) {
-      setSelectedAccountId(accounts.find(account => account.type === 'checking')?.id || accounts[0].id);
+    if (accounts?.length > 0 && selectedAccountId === 'all') {
+      // No need to set a default account since we're using 'all'
+      return;
     }
   }, [accounts, selectedAccountId]);
 
@@ -140,7 +141,7 @@ export function ExpenseBreakdownChart() {
       formatDate(startDate),
       formatDate(endDate)
     ),
-    enabled: !!selectedAccountId,
+    enabled: true,
     staleTime: 5 * 60 * 1000,
     cacheTime: 30 * 60 * 1000,
     keepPreviousData: true,
@@ -155,13 +156,14 @@ export function ExpenseBreakdownChart() {
           <div className="flex items-center gap-4">
             <h3 className="text-lg font-semibold">Expense Breakdown</h3>
             <Select
-              value={selectedAccountId?.toString()}
-              onValueChange={(value) => setSelectedAccountId(parseInt(value))}
+              value={selectedAccountId}
+              onValueChange={(value) => setSelectedAccountId(value)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Accounts</SelectItem>
                 {accounts?.map((account) => (
                   <SelectItem key={account.id} value={account.id.toString()}>
                     {account.name}
@@ -200,13 +202,14 @@ export function ExpenseBreakdownChart() {
           <div className="flex items-center gap-4">
             <h3 className="text-lg font-semibold">Expense Breakdown</h3>
             <Select
-              value={selectedAccountId?.toString()}
-              onValueChange={(value) => setSelectedAccountId(parseInt(value))}
+              value={selectedAccountId}
+              onValueChange={(value) => setSelectedAccountId(value)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select account" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All Accounts</SelectItem>
                 {accounts?.map((account) => (
                   <SelectItem key={account.id} value={account.id.toString()}>
                     {account.name}
@@ -268,13 +271,14 @@ export function ExpenseBreakdownChart() {
         <div className="flex items-center gap-4">
           <h3 className="text-lg font-semibold">Expense Breakdown</h3>
           <Select
-            value={selectedAccountId?.toString()}
-            onValueChange={(value) => setSelectedAccountId(parseInt(value))}
+            value={selectedAccountId}
+            onValueChange={(value) => setSelectedAccountId(value)}
           >
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Select account" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Accounts</SelectItem>
               {accounts?.map((account) => (
                 <SelectItem key={account.id} value={account.id.toString()}>
                   {account.name}

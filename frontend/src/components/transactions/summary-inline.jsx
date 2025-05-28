@@ -42,6 +42,7 @@ import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import TransactionDialog from '@/components/TransactionDialog';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { dateFromPyDate, getDateKey } from '@/lib/utils';
 import { deleteTransaction } from '@/lib/api/transactions';
 
 export default function TransactionSummaryInline({
@@ -76,12 +77,13 @@ export default function TransactionSummaryInline({
     if (!transactions || !frequency) return [];
     
     const groupedData = transactions.reduce((acc, transaction) => {
-      const date = new Date(transaction.date);
+      // Parse the date in UTC
+      const date = new Date(transaction.date + 'T00:00:00Z');
       let key;
       
       // For bar chart, always aggregate by month regardless of frequency
       if (chartType === 'bar') {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
       } else {
         switch (frequency.unit) {
           case 'days':
@@ -89,13 +91,13 @@ export default function TransactionSummaryInline({
             break;
           case 'weeks':
             const weekStart = new Date(date);
-            weekStart.setDate(date.getDate() - date.getDay());
-            const weekNumber = Math.floor(date.getTime() / (7 * 24 * 60 * 60 * 1000));
+            weekStart.setUTCDate(date.getUTCDate() - date.getUTCDay());
+            const weekNumber = weekStart.getWeek();
             const periodNumber = Math.floor(weekNumber / frequency.value);
             key = new Date(weekStart.getTime() + (periodNumber * frequency.value * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
             break;
           case 'months':
-            const monthNumber = date.getFullYear() * 12 + date.getMonth();
+            const monthNumber = date.getUTCFullYear() * 12 + date.getUTCMonth();
             const monthPeriod = Math.floor(monthNumber / frequency.value);
             const periodStartMonth = monthPeriod * frequency.value;
             const periodStartYear = Math.floor(periodStartMonth / 12);
@@ -103,7 +105,7 @@ export default function TransactionSummaryInline({
             key = `${periodStartYear}-${String(periodStartMonthInYear + 1).padStart(2, '0')}`;
             break;
           case 'years':
-            const yearNumber = date.getFullYear();
+            const yearNumber = date.getUTCFullYear();
             const yearPeriod = Math.floor(yearNumber / frequency.value);
             key = (yearPeriod * frequency.value).toString();
             break;
@@ -117,7 +119,7 @@ export default function TransactionSummaryInline({
           date: key,
           transactionAmount: 0,
           budgetAmount: budgetAmount,
-          rawDate: new Date(key)
+          rawDate: new Date(key + 'T00:00:00Z')
         };
       }
       
@@ -130,17 +132,16 @@ export default function TransactionSummaryInline({
     // Fill in missing months for bar chart
     if (chartType === 'bar' && result.length > 0) {
       const filledData = [];
-      const startDate = new Date(result[0].date);
-      const endDate = new Date(result[result.length - 1].date);
-      
+      const startDate = new Date(result[0].date + 'T00:00:00Z');
+      const endDate = new Date(result[result.length - 1].date + 'T00:00:00Z');
+
       // Create a map of existing data for quick lookup
       const existingDataMap = new Map(result.map(item => [item.date, item]));
-      
+
       // Iterate through each month in the range
-      let currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+      let currentDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
       while (currentDate <= endDate) {
-        const key = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-        
+        const key = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}`;
         if (existingDataMap.has(key)) {
           filledData.push(existingDataMap.get(key));
         } else {
@@ -151,14 +152,13 @@ export default function TransactionSummaryInline({
             rawDate: new Date(currentDate)
           });
         }
-        
-        // Move to next month
-        currentDate.setMonth(currentDate.getMonth() + 1);
+
+        // Move to next month in UTC
+        currentDate = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth() + 1, 1));
       }
       
       result = filledData;
     }
-        
     return result;
   };
 

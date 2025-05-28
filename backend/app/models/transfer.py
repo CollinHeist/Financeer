@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
 from sqlalchemy import (
@@ -28,6 +28,9 @@ class Transfer(Base):
 
     name: Mapped[str] = mapped_column(String, index=True)
     description: Mapped[str] = mapped_column(default='', index=True)
+    # Transfer amounts are always positive; a negative amount will be
+    # applied to the from_account, and a positive amount will be applied
+    # to the to_account.
     amount: Mapped[float] = mapped_column(Float)
     frequency: Mapped[FrequencyDict | None] = mapped_column(
         JSON,
@@ -121,3 +124,22 @@ class Transfer(Base):
             return self.amount * scalar
 
         return 0.0
+
+
+    def get_next_active_date(self, start_date: date) -> date | None:
+        """
+        Get the next date on which the Transfer will be active.
+        """
+
+        if self.frequency is None:
+            return self.start_date
+
+        iterations = 1000
+        date_ = start_date
+        while iterations > 0:
+            if date_meets_frequency(date_, self.start_date, self.frequency):
+                return date_
+            date_ += timedelta(days=1)
+            iterations -= 1
+
+        return None

@@ -5,8 +5,9 @@ from sqlalchemy import Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.core.dates import date_range
+from app.core.dates import date_meets_frequency, date_range
 from app.schemas.account import AccountType
+from app.utils.logging import log
 
 if TYPE_CHECKING:
     from app.models.balance import Balance
@@ -97,11 +98,30 @@ class Account(Base):
             The projected balance for the account on the given date.
         """
 
-        last_balance = self.last_balance
+        # Get the last balance before the target date
+        last_balance = [
+            balance for balance in self.balances
+            if balance.date <= target_date
+        ][-1]
         starting_balance = last_balance.balance
 
-        for date_ in date_range(last_balance.date, target_date):
+        # Check if there is an incoming Transfer which will reset the
+        # balance to 0
+        start_date = last_balance.date
+        for transfer in self.incoming_transfers:
+            if (
+                transfer.payoff_balance
+                and transfer.to_account_id == self.id
+                and transfer.start_date <= target_date
+                and (transfer.end_date is None or transfer.end_date >= target_date)
+            ):
+                if (next_date := transfer.get_next_active_date(start_date)) is not None:
+                    start_date = next_date
+                    starting_balance = 0.0
+                    break
+
+        for date_ in date_range(start_date, target_date):
             for bill in self.bills:
                 starting_balance += bill.get_effective_amount(date_)
-
+        log.debug(f'  Card balance for {self.name} on {target_date} is ${starting_balance:,.2f}; stepped through {last_balance.date} -> {target_date}')
         return starting_balance

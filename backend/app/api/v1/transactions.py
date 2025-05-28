@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Body, Depends, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, true
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
@@ -20,6 +20,7 @@ from app.db.query import (
     require_transaction,
     require_transfer,
 )
+from app.models.account import Account
 from app.models.bill import Bill
 from app.models.expense import Expense
 from app.models.income import Income
@@ -355,11 +356,22 @@ def get_upcoming_account_transactions(
             ).all()
     )
 
+    transfers = (
+        db.query(Transfer)
+            .filter(
+                or_(
+                    Transfer.from_account_id == account_id,
+                    Transfer.to_account_id == account_id,
+                ),
+                Transfer.start_date <= end,
+                or_(Transfer.end_date.is_(None), Transfer.end_date >= start),
+            ).all()
+    )
+
     upcoming_bills = []
     for date_ in date_range(start, end):
         for bill in bills:
             if (amount := bill.get_effective_amount(date_)) != 0.0:
-                amount *= -1 if bill.account_id == account_id else 1
                 upcoming_bills.append(
                     ReturnUpcomingTransactionSchema(
                         name=bill.name,
@@ -375,7 +387,18 @@ def get_upcoming_account_transactions(
                         name=income.name,
                         amount=amount,
                         date=date_,
-                        bill_id=income.id,
+                        income_id=income.id,
+                    )
+                )
+        for transfer in transfers:
+            if (amount := transfer.get_effective_amount(date_, account_id)):
+                amount *= -1 if account_id == transfer.from_account_id else 1
+                upcoming_bills.append(
+                    ReturnUpcomingTransactionSchema(
+                        name=f'Transfer to {transfer.to_account.name}',
+                        amount=amount,
+                        date=date_,
+                        transfer_id=transfer.id,
                     )
                 )
 
@@ -429,7 +452,7 @@ def get_income_transactions(
 
 @transaction_router.get('/account/{account_id}/bill-breakdown')
 def get_account_bill_breakdown(
-    account_id: int,
+    account_id: int | Literal['all'],
     start_date: date = Query(...),
     end_date: date = Query(...),
     db: Session = Depends(get_database),
@@ -442,16 +465,42 @@ def get_account_bill_breakdown(
     - end_date: The end date of the period to analyze
     """
 
+    # Ignore Transfers to Credit Accounts if getting all Acount details
+    ignore_transfer_ids: list[int] = []
+    if account_id == 'all':
+        ignore_transfer_ids = [
+            transfer.id
+            for transfer in
+            db.query(Transfer)
+                .filter(Transfer.to_account_id.in_([
+                    account.id
+                    for account in
+                    db.query(Account).filter(Account.type == 'credit').all()
+                ]))
+                .all()
+        ]
+
     # Get all transactions for the account in the date range
     transactions = (
         db.query(Transaction)
             .filter(
-                Transaction.account_id == account_id,
+                (
+                    true()
+                    if account_id == 'all'
+                    else Transaction.account_id == account_id
+                ),
                 Transaction.date >= start_date,
                 Transaction.date <= end_date,
-                Transaction.amount < 0 # Only include Bills
+                Transaction.amount < 0, # Only include Bills
+                or_(
+                    Transaction.transfer_id.is_(None),
+                    Transaction.transfer_id.not_in(ignore_transfer_ids),
+                )
             )
-            .options(joinedload(Transaction.bill))
+            .options(
+                joinedload(Transaction.bill),
+                joinedload(Transaction.expense),
+            )
             .all()
     )
 
@@ -463,7 +512,11 @@ def get_account_bill_breakdown(
             Transaction.transfer_id.in_([
                 transfer.id
                 for transfer in db.query(Transfer).filter(
-                    Transfer.from_account_id == account_id,
+                    (
+                        true()
+                        if account_id == 'all'
+                        else Transfer.from_account_id == account_id
+                    ),
                     Transfer.start_date <= end_date,
                     or_(
                         Transfer.end_date.is_(None),
@@ -471,7 +524,11 @@ def get_account_bill_breakdown(
                     ),
                 ).all()
             ]),
-            Transaction.account_id == account_id,
+            (
+                true()
+                if account_id == 'all'
+                else Transaction.account_id == account_id
+            ),
             Transaction.date >= start_date,
             Transaction.date <= end_date,
         ).all()
@@ -488,6 +545,9 @@ def get_account_bill_breakdown(
             bill_name = transaction.expense.name
         elif transaction.id in transfers:
             bill_name = f'Transfer to {transfers[transaction.id]}'
+        else:
+            print(f'{transaction.date} "{transaction.description}" is not a bill, expense, or transfer')
+            print(f'  {transaction.transfer_id=} {ignore_transfer_ids}')
         bill_totals[bill_name]['total'] += abs(transaction.amount)
         bill_totals[bill_name]['count'] += 1
 

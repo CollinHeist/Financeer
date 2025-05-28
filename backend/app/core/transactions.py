@@ -10,6 +10,13 @@ from app.models.transaction import Transaction
 from app.schemas.core import TransactionFilter
 
 
+FIELDS = {
+    'amount': Transaction.amount,
+    'description': Transaction.description,
+    'note': Transaction.note,
+}
+
+
 def _get_account_filter(
     model: Bill | Expense | Income | Transfer,
 ) -> ColumnElement[bool]:
@@ -18,6 +25,8 @@ def _get_account_filter(
     Bill/Expense/Income/Transfer.
     """
 
+    if isinstance(model, Expense):
+        return true()
     if isinstance(model, Transfer):
         return or_(
             Transaction.account_id == model.from_account_id,
@@ -43,11 +52,7 @@ def _get_transaction_filters(
     """
 
     def get_filter_clause(filter: TransactionFilter, /) -> ColumnElement[bool]:
-        field = (
-            Transaction.description
-            if filter.on == 'description'
-            else Transaction.note
-        )
+        field = FIELDS[filter.on]
         if filter.type == 'regex':
             return func.regex_match(field, filter.value)
 
