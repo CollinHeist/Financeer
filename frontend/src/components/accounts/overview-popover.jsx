@@ -22,6 +22,7 @@ import {
 import { getDailyBalances } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import Link from 'next/link';
 
 const chartConfig = {
   balance: {
@@ -82,7 +83,9 @@ export default function AccountOverviewPopover({ account, children }) {
       <PopoverContent className="w-96">
         <div className="space-y-4">
           <div>
-            <h3 className="font-medium">{account.name}</h3>
+            <Link href={`/accounts/${account.id}`} className="font-medium hover:underline">
+              {account.name}
+            </Link>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
