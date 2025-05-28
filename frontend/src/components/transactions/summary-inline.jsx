@@ -172,15 +172,19 @@ export default function TransactionSummaryInline({
     const totalAmount = aggregatedData.reduce((sum, item) => sum + item.transactionAmount, 0);
     const averageAmount = totalAmount / aggregatedData.length;
     
-    return aggregatedData.map(item => ({
-      ...item,
-      averageAmount,
-      date: new Date(item.date).toLocaleDateString('en-US', { 
-        month: chartType === 'bar' ? 'long' : 'short', 
-        ...(chartType === 'line' && { day: 'numeric' }),
-        ...(frequency?.unit === 'year' && { year: 'numeric' })
-      })
-    }));
+    return aggregatedData.map(item => {
+      const date = new Date(item.date + 'T00:00:00Z');
+      return {
+        ...item,
+        averageAmount,
+        date: date.toLocaleDateString('en-US', { 
+          month: 'short',
+          ...(chartType === 'line' && { day: 'numeric' }),
+          year: '2-digit',
+          timeZone: 'UTC',
+        })
+      };
+    });
   };
 
   const chartConfig = {
