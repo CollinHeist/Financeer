@@ -57,7 +57,7 @@ import {
   deleteTransaction,
   patchTransaction,
 } from '@/lib/api/transactions';
-import { getAllIncomes } from '@/lib/api';
+import { getAllIncomes } from '@/lib/api/incomes';
 import { getAllAccountBills } from '@/lib/api/bills';
 import { SplitDialog } from '@/components/transactions/split-dialog';
 

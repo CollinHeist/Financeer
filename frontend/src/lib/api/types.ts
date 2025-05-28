@@ -14,7 +14,13 @@ interface TransactionFilter {
   on: "description" | "note";
   type: "contains" | "regex";
   value: string;
-};
+}
+
+export interface DailyExpenseComparison {
+  day_of_month: number;
+  historical_average: number;
+  current_month: number;
+}
 
 export interface NewAccountSchema {
   name: string;
@@ -40,6 +46,15 @@ export interface ReturnAccountSchema {
     balance: number;
   } | null;
 };
+
+export interface ReturnMonthlyAccountSnapshotSchema {
+  spent: number;
+  budget: number;
+  bill_id: number | null;
+  bill_name: string | null;
+  expense_id: number | null;
+  expense_name: string | null;
+}
 
 export interface NewBillSchema {
   name: string;
