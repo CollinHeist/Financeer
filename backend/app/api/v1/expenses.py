@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
 from app.api.deps import get_database
-from app.db.query import require_account, require_expense
+from app.db.query import require_expense
 from app.models.expense import Expense
 from app.schemas.expense import (
     NewExpenseSchema,
@@ -66,7 +66,6 @@ def create_expense(
         new_expense: The Expense to create.
     """
 
-    require_account(db, new_expense.account_id)
     expense = Expense(**new_expense.model_dump())
     db.add(expense)
     db.commit()
@@ -121,8 +120,6 @@ def update_expense(
     """
 
     expense = require_expense(db, expense_id)
-    require_account(db, updated_expense.account_id)
-
     for key, value in updated_expense.model_dump().items():
         setattr(expense, key, value)
 
@@ -146,12 +143,8 @@ def partially_update_expense(
         updated_expense: The updated Expense.
     """
 
-    expense = require_expense(db, expense_id)
-
-    if updated_expense.account_id is not None:
-        require_account(db, updated_expense.account_id)
-
     # Update only the provided fields
+    expense = require_expense(db, expense_id)
     for key, value in updated_expense.model_dump().items():
         if key in updated_expense.model_fields_set:
             setattr(expense, key, value)
@@ -187,50 +180,3 @@ def get_expense_transactions(
         transactions = [t for t in transactions if t.date <= end_date]
 
     return transactions
-
-
-@expense_router.get('/budget/{budget_id}/status')
-def get_expense_status(
-    expense_id: int,
-    target_date: date = Query(default_factory=date.today),
-    db: Session = Depends(get_database),
-) -> dict:
-    """
-    Get the current status of a Budget.
-
-    Args:
-        budget_id: The ID of the Budget to get status for.
-        target_date: The date to calculate the status for.
-    """
-
-    expense = require_expense(db, expense_id)
-    
-    spent_amount = expense.get_spent_amount(target_date)
-    remaining_amount = expense.get_remaining_amount(target_date)
-    utilization_percentage = expense.get_utilization_percentage(target_date)
-
-    return {
-        "budget_id": budget.id,
-        "name": budget.name,
-        "total_amount": budget.amount,
-        "spent_amount": spent_amount,
-        "remaining_amount": remaining_amount,
-        "utilization_percentage": utilization_percentage,
-        "is_active": budget.is_active,
-        "allow_rollover": budget.allow_rollover,
-        "max_rollover_amount": budget.max_rollover_amount,
-    } 
-
-
-@expense_router.get('/account/{account_id}')
-def get_account_expenses(
-    account_id: int,
-    db: Session = Depends(get_database),
-) -> list[ReturnExpenseSchema]:
-    """
-    Get all Expenses associated with an Account.
-
-    - account_id: The ID of the Account to get Expenses for.
-    """
-
-    return require_account(db, account_id).expenses
