@@ -120,7 +120,7 @@ export default function TransfersTable() {
           {transfers?.length === 0 ? (
             <TableRow>
               <TableCell colSpan={9} className="text-center">
-                No transfers found
+                No Transfers found
               </TableCell>
             </TableRow>
           ) : (
@@ -217,11 +217,12 @@ export default function TransfersTable() {
                       <TransactionSummaryInline
                         title={transfer.name}
                         transactions={transferTransactions}
+                        isTransfer={true}
                         isLoading={isLoadingTransactions}
                         error={null}
-                        budgetAmount={transfer.amount}
+                        budgetAmount={transfer.payoff_balance ? null : transfer.amount}
                         frequency={{ unit: 'days', value: 1 }}
-                        reversedYAxis={false}
+                        reversedYAxis={true}
                       />
                     </TableCell>
                   </TableRow>

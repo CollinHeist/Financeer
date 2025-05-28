@@ -164,7 +164,10 @@ export default function TransactionSummaryInline({
   const formatChartData = (transactions) => {
     if (!transactions) return [];
 
-    const aggregatedData = aggregateTransactions(transactions, frequency);
+    const aggregatedData = aggregateTransactions(
+      isTransfer ? transactions.filter(t => t.amount < 0) : transactions,
+      frequency,
+    );
     
     const totalAmount = aggregatedData.reduce((sum, item) => sum + item.transactionAmount, 0);
     const averageAmount = totalAmount / aggregatedData.length;
