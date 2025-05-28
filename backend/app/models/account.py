@@ -41,12 +41,6 @@ class Account(Base):
         cascade='all, delete, delete-orphan',
     )
 
-    expenses: Mapped[list['Expense']] = relationship(
-        'Expense',
-        back_populates='account',
-        cascade='all, delete, delete-orphan',
-    )
-
     incomes: Mapped[list['Income']] = relationship(
         'Income',
         back_populates='account',
