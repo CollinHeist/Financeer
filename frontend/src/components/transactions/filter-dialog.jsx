@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { getBillById, patchBill } from '@/lib/api/bills';
 import { getExpenseById, patchExpense } from '@/lib/api/expenses';
-import { getIncomeById, patchIncome } from '@/lib/api';
+import { getIncomeById, patchIncome } from '@/lib/api/incomes';
 import { getTransferById, patchTransfer } from '@/lib/api/transfers';
 import { getTransactionsFromFilters } from '@/lib/api/transactions';
 

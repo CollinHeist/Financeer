@@ -29,17 +29,17 @@ import { useState } from 'react';
 import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import { IconFilterDollar } from '@tabler/icons-react';
 import { Badge } from "@/components/ui/badge";
-import AccountOverviewPopover from '@/components/accounts/overview-popover';
 
 import ExpenseDialog from '@/components/expenses/dialog';
 import TransactionFilterDialog from '@/components/transactions/filter-dialog';
 import TransactionSummaryInline from '@/components/transactions/summary-inline';
 
-import { getAllAccountExpenses } from '@/lib/api/expenses';
+import { formatAmount } from '@/lib/utils';
+import { getAllExpenses } from '@/lib/api/expenses';
 import { deleteExpense } from '@/lib/api/expenses';
 import { getExpenseTransactions } from '@/lib/api/transactions';
 
-export default function ExpenseTable({ accountId }) {
+export default function ExpenseTable() {
   const queryClient = useQueryClient();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
@@ -52,8 +52,8 @@ export default function ExpenseTable({ accountId }) {
   const frequency = { value: 1, unit: 'months' };
 
   const { data: expenses, isLoading, error } = useQuery({
-    queryKey: ['expenses', accountId],
-    queryFn: () => getAllAccountExpenses(accountId)
+    queryKey: ['expenses'],
+    queryFn: getAllExpenses
   });
 
   const { data: expandedExpenseTransactions, isLoading: isLoadingTransactions } = useQuery({
@@ -65,7 +65,7 @@ export default function ExpenseTable({ accountId }) {
   const deleteExpenseMutation = useMutation({
     mutationFn: (expenseId) => deleteExpense(expenseId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['expenses', accountId]);
+      queryClient.invalidateQueries(['expenses']);
       setDeleteConfirmOpen(false);
       setExpenseToDelete(null);
     },
@@ -117,12 +117,8 @@ export default function ExpenseTable({ accountId }) {
     return <div className="text-left p-4 text-red-500">Error loading Expenses: {error.message}</div>;
   }
 
-  if (!expenses || expenses.length === 0) {
-    return (
-      <div className="text-left p-4">
-        <p className="text-gray-500">No Expenses found for this Account.</p>
-      </div>
-    );
+  if (!expenses) {
+    return <div className="text-left p-4 text-gray-500">No Expenses found.</div>;
   }
 
   return (
@@ -135,7 +131,6 @@ export default function ExpenseTable({ accountId }) {
             </TableHead>
             <TableHead className="text-left">Name</TableHead>
             <TableHead className="text-left">Description</TableHead>
-            <TableHead className="text-left">Account</TableHead>
             <TableHead className="text-left">Amount</TableHead>
             <TableHead className="text-left">Status</TableHead>
             <TableHead className="text-left">Rollover</TableHead>
@@ -166,15 +161,8 @@ export default function ExpenseTable({ accountId }) {
                   {expense.name}
                 </TableCell>
                 <TableCell className="text-left">{expense.description || '-'}</TableCell>
-                <TableCell className="text-left">
-                  {expense.account ? (
-                    <AccountOverviewPopover account={expense.account}>
-                      <span className="hover:underline cursor-pointer">{expense.account.name}</span>
-                    </AccountOverviewPopover>
-                  ) : '-'}
-                </TableCell>
                 <TableCell className="text-left text-red-500">
-                  ${expense.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatAmount(expense.amount)}
                 </TableCell>
                 <TableCell className="text-left">
                   <Badge variant={expense.is_active ? "success" : "secondary"}>
@@ -279,7 +267,6 @@ export default function ExpenseTable({ accountId }) {
       <ExpenseDialog
         isOpen={editDialogOpen}
         onOpenChange={handleEditDialogClose}
-        accountId={accountId}
         expenseId={expenseToEdit?.id}
       />
 
@@ -292,7 +279,6 @@ export default function ExpenseTable({ accountId }) {
       <ExpenseDialog
         isOpen={newExpenseDialogOpen}
         onOpenChange={setNewExpenseDialogOpen}
-        accountId={accountId}
       />
     </div>
   );

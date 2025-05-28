@@ -44,12 +44,8 @@ import { IconFilterDollar } from '@tabler/icons-react';
 import AccountOverviewPopover from '@/components/accounts/overview-popover';
 
 import { getAllAccounts } from '@/lib/api/accounts';
-import {
-  deleteIncome,
-  getAllIncomes,
-  getIncomeTransactions,
-  patchIncome,
-} from '@/lib/api';
+import { deleteIncome, getAllIncomes, patchIncome } from '@/lib/api/incomes';
+import { getIncomeTransactions } from '@/lib/api/transactions';
 
 
 export default function IncomeTable() {

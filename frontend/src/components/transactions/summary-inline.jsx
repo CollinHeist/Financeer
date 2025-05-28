@@ -52,6 +52,7 @@ export default function TransactionSummaryInline({
   budgetAmount,
   frequency,
   reversedYAxis = false,
+  isTransfer = false,
 }) {
   const [chartType, setChartType] = useState('line');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);

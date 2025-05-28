@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 
-import { getAllAccounts } from '@/lib/api/accounts';
-import { getAccount, createIncome, patchIncome, getIncomeById } from '@/lib/api';
+import { getAccount, getAllAccounts } from '@/lib/api/accounts';
+import { createIncome, patchIncome, getIncomeById } from '@/lib/api/incomes';
 
 const IncomeDialog = ({ isOpen, onOpenChange, accountId, incomeId = null }) => {
   const isEditMode = !!incomeId;
