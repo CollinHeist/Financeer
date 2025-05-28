@@ -11,7 +11,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { getAccount } from '@/lib/api';
+
+import { getAccount } from '@/lib/api/accounts';
 
 export function BreadcrumbWrapper() {
   const pathname = usePathname();

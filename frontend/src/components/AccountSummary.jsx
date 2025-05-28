@@ -2,9 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
-import { getAccountSummary } from '@/lib/api';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState } from 'react';
+
+import { getAccountSummary } from '@/lib/api/accounts';
 
 /**
  * Formats a number as currency

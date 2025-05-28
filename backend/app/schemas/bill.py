@@ -4,6 +4,7 @@ from typing import Literal, Self, TypedDict
 from pydantic import Field, model_validator
 from pydantic.main import BaseModel
 
+from app.schemas.account import ReturnAccountSchema
 from app.schemas.core import TransactionFilter
 
 
@@ -107,3 +108,4 @@ class ReturnBillSchema(BaseModel):
     change_schedule: list[dict]
     transaction_filters: list[list[TransactionFilter]]
     account_id: int
+    account: ReturnAccountSchema

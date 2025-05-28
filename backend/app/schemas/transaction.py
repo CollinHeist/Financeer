@@ -68,7 +68,6 @@ class ReturnUpcomingTransactionSchema(BaseModel):
     amount: float
     date: date_type
     bill_id: int | None = None
-    expense_id: int | None = None
     income_id: int | None = None
     transfer_id: int | None = None
 
