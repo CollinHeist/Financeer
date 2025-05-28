@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import {
+  NewSplitTransactionSchema,
   ReturnTransactionSchema,
   ReturnTransactionSchemaNoAccount,
   ReturnTransactionSchemaPage,
@@ -193,6 +194,50 @@ export const splitTransaction = async (transactionId, splitData) => {
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || `Error splitting transaction:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches upcoming expenses for an account from the API
+ * @param {number} accountID The ID of the account to fetch expenses for
+ * @param {number} days Number of days to look ahead for expenses
+ * @returns {Promise<Array>} Array of upcoming expense data
+ * @throws {Error} If the API request fails
+ */
+export const getUpcomingAccountTransactions = async (accountID, days = 14) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + days);
+    
+    const { data } = await api.get(`/transactions/upcoming/account/${accountID}`, {
+      params: {
+        start: today.toISOString().split('T')[0],
+        end: endDate.toISOString().split('T')[0]
+      }
+    });
+    return data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching transactions:', error);
+    throw new Error(error.response?.data?.detail || 'Failed to fetch transactions');
+  }
+}
+
+
+/**
+ * Fetches all transactions associated with an income
+ * @param {number} incomeId The ID of the income to fetch transactions for
+ * @returns {Promise<ReturnTransactionSchema[]>} Array of transaction data
+ * @throws {Error} If the API request fails
+ */
+export const getIncomeTransactions = async (incomeId) => {
+  try {
+    const response = await api.get(`/transactions/income/${incomeId}`);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching income transactions:', error);
     throw error;
   }
 }

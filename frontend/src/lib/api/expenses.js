@@ -1,6 +1,10 @@
 import { api } from '@/lib/api';
 
-import { NewExpenseSchema, PatchExpenseSchema, ReturnExpenseSchema } from './types';
+import {
+  NewExpenseSchema,
+  PatchExpenseSchema,
+  ReturnExpenseSchema,
+} from './types';
 
 
 /**
@@ -11,27 +15,7 @@ import { NewExpenseSchema, PatchExpenseSchema, ReturnExpenseSchema } from './typ
  */
 export const getAllExpenses = async (date = null) => {
   try {
-    const response = await api.get('/expenses/all', {
-      params: {
-        on: date ? new Date(date).toISOString().split('T')[0] : null
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error(error.response?.data?.detail || 'Error fetching expenses:', error);
-    throw error;
-  }
-}
-
-/**
- * Fetches all expenses for a given account
- * @param {number} accountId The ID of the account to fetch expenses for
- * @returns {Promise<ReturnExpenseSchema[]>} Array of expense data
- * @throws {Error} If the API request fails
- */
-export const getAllAccountExpenses = async (accountId) => {
-  try {
-    const response = await api.get(`/expenses/all?account_id=${accountId}`);
+    const response = await api.get('/expenses/all');
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching expenses:', error);
