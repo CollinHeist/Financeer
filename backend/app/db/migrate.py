@@ -46,7 +46,8 @@ def perform_db_migrations() -> None:
     try:
         command.upgrade(alembic_config, 'head')
     except Exception:
-        console = Console(file=StringIO())
+        output = StringIO()
+        console = Console(file=output)
         console.print(Traceback(
             show_locals=True,
             locals_max_length=512,
@@ -54,7 +55,7 @@ def perform_db_migrations() -> None:
             extra_lines=2,
             indent_guides=False,
         ))
-        log.error(f'SQL Migration Error:\n{console.file.getvalue()}')
+        log.error(f'SQL Migration Error:\n{output.getvalue()}')
         log.critical('Unable to migrate and initialize Database')
         if backup:
             log.info('Restoring from backup..')
