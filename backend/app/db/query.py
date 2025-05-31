@@ -9,6 +9,7 @@ from app.models.account import Account
 from app.models.bill import Bill
 from app.models.expense import Expense
 from app.models.income import Income
+from app.models.plaid import PlaidItem
 from app.models.transfer import Transfer
 from app.models.transaction import Transaction
 
@@ -176,6 +177,41 @@ def require_bill(
 
 
 @overload
+def require_expense(
+    db: Session,
+    expense_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Expense: ...
+
+@overload
+def require_expense(
+    db: Session,
+    expense_id: int,
+    *,
+    raise_exception: bool = False,
+) -> Expense | None: ...
+
+def require_expense(
+    db: Session,
+    expense_id: int,
+    *,
+    raise_exception: bool = True,
+) -> Expense | None:
+    """
+    Query and return an Expense by ID
+
+    Args:
+        db: The database session.
+        expense_id: The ID of the Expense to query.
+    """
+
+    return _require_model(
+        db, Expense, expense_id, raise_exception=raise_exception
+    )
+
+
+@overload
 def require_income(
     db: Session,
     income_id: int,
@@ -209,37 +245,37 @@ def require_income(
 
 
 @overload
-def require_expense(
+def require_plaid_item(
     db: Session,
-    expense_id: int,
+    plaid_item_id: int,
     *,
     raise_exception: bool = True,
-) -> Expense: ...
+) -> PlaidItem: ...
 
 @overload
-def require_expense(
+def require_plaid_item(
     db: Session,
-    expense_id: int,
+    plaid_item_id: int,
     *,
     raise_exception: bool = False,
-) -> Expense | None: ...
+) -> PlaidItem | None: ...
 
-def require_expense(
+def require_plaid_item(
     db: Session,
-    expense_id: int,
+    plaid_item_id: int,
     *,
     raise_exception: bool = True,
-) -> Expense | None:
+) -> Transfer | None:
     """
-    Query and return an Expense by ID
+    Query and return a PlaidItem by ID.
 
     Args:
         db: The database session.
-        expense_id: The ID of the Expense to query.
+        plaid_item_id: The ID of the PlaidItem to query.
     """
 
     return _require_model(
-        db, Expense, expense_id, raise_exception=raise_exception
+        db, PlaidItem, plaid_item_id, raise_exception=raise_exception
     )
 
 

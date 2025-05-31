@@ -1,19 +1,19 @@
 from typing import TYPE_CHECKING
 from datetime import date
 
-from sqlalchemy import Float, Integer, String
+from sqlalchemy import Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.core.dates import date_meets_frequency, date_range
+from app.core.dates import date_range
 from app.schemas.account import AccountType
 from app.utils.logging import log
 
 if TYPE_CHECKING:
     from app.models.balance import Balance
     from app.models.bill import Bill
-    from app.models.expense import Expense
     from app.models.income import Income
+    from app.models.plaid import PlaidItem
     from app.models.transaction import Transaction
     from app.models.transfer import Transfer
     from app.models.upload import Upload
@@ -23,6 +23,10 @@ class Account(Base):
     __tablename__ = 'accounts'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
+    plaid_account_id: Mapped[str | None] = mapped_column(
+        String, index=True, nullable=True
+    )
 
     name: Mapped[str] = mapped_column(String, index=True)
     type: Mapped['AccountType'] = mapped_column(String, index=True)
@@ -35,6 +39,14 @@ class Account(Base):
         nullable=True,
     )
     interest: Mapped[float] = mapped_column(Float, default=0.0)
+
+    plaid_item_id: Mapped[int | None] = mapped_column(
+        ForeignKey('plaid_items.id'), nullable=True
+    )
+    plaid_item: Mapped['PlaidItem | None'] = relationship(
+        'PlaidItem',
+        back_populates='accounts',
+    )
 
     bills: Mapped[list['Bill']] = relationship(
         'Bill',

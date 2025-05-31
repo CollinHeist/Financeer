@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.schemas.balance import ReturnBalanceSchema
-
+from app.schemas.plaid import ReturnPlaidItemSchema
 
 AccountType = Literal[
     'checking',
@@ -42,6 +42,8 @@ class ReturnAccountSchema(BaseModel):
     routing_number: int | None
     interest: float
     last_balance: ReturnBalanceSchema | None = None
+    plaid_item_id: int | None = None
+    plaid_item: ReturnPlaidItemSchema | None = None
 
 class ReturnAccountSummarySchema(BaseModel):
     balance: float

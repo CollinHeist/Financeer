@@ -18,6 +18,9 @@ class Transaction(Base):
     __tablename__ = 'transactions'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    plaid_transaction_id: Mapped[str | None] = mapped_column(
+        String, index=True, nullable=True
+    )
 
     date: Mapped[dt_date] = mapped_column(Date, index=True)
     description: Mapped[str] = mapped_column(String)
