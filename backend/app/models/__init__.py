@@ -6,6 +6,7 @@ from .income import Income
 from .transfer import Transfer
 from .transaction import Transaction, TransactionRelationship
 from .upload import Upload
+from .user import User
 
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     'Transaction',
     'TransactionRelationship',
     'Upload',
+    'User',
 ]

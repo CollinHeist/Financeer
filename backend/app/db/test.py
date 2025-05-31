@@ -10,6 +10,9 @@ from app.models import Account, Bill, Income, Transaction, Upload
 from app.services.citi import parse_citi_upload
 from app.services.iccu import parse_iccu_upload
 from app.utils.logging import log
+from app.core.config import settings
+from app.core.auth import get_password_hash
+from app.models.user import User
 
 
 TEST_TRANSACTIONS = [
@@ -110,7 +113,7 @@ def _generate_random_transactions(
             expense_id=randint(1, 7) if random() > expense_probability else None,
             income_id=None,
         )
-        transaction.related_transactions = related_transactions
+        transaction.related_transactions = related_transactions # type: ignore
         db.add(transaction)
         db.commit()
 
@@ -155,7 +158,23 @@ def upload_bank_transactions(db: Session) -> bool:
     return checking_transactions.exists() or credit_transactions.exists()
 
 
+def create_default_user(db: Session) -> None:
+    """Create the default user if it doesn't exist."""
+    if not db.query(User).first():
+        user = User(
+            username=settings.DEFAULT_USER_USERNAME,
+            hashed_password=get_password_hash(settings.DEFAULT_USER_PASSWORD),
+            is_active=True,
+            is_superuser=True
+        )
+        db.add(user)
+        db.commit()
+        log.info("Created default user")
+
+
 def initialize_test_data(db: Session) -> None:
+    """Initialize the database with test data."""
+    create_default_user(db)
 
     # Add test accounts
     account = Account(

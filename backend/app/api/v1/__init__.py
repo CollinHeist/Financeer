@@ -1,6 +1,7 @@
 from fastapi.routing import APIRouter
 
 from .account import account_router
+from .auth import router as auth_router
 from .balance import balance_router
 from .bills import bill_router
 from .cashflow import cashflow_router
@@ -12,6 +13,7 @@ from .uploads import upload_router
 
 v1_router = APIRouter(prefix='/v1')
 
+v1_router.include_router(auth_router)
 v1_router.include_router(account_router)
 v1_router.include_router(balance_router)
 v1_router.include_router(bill_router)
