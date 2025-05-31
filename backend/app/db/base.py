@@ -8,11 +8,12 @@ from sqlalchemy.event import listens_for
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.types import TypeDecorator, JSON
 
+from app.core.config import settings
 
-SQLALCHEMY_DATABASE_URL = 'sqlite:///../config/budget.sqlite'
 
+# Create SQLAlchemy engine
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
+    settings.DATABASE_URL,
     connect_args={'check_same_thread': False}
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

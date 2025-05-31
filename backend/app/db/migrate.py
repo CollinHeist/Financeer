@@ -9,8 +9,9 @@ from alembic.script import ScriptDirectory
 from rich.console import Console
 from rich.traceback import Traceback
 
-from app.api.deps import get_database
-from app.db.base import SQLALCHEMY_DATABASE_URL, engine
+from app.db.deps import get_database
+from app.core.config import settings
+from app.db.base import engine
 from app.db.test import initialize_test_data
 from app.utils.logging import log
 
@@ -25,7 +26,7 @@ def perform_db_migrations() -> None:
 
     # Initialize Alembic config (simulating config.ini)
     alembic_config = Config()
-    alembic_config.set_main_option('sqlalchemy.url', SQLALCHEMY_DATABASE_URL)
+    alembic_config.set_main_option('sqlalchemy.url', settings.DATABASE_URL)
     alembic_config.set_main_option(
         'script_location', str(APP_DIRECTORY / 'alembic')
     )
