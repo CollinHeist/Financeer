@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
-import { NewAccountSchema, ReturnAccountSchema } from './types';
+
+import { ReturnAccountSchema } from './types';
 
 
 /**
