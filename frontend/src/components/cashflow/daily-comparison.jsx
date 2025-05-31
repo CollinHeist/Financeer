@@ -6,14 +6,9 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from 'recharts';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart';
+import { ChartContainer } from '@/components/ui/chart';
+
 import { getAverageDailyExpenses } from '@/lib/api/cashflow';
 
 const chartConfig = {

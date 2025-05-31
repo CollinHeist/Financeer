@@ -19,10 +19,11 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
-import { getDailyBalances } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import Link from 'next/link';
+
+import { getDailyBalances } from '@/lib/api/balances';
 
 const chartConfig = {
   balance: {

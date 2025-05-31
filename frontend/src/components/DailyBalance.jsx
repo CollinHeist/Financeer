@@ -2,7 +2,6 @@
 
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { useQuery } from "@tanstack/react-query";
-import { getDailyBalances } from "@/lib/api";
 import {
   ChartContainer,
   ChartTooltip,
@@ -24,6 +23,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+
+import { getDailyBalances } from "@/lib/api/balances";
+
 
 const formatCurrency = (value) => {
   if (value >= 1000000000) {
