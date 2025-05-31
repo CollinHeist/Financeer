@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/chart";
 
 import { getAllAccounts } from "@/lib/api/accounts";
-import { getAccountBillBreakdown } from "@/lib/api";
+import { getAccountBillBreakdown } from "@/lib/api/transactions";
 
 const DATE_RANGES = {
   CURRENT_MONTH: 'Current Month',
