@@ -5,7 +5,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.db.query import require_expense
 from app.models.expense import Expense
 from app.schemas.expense import (
@@ -179,4 +179,4 @@ def get_expense_transactions(
     if end_date is not None:
         transactions = [t for t in transactions if t.date <= end_date]
 
-    return transactions
+    return transactions # type: ignore

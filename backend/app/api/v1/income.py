@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.db.query import require_account, require_income
 from app.core.transactions import apply_transaction_filters
 from app.models.income import Income

@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.core.balance import get_projected_balance, get_starting_balance
 from app.core.dates import date_range
 from app.db.query import require_account, require_balance

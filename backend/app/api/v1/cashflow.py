@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.core.dates import get_month_start, get_month_end, date_meets_frequency
 from app.models.bill import Bill
 from app.models.expense import Expense

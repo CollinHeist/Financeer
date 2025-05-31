@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.db.query import require_account, require_transfer
 from app.models.transfer import Transfer
 from app.schemas.transfers import (

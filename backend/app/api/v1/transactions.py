@@ -9,7 +9,7 @@ from sqlalchemy import and_, or_, true
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.core.dates import date_range
 from app.core.transactions import apply_transaction_filters
 from app.db.query import (

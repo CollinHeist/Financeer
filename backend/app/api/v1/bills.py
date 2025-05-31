@@ -1,10 +1,8 @@
-from datetime import date
-
 from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy import and_
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.db.query import require_account, require_bill
 from app.models.bill import Bill
 from app.models.transaction import Transaction
@@ -24,16 +22,10 @@ bill_router = APIRouter(
 
 @bill_router.get('/all')
 def get_all_bills(
-    on: date | None = Query(default_factory=lambda: date.today()),
     db: Session = Depends(get_database),
 ) -> list[ReturnBillSchema]:
 
-    filters = []
-    if on is not None:
-        filters.append(Bill.start_date <= on)
-        filters.append(or_(Bill.end_date.is_(None), Bill.end_date >= on))
-
-    return db.query(Bill).filter(*filters).order_by(Bill.name).all() # type: ignore
+    return db.query(Bill).order_by(Bill.name).all() # type: ignore
 
 
 @bill_router.post('/bill/new')

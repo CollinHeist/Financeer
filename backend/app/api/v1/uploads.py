@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.datastructures import UploadFile
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.core.upload import (
     add_balances_to_database,
     add_transactions_to_database,

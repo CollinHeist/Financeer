@@ -3,7 +3,7 @@ from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy import or_
 from sqlalchemy.orm.session import Session
 
-from app.api.deps import get_database
+from app.db.deps import get_database
 from app.db.query import require_account
 from app.models.account import Account
 from app.models.balance import Balance
