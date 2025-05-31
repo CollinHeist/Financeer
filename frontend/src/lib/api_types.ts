@@ -3,6 +3,18 @@ export interface Frequency {
   unit: 'days' | 'weeks' | 'months' | 'years';
 }
 
+export interface ReturnAccountInfoSchema {
+  id: string;
+  plaid_item_id: number;
+  name: string;
+  mask: string | null;
+  balances: {
+    available: number;
+    current: number;
+    limit: number | null;
+  };
+}
+
 export interface ReturnRelatedTransactionSchema {
   id: number;
   date: string;

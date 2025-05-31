@@ -225,7 +225,6 @@ export const getUpcomingAccountTransactions = async (accountID, days = 14) => {
   }
 }
 
-
 /**
  * Fetches all transactions associated with an income
  * @param {number} incomeId The ID of the income to fetch transactions for
@@ -238,6 +237,29 @@ export const getIncomeTransactions = async (incomeId) => {
     return response.data;
   } catch (error) {
     console.error(error.response?.data?.detail || 'Error fetching income transactions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches the expense breakdown for an account
+ * @param {number} accountId The ID of the account to fetch the expense breakdown for
+ * @param {string} startDate The start date in YYYY-MM-DD format
+ * @param {string} endDate The end date in YYYY-MM-DD format
+ * @returns {Promise<Array>} Array of expense breakdown data
+ * @throws {Error} If the API request fails
+ */
+export const getAccountBillBreakdown = async (accountId, startDate, endDate) => {
+  try {
+    const response = await api.get(`/transactions/account/${accountId}/bill-breakdown`, {
+      params: {
+        start_date: startDate,
+        end_date: endDate
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching bill breakdown:', error);
     throw error;
   }
 }

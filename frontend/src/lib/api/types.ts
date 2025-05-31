@@ -34,6 +34,12 @@ export interface NewAccountSchema {
   };
 }
 
+export interface NewLinkAccountSchema {
+  plaid_account_id: string;
+  plaid_item_id: number;
+  account_id: number;
+}
+
 export interface ReturnAccountSchema {
   id: number;
   name: string;
