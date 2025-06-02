@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
@@ -8,6 +10,7 @@ import { link as linkStyles } from "@heroui/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
 import React from "react";
+import { usePathname } from "next/navigation";
 
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Logo } from "@/components/icons";
@@ -24,11 +27,20 @@ const navigationItems = [
 ];
 
 export const Navbar = () => {
+  const pathname = usePathname();
+  const isLoginPage = pathname === '/login';
+
   return (
     <HeroUINavbar maxWidth="xl" position="sticky">
       <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
         <NavbarBrand as="li" className="gap-3 max-w-fit">
-          <NextLink className="flex justify-start items-center gap-1" href="/">
+          <NextLink 
+            className={clsx(
+              "flex justify-start items-center gap-1",
+              isLoginPage && "pointer-events-none opacity-50"
+            )} 
+            href="/"
+          >
             <Logo />
             <p className="font-bold text-inherit">Financeer</p>
           </NextLink>
@@ -40,7 +52,8 @@ export const Navbar = () => {
                 <NextLink
                   className={clsx(
                     linkStyles({ color: "foreground" }),
-                    "data-[active=true]:text-primary data-[active=true]:font-medium"
+                    "data-[active=true]:text-primary data-[active=true]:font-medium",
+                    isLoginPage && "pointer-events-none opacity-50"
                   )}
                   color="foreground"
                   href={item.href}
