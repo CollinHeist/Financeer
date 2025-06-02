@@ -32,11 +32,11 @@ const DATE_RANGES = {
 
 const chartConfig = {
   colors: [
-    'hsl(var(--chart-1))',
-    'hsl(var(--chart-2))',
-    'hsl(var(--chart-3))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--chart-5))',
+    'var(--chart-1)',
+    'var(--chart-2)',
+    'var(--chart-3)',
+    'var(--chart-4)',
+    'var(--chart-5)',
   ],
   stroke: 'hsl(var(--background))',
   tooltip: {
@@ -66,7 +66,7 @@ const getColorVariation = (baseColor, index) => {
   const repeatCount = Math.floor(index / chartConfig.colors.length);
   const lightnessAdjustment = repeatCount * 10; // Increase lightness by 10% each repeat
   
-  return `hsl(var(--chart-${baseIndex}) / ${1 - (lightnessAdjustment / 100)})`;
+  return `var(--chart-${baseIndex} / ${1 - (lightnessAdjustment / 100)}`;
 };
 
 export function ExpenseBreakdownChart() {

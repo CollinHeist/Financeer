@@ -43,17 +43,11 @@ const formatCurrency = (value) => {
 const chartConfig = {
   balance: {
     label: "Balance",
-    theme: {
-      light: "hsl(var(--chart-1))",
-      dark: "hsl(var(--chart-1))",
-    },
+    color: "var(--chart-1)",
   },
   projected: {
     label: "Projected",
-    theme: {
-      light: "hsl(var(--chart-2))",
-      dark: "hsl(var(--chart-2))",
-    },
+    color: "var(--chart-2)",
   },
 };
 
@@ -178,7 +172,7 @@ export default function DailyBalance({ accountId, days = 21 }) {
                           <>
                             <div
                               className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
-                              style={{"--color-bg": `hsl(var(--chart-${item.payload?.projected_balance ? 2 : 1}))`}}
+                              style={{"--color-bg": `var(--chart-${item.payload?.projected_balance ? 2 : 1})`}}
                             />
                             {item.payload?.projected_balance ? "Projected" : "Balance"}
                             <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
@@ -196,10 +190,10 @@ export default function DailyBalance({ accountId, days = 21 }) {
               <Area
                 type="step"
                 dataKey="actual_balance"
-                stroke="hsl(var(--chart-1))"
+                stroke="var(--chart-1)"
                 strokeWidth={3}
                 dot={false}
-                fill="hsl(var(--chart-1))"
+                fill="var(--chart-1)"
                 fillOpacity={0.4}
                 connectNulls={true}
               />
@@ -207,11 +201,11 @@ export default function DailyBalance({ accountId, days = 21 }) {
               <Area
                 type="step"
                 dataKey="projected_balance"
-                stroke="hsl(var(--chart-2))"
+                stroke="var(--chart-2)"
                 strokeWidth={3}
                 strokeDasharray="5 5"
                 dot={false}
-                fill="hsl(var(--chart-2))"
+                fill="var(--chart-2)"
                 fillOpacity={0.3}
                 connectNulls={true}
               />

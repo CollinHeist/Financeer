@@ -44,11 +44,11 @@ const formatCurrency = (value) => {
 const chartConfig = {
   income: {
     label: "Income",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
   expenses: {
     label: "Expenses",
-    color: "hsl(var(--chart-2))",
+    color: "var(--chart-2)",
   },
 };
 
@@ -286,8 +286,8 @@ export function CashFlowChart() {
                 }
               />
               <ChartLegend content={<ChartLegendContent />} />
-              <Bar dataKey="income" fill="hsl(var(--chart-1))" radius={4} name="income" />
-              <Bar dataKey="expenses" fill="hsl(var(--chart-2))" radius={4} name="expenses" />
+              <Bar dataKey="income" fill="var(--chart-1)" radius={4} name="income" />
+              <Bar dataKey="expenses" fill="var(--chart-2)" radius={4} name="expenses" />
             </BarChart>
           </ChartContainer>
         )}

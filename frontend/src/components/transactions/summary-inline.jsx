@@ -42,7 +42,6 @@ import { DeleteConfirmation } from "@/components/ui/delete-confirmation";
 import TransactionDialog from '@/components/TransactionDialog';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { dateFromPyDate, getDateKey } from '@/lib/utils';
 import { deleteTransaction } from '@/lib/api/transactions';
 
 export default function TransactionSummaryInline({
@@ -191,15 +190,15 @@ export default function TransactionSummaryInline({
   const chartConfig = {
     transactionAmount: {
       label: "Total",
-      color: "hsl(var(--chart-1))",
+      color: "var(--chart-1)",
     },
     budgetAmount: {
       label: "Budget",
-      color: "hsl(var(--chart-2))",
+      color: "var(--chart-2)",
     },
     averageAmount: {
       label: "Average",
-      color: "hsl(var(--chart-3))",
+      color: "var(--chart-3)",
     }
   };
 
@@ -264,7 +263,7 @@ export default function TransactionSummaryInline({
                   <Line
                     type="step"
                     dataKey="transactionAmount"
-                    stroke="hsl(var(--chart-1))"
+                    stroke="var(--chart-1)"
                     strokeWidth={2}
                     dot={false}
                     fill="hsl(var(--chart-1))"
@@ -273,8 +272,8 @@ export default function TransactionSummaryInline({
                   <Line
                     type="monotone"
                     dataKey="budgetAmount"
-                    stroke="hsl(var(--chart-2))"
-                    fill="hsl(var(--chart-2))"
+                    stroke="var(--chart-2)"
+                    fill="var(--chart-2)"
                     fillOpacity={0.3}
                     activeDot={{ r: 8 }}
                     dot={false}
@@ -326,12 +325,12 @@ export default function TransactionSummaryInline({
                   />
                   <Bar
                     dataKey="transactionAmount"
-                    fill="hsl(var(--chart-1))"
+                    fill="var(--chart-1)"
                   />
                   <ReferenceLine
                     displayName="Budget"
                     y={budgetAmount}
-                    stroke="hsl(var(--chart-2))"
+                    stroke="var(--chart-2)"
                     strokeWidth={1}
                     strokeDasharray="3 3"
                   />
@@ -354,10 +353,11 @@ export default function TransactionSummaryInline({
                 {transactions.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell className="text-foreground text-xs">
-                      {new Date(transaction.date).toLocaleDateString('en-US', { 
+                      {new Date(transaction.date + 'T00:00:00Z').toLocaleDateString('en-US', { 
                         month: 'short', 
                         day: 'numeric', 
-                        year: 'numeric' 
+                        year: 'numeric',
+                        timeZone: 'UTC'
                       })}
                     </TableCell>
                     <TableCell className="text-foreground text-xs">
