@@ -56,7 +56,7 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
   const pages = getPageNumbers();
   
   return (
-    <div className="flex items-center justify-center gap-2 mt-4">
+    <div className="flex items-center justify-center gap-2">
       <Button
         variant="outline"
         size="sm"
