@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional, List
+from typing import List, TypedDict
 
 import plaid
 from plaid.api import plaid_api
@@ -9,13 +9,19 @@ from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.accounts_get_request import AccountsGetRequest
-from plaid.model.account_type import AccountType
 from plaid.model.transactions_get_request import TransactionsGetRequest
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
-from sqlalchemy.orm.session import Session
 
 from app.core.config import settings
-from app.models.plaid import PlaidItem
+
+
+class Transaction(TypedDict):
+    id: str
+    account_id: str
+    amount: float
+    date: datetime
+    name: str
+    merchant_name: str
 
 
 class PlaidService:
@@ -75,30 +81,6 @@ class PlaidService:
         return self.client.item_public_token_exchange(request).access_token
 
 
-    def store_access_token(self,
-        access_token: str,
-        user_id: int,
-        db: Session,
-    ) -> PlaidItem:
-        """
-        Store a Plaid access token in the database.
-        
-        Args:
-            access_token: The access token to store
-            user_id: The ID of the user who owns this token
-            
-        Returns:
-            The created PlaidItem
-        """
-
-        plaid_item = PlaidItem(access_token=access_token, user_id=user_id)
-        db.add(plaid_item)
-        db.commit()
-        db.refresh(plaid_item)
-
-        return plaid_item
-
-
     def get_accounts(self, access_token: str) -> List[dict]:
         """
         Get account information for a given access token.
@@ -134,60 +116,67 @@ class PlaidService:
     def get_transactions(
         self,
         access_token: str,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        account_ids: Optional[List[str]] = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        account_ids: list[str] | None = None,
         count: int = 100,
-        offset: int = 0
-    ) -> dict:
+    ) -> list[Transaction]:
         """
-        Get transactions for a given access token.
-        
+        Get all transactions for a given access token between the two
+        dates.
+
         Args:
             access_token: The access token for the item
-            start_date: Start date for transactions (defaults to 30 days ago)
-            end_date: End date for transactions (defaults to today)
-            account_ids: List of account IDs to filter by (defaults to all accounts)
-            count: Number of transactions to return (default 100)
-            offset: Offset for pagination (default 0)
-            
+            start_date: Start date for transactions
+            end_date: End date for transactions.
+            account_ids: List of account IDs to filter by.
+            count: Number of transactions per API call.
+
         Returns:
-            Dictionary containing transactions and total count
+            List of transaction data.
         """
 
-        if start_date is None:
-            start_date = datetime.now() - timedelta(days=30)
-        if end_date is None:
-            end_date = datetime.now()
+        start_date = start_date or datetime.now() - timedelta(days=30)
+        end_date = end_date or datetime.now()
 
-        options = TransactionsGetRequestOptions(
-            # account_ids=account_ids,
-            count=count,
-            offset=offset
-        )
+        all_transactions, current_offset, total_transactions = [], 0, None
+        while True:
+            options = TransactionsGetRequestOptions(
+                account_ids=account_ids,
+                count=count,
+                offset=current_offset
+            )
 
-        request = TransactionsGetRequest(
-            access_token=access_token,
-            start_date=start_date.date(),
-            end_date=end_date.date(),
-            options=options
-        )
+            request = TransactionsGetRequest(
+                access_token=access_token,
+                start_date=start_date.date(),
+                end_date=end_date.date(),
+                options=options
+            )
+            response = self.client.transactions_get(request)
 
-        response = self.client.transactions_get(request)
+            # Store total transactions on first iteration
+            if total_transactions is None:
+                total_transactions = response.total_transactions
 
-        return {
-            "transactions": [
-                {
-                    "id": transaction.transaction_id,
-                    "account_id": transaction.account_id,
-                    "amount": transaction.amount,
-                    "date": transaction.date,
-                    "name": transaction.name,
-                    "merchant_name": transaction.merchant_name,
-                    "category": transaction.category,
-                    "pending": transaction.pending
-                }
+            # Add transactions from this batch
+            all_transactions.extend([
+                Transaction(
+                    id=transaction.transaction_id,
+                    account_id=transaction.account_id,
+                    amount=-transaction.amount,
+                    date=transaction.date,
+                    name=transaction.name,
+                    merchant_name=transaction.merchant_name,
+                )
                 for transaction in response.transactions
-            ],
-            "total_transactions": response.total_transactions
-        }
+            ])
+
+            # Break if we've fetched all transactions
+            if len(all_transactions) >= total_transactions:
+                break
+
+            # Update offset for next batch
+            current_offset += count
+
+        return all_transactions

@@ -1,14 +1,19 @@
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Body, Depends, Query
+from app.core.upload import (
+    add_transactions_to_database,
+    remove_redundant_transactions,
+)
+from fastapi import APIRouter, Body, Depends, Query, HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import and_, or_, true
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.session import Session
 
+from app.core.auth import get_current_user
 from app.db.deps import get_database
 from app.core.dates import date_range
 from app.core.transactions import apply_transaction_filters
@@ -26,6 +31,7 @@ from app.models.expense import Expense
 from app.models.income import Income
 from app.models.transfer import Transfer
 from app.models.transaction import Transaction
+from app.models.user import User
 from app.schemas.core import TransactionFilter
 from app.schemas.transaction import (
     NewSplitTransactionSchema,
@@ -37,6 +43,8 @@ from app.schemas.transaction import (
     BillBreakdownResponse,
     BillBreakdownItem
 )
+from app.services.plaid import PlaidService
+from app.utils.logging import log
 
 
 transaction_router = APIRouter(
@@ -619,3 +627,129 @@ def split_transaction(
     db.commit()
 
     return new_transactions # type: ignore
+
+
+@transaction_router.post('/account/{account_id}/sync')
+async def sync_account_transactions(
+    account_id: int,
+    start_date: datetime | None = Query(default=None),
+    end_date: datetime | None = Query(default=None),
+    db: Session = Depends(get_database),
+    user: User = Depends(get_current_user),
+) -> list[ReturnTransactionSchema]:
+    """
+    Sync all Transactions from Plaid for a given Account..
+
+    - account_id: The ID of the Account to sync transactions for.
+    - start_date: The start date of the time period to sync transactions
+    for. If not provided, the date of the last sync will be used.
+    - end_date: The end date of the time period to sync transactions
+    for. If not provided, the current date will be used.
+    """
+
+    # Get the Account
+    account = require_account(db, account_id)
+    if ((plaid_item := account.plaid_item) is None
+        or not account.plaid_account_id):
+        raise HTTPException(
+            status_code=400,
+            detail='Account is not linked to Plaid'
+        )
+
+    # Get the Plaid item and verify it belongs to the user
+    if plaid_item.user_id != user.id:
+        raise HTTPException(
+            status_code=403,
+            detail='Plaid item does not belong to the current User'
+        )
+
+    # Create new transactions in our database; remove redundant ones
+    plaid_service = PlaidService()
+    new_transactions = remove_redundant_transactions(
+        [
+            NewTransactionSchema(
+                account_id=account_id,
+                date=transaction['date'],
+                description=transaction['name'],
+                amount=transaction['amount'],
+                plaid_transaction_id=transaction['id']
+            )
+            for transaction in plaid_service.get_transactions(
+                access_token=plaid_item.access_token,
+                account_ids=[account.plaid_account_id],
+                start_date=start_date or plaid_item.last_refresh,
+                end_date=end_date,
+            )
+        ],
+        db
+    )
+
+    # Add the new Transactions to the database
+    transactions = add_transactions_to_database(new_transactions, db)
+
+    # Update last refresh time
+    plaid_item.last_refresh = datetime.now()
+    db.commit()
+
+    return transactions # type: ignore
+
+
+@transaction_router.post('/sync')
+async def sync_all_account_transactions(
+    start_date: datetime | None = Query(default=None),
+    db: Session = Depends(get_database),
+    user: User = Depends(get_current_user),
+) -> list[ReturnTransactionSchema]:
+    """
+    Sync all transactions for all accounts.
+
+    - start_date: The start date of the time period to sync transactions
+    for. If not provided, the date of the last sync will be used.
+    """
+
+    plaid_service = PlaidService()
+    transactions: list[ReturnTransactionSchema] = []
+    for account in db.query(Account).all():
+        # Skip this Account if it not linked to Plaid
+        if ((plaid_item := account.plaid_item) is None
+            or not account.plaid_account_id
+            or plaid_item.user_id != user.id):
+            log.debug(
+                f'Skipping account {account.id} because it is not linked to Plaid'
+            )
+            continue
+
+        # Create new Transactions in the database; remove redundant ones
+        log.debug(
+            f'Syncing Transactions from '
+            f'{start_date or plaid_item.last_refresh} to today'
+        )
+        new_transactions = remove_redundant_transactions(
+            [
+                NewTransactionSchema(
+                    account_id=account.id,
+                    date=transaction['date'],
+                    description=transaction['name'],
+                    amount=transaction['amount'],
+                    plaid_transaction_id=transaction['id']
+                )
+                for transaction in plaid_service.get_transactions(
+                    access_token=plaid_item.access_token,
+                    account_ids=[account.plaid_account_id],
+                    start_date=start_date or plaid_item.last_refresh,
+                )
+            ],
+            db
+        )
+        log.debug(
+            f'Synced {len(new_transactions)} transactions for account {account.id}'
+        )
+
+        # Add the new Transactions to the database
+        transactions.extend(add_transactions_to_database(new_transactions, db))
+
+        # Update last refresh time
+        plaid_item.last_refresh = datetime.now()
+        db.commit()
+
+    return transactions # type: ignore
