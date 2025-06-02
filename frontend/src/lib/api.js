@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as api_types from './api_types';
+import Cookies from 'js-cookie';
 
 const API_URL = 'http://localhost:8000/api/v1/';
 
@@ -7,14 +7,13 @@ export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
-    // 'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ4NjU1OTEzfQ.4lKrxMQ8vUBbmZQlBAlCTkt1W9rz9PYOkz-ugT2flnw`
   },
 });
 
 // Add request interceptor for auth token
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('access_token');
+    const token = Cookies.get('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
