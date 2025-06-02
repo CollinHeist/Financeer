@@ -133,7 +133,7 @@ def upload_bank_transactions(db: Session) -> bool:
         )
         db.add(upload)
         balances, transactions = parse_iccu_upload(upload)
-        add_transactions_to_database(transactions, upload.id, db)
+        add_transactions_to_database(transactions, db, upload.id)
         add_balances_to_database(balances, db)
         log.debug(
             f'Uploaded {len(transactions)} transactions from {upload.filename}'
@@ -150,7 +150,7 @@ def upload_bank_transactions(db: Session) -> bool:
         )
         db.add(upload)
         transactions = parse_citi_upload(upload)
-        add_transactions_to_database(transactions, upload.id, db)
+        add_transactions_to_database(transactions, db, upload.id)
         log.debug(
             f'Uploaded {len(transactions)} transactions from {upload.filename}'
         )
