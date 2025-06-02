@@ -3,7 +3,7 @@ from datetime import datetime
 from io import StringIO
 
 from fastapi.datastructures import UploadFile
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm.session import Session
 
 from app.models.transaction import Transaction
@@ -73,9 +73,9 @@ def parse_generic_upload(upload: Upload) -> list[NewTransactionSchema]:
 
 
 def remove_redundant_transactions(
-        transactions: list[NewTransactionSchema],
-        db: Session,
-    ) -> list[NewTransactionSchema]:
+    transactions: list[NewTransactionSchema],
+    db: Session,
+) -> list[NewTransactionSchema]:
     """
     Remove any transactions which already exist in the database from the
     list of transactions.
@@ -94,16 +94,19 @@ def remove_redundant_transactions(
         """Check if a transaction is redundant."""
 
         redundant = db.query(Transaction).filter(
-            Transaction.date == transaction.date,
-            Transaction.account_id == transaction.account_id,
             or_(
-                Transaction.amount == transaction.amount,
-                Transaction.description == transaction.description,
-            ),
+                Transaction.plaid_transaction_id == transaction.plaid_transaction_id,
+                and_(
+                    Transaction.date == transaction.date,
+                    Transaction.account_id == transaction.account_id,
+                    or_(
+                        Transaction.amount == transaction.amount,
+                        Transaction.description == transaction.description,
+                    ),
+                )
+            )
         ).first()
 
-        if redundant:
-            log.debug(f'Redundant transaction: {redundant}')
         return redundant
 
     return [
@@ -115,16 +118,16 @@ def remove_redundant_transactions(
 
 def add_transactions_to_database(
     transactions: list[NewTransactionSchema],
-    upload_id: int,
     db: Session,
+    upload_id: int | None = None,
 ) -> list[Transaction]:
     """
     Add the list of NewTransactionSchemas to the database.
 
     Args:
         transactions: The list of NewTransactionSchemas to add.
-        upload_id: The ID of the Upload that the Transactions belong to.
         db: The database session.
+        upload_id: The ID of the Upload that the Transactions belong to.
 
     Returns:
         A list of Transactions.

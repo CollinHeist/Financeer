@@ -44,7 +44,7 @@ def upload_generic_transactions(
 
     transactions = parse_generic_upload(upload)
 
-    return add_transactions_to_database(transactions, upload.id, db)
+    return add_transactions_to_database(transactions, db, upload.id) # type: ignore
 
 
 @upload_router.post('/new/apple')
@@ -67,7 +67,7 @@ def upload_apple_transactions(
         raw_transactions = parse_apple_upload(upload)
 
         transactions.extend(
-            add_transactions_to_database(raw_transactions, upload.id, db)
+            add_transactions_to_database(raw_transactions, db, upload.id)
         )
 
     return transactions
@@ -93,7 +93,7 @@ def upload_capital_one_transactions(
         raw_transactions = parse_capital_one_upload(upload)
 
         transactions.extend(
-            add_transactions_to_database(raw_transactions, upload.id, db)
+            add_transactions_to_database(raw_transactions, db, upload.id)
         )
 
     return transactions
@@ -119,7 +119,7 @@ def upload_chase_transactions(
         raw_transactions = parse_chase_upload(upload)
 
         transactions.extend(
-            add_transactions_to_database(raw_transactions, upload.id, db)
+            add_transactions_to_database(raw_transactions, db, upload.id)
         )
 
     return transactions
@@ -144,7 +144,7 @@ def upload_citi_transactions(
 
         transactions.extend(
             add_transactions_to_database(
-                parse_citi_upload(upload), upload.id, db
+                parse_citi_upload(upload), db, upload.id
             )
         )
 
@@ -172,7 +172,7 @@ def upload_iccu_transactions(
 
         add_balances_to_database(balances, db)
         transactions.extend(
-            add_transactions_to_database(raw_transactions, upload.id, db)
+            add_transactions_to_database(raw_transactions, db, upload.id)
         )
 
     return transactions
@@ -196,7 +196,7 @@ def upload_vanguard_transactions(
 
         transactions.extend(
             add_transactions_to_database(
-                parse_vanguard_upload(upload), upload.id, db
+                parse_vanguard_upload(upload), db, upload.id
             )
         )
         log.info(f'Uploaded {len(transactions)} transactions from {file.filename}')
