@@ -55,7 +55,7 @@ venv.bak/
 # mkdocs documentation
 /site
 
+config/*
 .DS_Store
 *.csv
-config/budget.sqlite
 backend/uv.lock
