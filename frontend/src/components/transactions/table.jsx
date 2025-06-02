@@ -21,8 +21,10 @@ import {
   IconTrash,
   IconPlus,
   IconFilter,
+  IconUpload,
+  IconRefresh,
+  IconChartBar,
 } from "@tabler/icons-react";
-import { cn, formatAmount } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +44,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 import AccountOverviewPopover from '@/components/accounts/overview-popover';
 import BillSummaryPopover from '@/components/bills/summary-popover';
@@ -49,6 +52,7 @@ import ExpenseSummaryPopover from '@/components/expenses/summary-popover';
 import IncomeSummaryPopover from '@/components/income/summary-popover';
 import TransferSummaryPopover from '@/components/transfers/summary-popover';
 
+import { cn, formatAmount, formatDate, formatCurrency } from "@/lib/utils";
 import { getAllAccounts } from '@/lib/api/accounts';
 import { getAllExpenses } from '@/lib/api/expenses';
 import { getAllTransfers } from '@/lib/api/transfers';
@@ -56,27 +60,15 @@ import {
   applyTransactionFilters,
   deleteTransaction,
   patchTransaction,
+  syncAllAccountTransactions,
 } from '@/lib/api/transactions';
 import { getAllIncomes } from '@/lib/api/incomes';
 import { getAllAccountBills } from '@/lib/api/bills';
 import { SplitDialog } from '@/components/transactions/split-dialog';
+import TransactionUploadDialog from '@/components/transactions/upload-dialog';
+import TransactionSummaryInline from '@/components/transactions/summary-inline';
+import TransactionSeriesSummary from '@/components/transactions/series-summary';
 
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-};
-
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(amount);
-};
 
 const RelatedTransactionsCell = ({ transactions }) => {
   if (!transactions?.length) return <TableCell className="text-center">-</TableCell>;
@@ -410,9 +402,13 @@ export default function TransactionTable({
 }) {
   const [filterValue, setFilterValue] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [isApplyingFilters, setIsApplyingFilters] = useState(false);
   const [showFilterConfirmation, setShowFilterConfirmation] = useState(false);
   const [selectedAccounts, setSelectedAccounts] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
+  const [transactionSeries, setTransactionSeries] = useState([]);
   const queryClient = useQueryClient();
 
   // Fetch accounts
@@ -535,15 +531,60 @@ export default function TransactionTable({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button 
-            onClick={() => setShowFilterConfirmation(true)}
-            disabled={isApplyingFilters}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <IconPlus className="h-4 w-4 mr-2" />
+                New
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowCreateDialog(true)}>
+                <IconPlus className="h-4 w-4 mr-2" />
+                Add New Transaction
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowFilterConfirmation(true)}>
+                <IconFilter className="h-4 w-4 mr-2" />
+                Categorize Transactions
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={async () => {
+                  try {
+                    setIsSyncing(true);
+                    const result = await syncAllAccountTransactions();
+                    await queryClient.invalidateQueries(['transactions']);
+                    toast.success(`Successfully synced ${result.length} transactions`);
+                  } catch (error) {
+                    console.error('Failed to sync transactions:', error);
+                    toast.error('Failed to sync transactions');
+                  } finally {
+                    setIsSyncing(false);
+                  }
+                }}
+                disabled={isSyncing}
+              >
+                <IconRefresh className={cn("h-4 w-4 mr-2", isSyncing && "animate-spin")} />
+                {isSyncing ? 'Syncing...' : 'Sync Transactions from Plaid'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowUploadDialog(true)}>
+                <IconUpload className="h-4 w-4 mr-2" />
+                Upload Transaction CSV files
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
             variant="outline"
+            onClick={() => {
+              const newSeries = {
+                title: filterValue || `Series ${transactionSeries.length + 1}`,
+                transactions: transactions,
+              };
+              setTransactionSeries([...transactionSeries, newSeries]);
+            }}
+            disabled={transactions.length === 0}
           >
-            {isApplyingFilters ? 'Applying...' : 'Categorize Expenses'}
-          </Button>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            New Transaction
+            <IconChartBar className="h-4 w-4 mr-2" />
+            Add to Series
           </Button>
         </div>
       </div>
@@ -553,7 +594,7 @@ export default function TransactionTable({
           <DialogHeader>
             <DialogTitle>Categorize Expenses</DialogTitle>
             <DialogDescription>
-              This will automatically associated Transactions with Expenses based on your defined Filters. 
+              This will automatically associate Transactions with Bills, Expenses, or Incomes based on your defined Transaction Filters. 
               This cannot be undone.
             </DialogDescription>
           </DialogHeader>
@@ -649,6 +690,23 @@ export default function TransactionTable({
         isOpen={showCreateDialog}
         onOpenChange={setShowCreateDialog}
       />
+
+      <TransactionUploadDialog
+        isOpen={showUploadDialog}
+        onOpenChange={setShowUploadDialog}
+      />
+
+      {transactionSeries.length > 0 && (
+        <div className="mt-8">
+          <TransactionSeriesSummary
+            series={transactionSeries}
+            isLoading={false}
+            error={null}
+            reversedYAxis={true}
+            searchQuery={filterValue}
+          />
+        </div>
+      )}
     </div>
   );
 }
