@@ -231,10 +231,10 @@ export default function TransfersTable() {
             ))
           )}
           <TableRow className="hover:bg-muted/50">
-            <TableCell colSpan={9} className="text-center py-4">
+            <TableCell colSpan={10} className="text-center py-4">
               <Button
-                variant="outline"
-                className="w-full max-w-[200px]"
+                variant="ghost"
+                className="w-full"
                 onClick={() => setIsCreateDialogOpen(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
