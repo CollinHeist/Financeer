@@ -1,7 +1,4 @@
-from datetime import datetime, date as date_
-
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -11,6 +8,12 @@ from app.db.query import require_account, require_plaid_item
 from app.models.user import User
 from app.models.plaid import PlaidItem
 from app.services.plaid import PlaidService
+from app.schemas.plaid import (
+    NewLinkAccountSchema,
+    ReturnAccessTokenResponse,
+    ReturnLinkTokenResponse,
+    ReturnPlaidAccountInfoSchema,
+)
 
 
 router = APIRouter(
@@ -22,94 +25,45 @@ router = APIRouter(
 plaid_service = PlaidService()
 
 
-class LinkTokenResponse(BaseModel):
-    link_token: str
-
-
-class PublicTokenRequest(BaseModel):
-    public_token: str
-
-
-class AccessTokenResponse(BaseModel):
-    access_token: str
-
-class AccountBalance(BaseModel):
-    available: float
-    current: float
-    limit: float | None = None
-
-class ReturnAccountInfoSchema(BaseModel):
-    id: str
-    plaid_item_id: int
-    name: str
-    # type: str | Any
-    # subtype: str | None | Any
-    mask: str | None
-    balances: AccountBalance
-
-class TransactionInfo(BaseModel):
-    id: str
-    account_id: str
-    amount: float
-    date: date_ | datetime | str
-    name: str
-    merchant_name: str | None
-    category: list[str] | None
-    pending: bool
-
-
-class TransactionsResponse(BaseModel):
-    transactions: list[TransactionInfo]
-    total_transactions: int
-
-
-class NewLinkAccountSchema(BaseModel):
-    plaid_account_id: str
-    plaid_item_id: int
-    account_id: int
-
-
 @router.post('/link-token')
 async def create_link_token(
     current_user: User = Depends(get_current_user),
-) -> LinkTokenResponse:
-    """Create a link token for initializing Plaid Link."""
+) -> ReturnLinkTokenResponse:
+    """Create a link token for initializing a Plaid Link."""
 
-    return LinkTokenResponse(
+    return ReturnLinkTokenResponse(
         link_token=plaid_service.create_link_token(current_user.username)
     )
 
 
 @router.post('/exchange-token')
 async def exchange_public_token(
-    request: PublicTokenRequest,
+    public_token: str = Body(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_database),
-) -> AccessTokenResponse:
+) -> ReturnAccessTokenResponse:
     """Exchange a public token for an access token and store it in the database."""
 
     # Exchange the public token for an access token
-    access_token = plaid_service.exchange_public_token(request.public_token)
+    access_token = plaid_service.exchange_public_token(public_token)
 
     # Store the access token in the database
     store_access_token(access_token, current_user.id, db)
 
-    return AccessTokenResponse(access_token=access_token)
+    return ReturnAccessTokenResponse(access_token=access_token)
 
 
 @router.post('/link-account')
 async def link_plaid_account(
     link_account_request: NewLinkAccountSchema = Body(...),
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_database),
 ) -> None:
     """
     Link a Plaid account to an existing Account.
     
     Args:
-        request: The request containing the Plaid account ID, PlaidItem ID, and Account ID
-        current_user: The current authenticated user
-        db: Database session
+        link_account_request: The details of the accounts to link.
     """
 
     # Verify the PlaidItem exists and belongs to the user
@@ -117,7 +71,7 @@ async def link_plaid_account(
         db.query(PlaidItem)
             .filter(
                 PlaidItem.id == link_account_request.plaid_item_id,
-                PlaidItem.user_id == current_user.id
+                PlaidItem.user_id == user.id
             )
             .first()
     )
@@ -129,7 +83,8 @@ async def link_plaid_account(
         )
 
     # Verify the Account exists and isn't already linked
-    if (account := require_account(db, link_account_request.account_id)).plaid_account_id:
+    account = require_account(db, link_account_request.account_id)
+    if account.plaid_account_id:
         raise HTTPException(
             status_code=422,
             detail='Account is already linked to a Plaid connection'
@@ -154,42 +109,50 @@ async def link_plaid_account(
     db.commit()
 
 
-@router.get('/access-token')
-async def get_access_token(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_database),
-) -> AccessTokenResponse:
-    """Get the stored access token for the current user."""
+# @router.get('/access-token')
+# async def get_access_token(
+#     user: User = Depends(get_current_user),
+#     db: Session = Depends(get_database),
+# ) -> AccessTokenResponse:
+#     """Get the stored access token for the current user."""
 
-    # Get the most recent Plaid item for the user
-    plaid_item = (
-        db.query(PlaidItem)
-            .filter(PlaidItem.user_id == current_user.id)
-            .order_by(PlaidItem.id.desc())
-            .first()
-    )
+#     # Get the most recent Plaid item for the user
+#     plaid_item = (
+#         db.query(PlaidItem)
+#             .filter(PlaidItem.user_id == user.id)
+#             .order_by(PlaidItem.id.desc())
+#             .first()
+#     )
 
-    if not plaid_item:
-        raise HTTPException(
-            status_code=404,
-            detail='No Plaid access token found',
-        )
+#     if not plaid_item:
+#         raise HTTPException(
+#             status_code=404,
+#             detail='No Plaid access token found',
+#         )
 
-    return AccessTokenResponse(access_token=plaid_item.access_token)
+#     return AccessTokenResponse(access_token=plaid_item.access_token)
 
 
 @router.get('/accounts')
 async def get_accounts(
     plaid_item_id: int | None = Query(default=None),
     db: Session = Depends(get_database),
-) -> list[ReturnAccountInfoSchema]:
-    """Get account information for a given access token."""
+) -> list[ReturnPlaidAccountInfoSchema]:
+    """
+    Get account information for a given access token.
 
+    - plaid_item_id: The ID of the PlaidItem to get accounts for. If not
+    provided, all accounts for all PlaidItems will be returned.
+    """
+
+    # Return all Accounts for all PlaidItems
     if plaid_item_id is None:
         accounts = []
         for plaid_item in db.query(PlaidItem).all():
             accounts.extend([
-                ReturnAccountInfoSchema(**account, plaid_item_id=plaid_item.id)
+                ReturnPlaidAccountInfoSchema(
+                    **account, plaid_item_id=plaid_item.id
+                )
                 for account in plaid_service.get_accounts(
                     plaid_item.access_token
                 )
@@ -197,31 +160,10 @@ async def get_accounts(
 
         return accounts
 
+    # Return all Accounts for the given PlaidItem
     return [
-        ReturnAccountInfoSchema(**account, plaid_item_id=plaid_item_id)
+        ReturnPlaidAccountInfoSchema(**account, plaid_item_id=plaid_item_id)
         for account in plaid_service.get_accounts(
             require_plaid_item(db, plaid_item_id).access_token
         )
     ]
-
-
-@router.get('/transactions')
-async def get_transactions(
-    access_token: str,
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
-    account_ids: list[str] | None = None,
-    count: int = 100,
-    offset: int = 0,
-) -> TransactionsResponse:
-    """Get transactions for a given access token."""
-
-    return plaid_service.get_transactions(
-        access_token=access_token,
-        start_date=start_date,
-        end_date=end_date,
-        account_ids=account_ids,
-        count=count,
-        offset=offset
-    ) # type: ignore
-
