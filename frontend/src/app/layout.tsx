@@ -4,9 +4,11 @@ import clsx from "clsx";
 
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/sonner"
-
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
 import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
+
 
 export const viewport: Viewport = {
   themeColor: [
@@ -33,7 +35,9 @@ export default function RootLayout({
           <div className="relative flex flex-col h-screen">
             <Navbar />
             <main className="container mx-auto max-w-7xl px-6 flex-grow">
-              {children}
+              <div className="container mx-auto py-6 space-y-6">
+                {children}
+              </div>
             </main>
             <Toaster />
           </div>
