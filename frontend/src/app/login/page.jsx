@@ -5,9 +5,15 @@ import { useRouter } from 'next/navigation';
 import { login } from '@/lib/api/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -21,7 +27,8 @@ export default function LoginPage() {
 
     try {
       const { access_token } = await login(username, password);
-      localStorage.setItem('access_token', access_token);
+      // Store token in cookie with 7 day expiry
+      Cookies.set('access_token', access_token);//, { expires: 7 });
       toast.success('Logged in successfully');
       router.push('/'); // Redirect to home page
     } catch (error) {
@@ -32,8 +39,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Card className="w-[400px]">
+    <div className="h-screen w-screen flex items-center justify-center bg-background">
+      <Card className="w-[400px] shadow-lg">
         <CardHeader>
           <CardTitle>Login</CardTitle>
           <CardDescription>
