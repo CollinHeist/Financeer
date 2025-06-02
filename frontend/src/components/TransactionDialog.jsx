@@ -2,11 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"
-import { IconInfoCircle } from '@tabler/icons-react';
 import { ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
@@ -150,11 +155,10 @@ export default function TransactionDialog({ isOpen, onOpenChange, transactionId 
     }}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit Transaction' : 'Create New Transaction'}</DialogTitle>
-          <div className="flex items-center gap-1">
-            <IconInfoCircle className="text-blue-500 h-4 w-4" />
-            <p className="text-xs text-gray-500">Use a negative amount to indicate money leaving the account</p>
-          </div>
+          <DialogTitle>{isEditMode ? 'Edit Transaction' : 'Add New Transaction'}</DialogTitle>
+          <DialogDescription>
+            Use a negative amount to indicate money leaving the account
+          </DialogDescription>
         </DialogHeader>
         
         {isLoading && !isEditMode ? (
