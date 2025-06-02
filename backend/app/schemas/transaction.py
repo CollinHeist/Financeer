@@ -23,6 +23,7 @@ class NewTransactionSchema(BaseModel):
     income_id: int | None = None
     transfer_id: int | None = None
     related_transaction_ids: list[int] | None = None
+    plaid_transaction_id: str | None = None
 
 class UpdateTransactionSchema(BaseModel):
     date: date_type = None
@@ -35,6 +36,7 @@ class UpdateTransactionSchema(BaseModel):
     income_id: int | None = None
     transfer_id: int | None = None
     related_transaction_ids: list[int] | None = None
+    plaid_transaction_id: str | None = None
 
 class ReturnRelatedTransactionSchema(BaseModel):
     id: int
