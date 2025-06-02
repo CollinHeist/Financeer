@@ -3,12 +3,17 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { IconUpload } from '@tabler/icons-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import TransactionTable from '@/components/transactions/table';
-import TransactionUploadDialog from '@/components/transactions/upload-dialog';
 
+import { cn } from "@/lib/utils";
 import { getAllTransactions } from '@/lib/api/transactions';
 
 // Pagination controls component
@@ -99,11 +104,10 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
 
 export default function TransactionsPage() {
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(25);
   const [searchTerm, setSearchTerm] = useState('');
   const [showUncategorizedOnly, setShowUncategorizedOnly] = useState(false);
   const [selectedAccounts, setSelectedAccounts] = useState([]);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const {
@@ -149,6 +153,11 @@ export default function TransactionsPage() {
     queryClient.invalidateQueries(['transactions']);
   };
 
+  const handlePageSizeChange = (value) => {
+    setPageSize(Number(value));
+    setPage(1); // Reset to first page when changing page size
+  };
+
   if (error) {
     return (
       <div className="p-4 text-red-600">
@@ -158,13 +167,9 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Transactions</h1>
-        <Button onClick={() => setShowUploadDialog(true)}>
-          <IconUpload className="h-4 w-4 mr-2" />
-          Upload Transactions
-        </Button>
+    <div className="container mx-auto">
+      <div className="flex justify-between items-center mb-3">
+        <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
       </div>
       <TransactionTable
         transactions={data?.items || []}
@@ -174,16 +179,31 @@ export default function TransactionsPage() {
         onUncategorizedChange={handleUncategorizedChange}
       />
       {(data?.pages > 1) && (
-        <PaginationControls
-          currentPage={page}
-          totalPages={data?.pages || 1}
-          onPageChange={setPage}
-        />
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Items per page:</span>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={handlePageSizeChange}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Select size" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <PaginationControls
+            currentPage={page}
+            totalPages={data?.pages || 1}
+            onPageChange={setPage}
+          />
+        </div>
       )}
-      <TransactionUploadDialog
-        isOpen={showUploadDialog}
-        onOpenChange={setShowUploadDialog}
-      />
     </div>
   );
 }
