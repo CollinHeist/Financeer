@@ -263,3 +263,34 @@ export const getAccountBillBreakdown = async (accountId, startDate, endDate) => 
     throw error;
   }
 }
+
+/**
+ * Syncs Transactions for an account
+ * @param {number} accountId The ID of the account to sync transactions for
+ * @returns {Promise<ReturnTransactionSchema[]>} Array of transaction data
+ * @throws {Error} If the API request fails
+ */
+export const syncAccountTransactions = async (accountId) => {
+  try {
+    const response = await api.post(`/transactions/account/${accountId}/sync`);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error syncing account transactions:', error);
+    throw error;
+  }
+}
+
+/**
+ * Syncs all Transactions for all accounts
+ * @returns {Promise<ReturnTransactionSchema[]>} Array of transaction data
+ * @throws {Error} If the API request fails
+ */
+export const syncAllAccountTransactions = async () => {
+  try {
+    const response = await api.post(`/transactions/sync`);
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error syncing all account transactions:', error);
+    throw error;
+  }
+}
