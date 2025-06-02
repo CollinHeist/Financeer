@@ -1,12 +1,16 @@
 from datetime import date
 from typing import Generator
 
-from app.db.query import require_account
+from fastapi import HTTPException
 from sqlalchemy.orm import Session, load_only
 
 from app.core.dates import date_range
+from app.db.query import require_account, require_plaid_item
 from app.models.balance import Balance
 from app.models.transaction import Transaction
+from app.models.user import User
+from app.schemas.balance import NewBalanceSchema
+from app.services.plaid import PlaidService
 from app.utils.logging import log
 
 
@@ -128,3 +132,51 @@ def get_projected_balance(
         log.debug(f'Apply models for {current_date} -> {target_date} (${current_balance:,.2f})')
         current_date = target_date
         yield target_date, current_balance
+
+
+def sync_plaid_balance(
+    account_id: int,
+    user: User,
+    db: Session,
+) -> Balance:
+    """Sync the balance for an account from Plaid."""
+
+    # Verify the account exists and belongs to the user
+    if (not (account := require_account(db, account_id)).plaid_account_id
+        or not account.plaid_item_id):
+        raise HTTPException(
+            status_code=422,
+            detail='Account is not linked to Plaid'
+        )
+
+    # Get the Plaid item
+    plaid_item = require_plaid_item(db, account.plaid_item_id)
+    if plaid_item.user_id != user.id:
+        raise HTTPException(
+            status_code=403,
+            detail='Account does not belong to user'
+        )
+
+    # Get updated account information from Plaid
+    plaid_accounts = PlaidService().get_accounts(plaid_item.access_token)
+    matching_account = next(
+        (acc for acc in plaid_accounts if acc['id'] == account.plaid_account_id),
+        None
+    )
+
+    if not matching_account:
+        raise HTTPException(
+            status_code=404,
+            detail='Plaid account not found'
+        )
+
+    new_balance = NewBalanceSchema(
+        account_id=account_id,
+        balance=matching_account['balances']['current'],
+        date=date.today()
+    )
+    balance = Balance(**new_balance.model_dump())
+    db.add(balance)
+    db.commit()
+
+    return balance

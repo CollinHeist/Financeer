@@ -5,14 +5,21 @@ from sqlalchemy import or_
 from sqlalchemy.orm import load_only
 from sqlalchemy.orm.session import Session
 
+from app.core.auth import get_current_user
 from app.db.deps import get_database
-from app.core.balance import get_projected_balance, get_starting_balance
+from app.core.balance import (
+    get_projected_balance,
+    get_starting_balance,
+    sync_plaid_balance,
+)
 from app.core.dates import date_range
 from app.db.query import require_account, require_balance
+from app.models.account import Account
 from app.models.balance import Balance
 from app.models.bill import Bill
 from app.models.income import Income
 from app.models.transfer import Transfer
+from app.models.user import User
 from app.schemas.balance import (
     NewBalanceSchema,
     ReturnBalanceSchema,
@@ -183,3 +190,38 @@ def get_daily_balances(
             ))
 
     return daily_balances
+
+
+@balance_router.post('/account/{account_id}/sync')
+async def sync_account_plaid_balance(
+    account_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_database),
+) -> ReturnBalanceSchema:
+    """
+    Fetch and update the balance for a Plaid-linked account.
+    
+    Args:
+        account_id: The ID of the account to update.
+    """
+
+    return sync_plaid_balance(account_id, user, db)
+
+
+@balance_router.post('/accounts/sync')
+async def sync_all_plaid_balances(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_database),
+) -> list[ReturnBalanceSchema]:
+    """
+    Sync all Plaid-linked accounts for a user.
+    """
+
+    balances = []
+    for account in db.query(Account).filter(Account.plaid_item_id.isnot(None)):
+        try:
+            balances.append(sync_plaid_balance(account.id, user, db))
+        except Exception:
+            pass
+
+    return balances
