@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 
 import TransactionTable from '@/components/transactions/table';
 
@@ -167,43 +168,47 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="container mx-auto">
-      <div className="flex justify-between items-center mb-3">
-        <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
-      </div>
-      <TransactionTable
-        transactions={data?.items || []}
-        isLoading={isLoading || isPreviousData}
-        onSearchChange={handleSearchChange}
-        showUncategorizedOnly={showUncategorizedOnly}
-        onUncategorizedChange={handleUncategorizedChange}
-      />
-      {(data?.pages > 1) && (
-        <div className="mt-4 flex items-center justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Items per page:</span>
-            <Select
-              value={pageSize.toString()}
-              onValueChange={handlePageSizeChange}
-            >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Select size" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="50">50</SelectItem>
-                <SelectItem value="100">100</SelectItem>
-              </SelectContent>
-            </Select>
+    <Card>
+      <CardContent className="mt-6">
+        <div className="container mx-auto">
+          <div className="flex justify-between items-center mb-3">
+            <h1 className="text-3xl font-bold tracking-tight">Transactions</h1>
           </div>
-          <PaginationControls
-            currentPage={page}
-            totalPages={data?.pages || 1}
-            onPageChange={setPage}
+          <TransactionTable
+            transactions={data?.items || []}
+            isLoading={isLoading || isPreviousData}
+            onSearchChange={handleSearchChange}
+            showUncategorizedOnly={showUncategorizedOnly}
+            onUncategorizedChange={handleUncategorizedChange}
           />
+          {(data?.pages > 1) && (
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Items per page:</span>
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={handlePageSizeChange}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <PaginationControls
+                currentPage={page}
+                totalPages={data?.pages || 1}
+                onPageChange={setPage}
+              />
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
