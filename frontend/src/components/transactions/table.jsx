@@ -64,9 +64,9 @@ import {
 } from '@/lib/api/transactions';
 import { getAllIncomes } from '@/lib/api/incomes';
 import { getAllAccountBills } from '@/lib/api/bills';
+
 import { SplitDialog } from '@/components/transactions/split-dialog';
 import TransactionUploadDialog from '@/components/transactions/upload-dialog';
-import TransactionSummaryInline from '@/components/transactions/summary-inline';
 import TransactionSeriesSummary from '@/components/transactions/series-summary';
 
 

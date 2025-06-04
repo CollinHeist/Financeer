@@ -281,8 +281,8 @@ export default function TransactionSummaryInline({
                   <Line
                     type="monotone"
                     dataKey="averageAmount"
-                    stroke="hsl(var(--chart-3))"
-                    fill="hsl(var(--chart-3))"
+                    stroke="var(--chart-3)"
+                    fill="var(--chart-3)"
                     fillOpacity={0.3}
                     activeDot={{ r: 8 }}
                     dot={false}
