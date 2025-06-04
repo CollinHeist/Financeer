@@ -54,7 +54,7 @@ transaction_router = APIRouter(
 
 
 @transaction_router.get('/all')
-def get_transactions(
+async def get_transactions(
     account_ids: list[int] | None = Query(default=None),
     contains: str | None = Query(default=None),
     unassigned_only: bool = Query(default=False),
@@ -99,7 +99,7 @@ def get_transactions(
 
 
 @transaction_router.put('/filters')
-def query_transactions_from_filters(
+async def query_transactions_from_filters(
     id: int = Query(...),
     type: Literal['bill', 'expense', 'income', 'transfer'] = Query(...),
     filters: list[list[TransactionFilter]] = Body(default=[]),
@@ -137,7 +137,7 @@ def query_transactions_from_filters(
 
 
 @transaction_router.post('/filters')
-def apply_all_transaction_filters(
+async def apply_all_transaction_filters(
     db: Session = Depends(get_database),
 ) -> None:
     """
@@ -169,7 +169,7 @@ def apply_all_transaction_filters(
 
 
 @transaction_router.post('/transaction/new')
-def create_transaction(
+async def create_transaction(
     new_transaction: NewTransactionSchema = Body(...),
     db: Session = Depends(get_database),
 ) -> ReturnTransactionSchema:
@@ -208,7 +208,7 @@ def create_transaction(
 
 
 @transaction_router.get('/transaction/{transaction_id}')
-def get_transaction_by_id(
+async def get_transaction_by_id(
     transaction_id: int,
     db: Session = Depends(get_database),
 ) -> ReturnTransactionSchema:
@@ -223,7 +223,7 @@ def get_transaction_by_id(
 
 
 @transaction_router.delete('/transaction/{transaction_id}')
-def delete_transaction(
+async def delete_transaction(
     transaction_id: int,
     db: Session = Depends(get_database),
 ) -> None:
@@ -238,7 +238,7 @@ def delete_transaction(
 
 
 @transaction_router.put('/transaction/{transaction_id}')
-def update_transaction(
+async def update_transaction(
     transaction_id: int,
     updated_transaction: NewTransactionSchema = Body(...),
     db: Session = Depends(get_database),
@@ -280,7 +280,7 @@ def update_transaction(
 
 
 @transaction_router.patch('/transaction/{transaction_id}')
-def partial_update_transaction(
+async def partial_update_transaction(
     transaction_id: int,
     updated_transaction: UpdateTransactionSchema = Body(...),
     db: Session = Depends(get_database),
@@ -329,7 +329,7 @@ def partial_update_transaction(
 
 
 @transaction_router.get('/upcoming/account/{account_id}')
-def get_upcoming_account_transactions(
+async def get_upcoming_account_transactions(
     account_id: int,
     start: date = Query(default_factory=lambda: date.today()),
     end: date = Query(default_factory=lambda: date.today() + timedelta(days=14)),
@@ -414,7 +414,7 @@ def get_upcoming_account_transactions(
 
 
 @transaction_router.get('/bill/{bill_id}')
-def get_bill_transactions(
+async def get_bill_transactions(
     bill_id: int,
     db: Session = Depends(get_database),
 ) -> list[ReturnTransactionSchemaNoAccount]:
@@ -429,7 +429,7 @@ def get_bill_transactions(
 
 
 @transaction_router.get('/expense/{expense_id}')
-def get_expense_transactions(
+async def get_expense_transactions(
     expense_id: int,
     db: Session = Depends(get_database),
 ) -> list[ReturnTransactionSchemaNoAccount]:
@@ -444,7 +444,7 @@ def get_expense_transactions(
 
 
 @transaction_router.get('/income/{income_id}')
-def get_income_transactions(
+async def get_income_transactions(
     income_id: int,
     db: Session = Depends(get_database),
 ) -> list[ReturnTransactionSchemaNoAccount]:
@@ -459,7 +459,7 @@ def get_income_transactions(
 
 
 @transaction_router.get('/account/{account_id}/bill-breakdown')
-def get_account_bill_breakdown(
+async def get_account_bill_breakdown(
     account_id: int | Literal['all'],
     start_date: date = Query(...),
     end_date: date = Query(...),
@@ -579,7 +579,7 @@ def get_account_bill_breakdown(
 
 
 @transaction_router.get('/transfer/{transfer_id}')
-def get_transfer_transactions(
+async def get_transfer_transactions(
     transfer_id: int,
     db: Session = Depends(get_database),
 ) -> list[ReturnTransactionSchemaNoAccount]:
@@ -594,7 +594,7 @@ def get_transfer_transactions(
 
 
 @transaction_router.post('/transaction/{transaction_id}/split')
-def split_transaction(
+async def split_transaction(
     transaction_id: int,
     splits: list[NewSplitTransactionSchema] = Body(...),
     db: Session = Depends(get_database),
@@ -687,8 +687,13 @@ async def sync_account_transactions(
     # Add the new Transactions to the database
     transactions = add_transactions_to_database(new_transactions, db)
 
-    # Update last refresh time
-    plaid_item.last_refresh = datetime.now()
+    # Update last refresh time to the most recent Transaction date
+    if account.most_recent_transaction is None:
+        plaid_item.last_refresh = datetime.now()
+    else:
+        plaid_item.last_refresh = datetime.combine(
+            account.most_recent_transaction.date, datetime.min.time()
+        )
     db.commit()
 
     return transactions # type: ignore
@@ -748,8 +753,14 @@ async def sync_all_account_transactions(
         # Add the new Transactions to the database
         transactions.extend(add_transactions_to_database(new_transactions, db))
 
-        # Update last refresh time
-        plaid_item.last_refresh = datetime.now()
+        # Update last refresh time to the most recent Transaction date
+        if account.most_recent_transaction is None:
+            plaid_item.last_refresh = datetime.now()
+        else:
+            plaid_item.last_refresh = datetime.combine(
+                account.most_recent_transaction.date, datetime.min.time()
+            )
+
         db.commit()
 
     return transactions # type: ignore

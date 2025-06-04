@@ -11,7 +11,6 @@ from app.schemas.bill import (
     ReturnBillSchema,
     UpdateBillSchema,
 )
-from app.schemas.transaction import ReturnTransactionSchemaNoAccount
 
 
 bill_router = APIRouter(
