@@ -34,7 +34,7 @@ balance_router = APIRouter(
 
 
 @balance_router.post('/balance/new')
-def create_balance(
+async def create_balance(
     new_balance: NewBalanceSchema = Body(...),
     db: Session = Depends(get_database),
 ) -> ReturnBalanceSchema:
@@ -56,7 +56,7 @@ def create_balance(
 
 
 @balance_router.delete('/balance/{balance_id}')
-def delete_balance(
+async def delete_balance(
     balance_id: int,
     db: Session = Depends(get_database),
 ) -> None:
@@ -71,7 +71,7 @@ def delete_balance(
 
 
 @balance_router.get('/account/{account_id}')
-def get_account_balances(
+async def get_account_balances(
     account_id: int,
     db: Session = Depends(get_database),
 ) -> list[ReturnBalanceSchema]:
@@ -85,7 +85,7 @@ def get_account_balances(
 
 
 @balance_router.get('/account/{account_id}/daily')
-def get_daily_balances(
+async def get_daily_balances(
     account_id: int,
     start_date: date = Query(...),
     end_date: date = Query(...),
@@ -104,7 +104,11 @@ def get_daily_balances(
     return [
         ReturnDailyBalanceSchema(date=date, balance=balance)
         for date, balance in
-        get_projected_balance(account_id, list(date_range(start_date, end_date)), db)
+        get_projected_balance(
+            account_id,
+            list(date_range(start_date, end_date)),
+            db,
+        )
     ]
 
     # Get all Balances for the Account up to the end date
