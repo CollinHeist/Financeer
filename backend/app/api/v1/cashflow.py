@@ -7,13 +7,16 @@ from sqlalchemy.orm import Session
 
 from app.db.deps import get_database
 from app.core.dates import get_month_start, get_month_end, date_meets_frequency
+from app.models.account import Account
 from app.models.bill import Bill
 from app.models.expense import Expense
 from app.models.transaction import Transaction
+from app.models.transfer import Transfer
 from app.schemas.cashflow import (
     ReturnMonthlyAccountSnapshotSchema,
     ReturnMonthlyCashFlowItemSchema,
     DailyExpenseComparison,
+    ReturnMonthlyOverviewSchema,
 )
 from app.utils.logging import log
 
@@ -233,3 +236,64 @@ def get_monthly_account_snapshot(
     return bill_items + expense_items
 
     
+@cashflow_router.get('/overview')
+def get_monthly_overview(
+    start_date: date = Query(
+        default_factory=lambda: get_month_start(date.today() - timedelta(days=10))
+    ),
+    end_date: date = Query(
+        default_factory=lambda: get_month_end(date.today() - timedelta(days=10))
+    ),
+    db: Session = Depends(get_database),
+) -> ReturnMonthlyOverviewSchema:
+    """
+    Get a snapshot of the monthly cash flow for all Accounts.
+    Returns total income, expenses, and balance for the current month.
+    """
+
+    # Get all transactions for the current month
+    transactions = (
+        db.query(Transaction)
+            .filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date,
+            )
+            .all()
+    )
+
+    # Calculate savings (transfers to savings accounts)
+    savings = 0
+    for transaction in transactions:
+        if transaction.transfer_id is not None:
+            # Get the transfer and check if it's going to a savings account
+            transfer = (
+                db.query(Transfer)
+                    .filter(Transfer.id == transaction.transfer_id)
+                    .first()
+            )
+            if transfer and transfer.to_account.type == 'savings':
+                savings += abs(transaction.amount)
+
+    # Calculate totals
+    total_income = sum(t.amount for t in transactions if t.income_id is not None)
+    total_expenses = sum(t.amount for t in transactions if t.amount < 0) + savings
+
+    # Calculate savings rate
+    savings_rate = 0
+    if total_income > 0:
+        savings_rate = savings / total_income
+
+    # Get total balance
+    balance = 0
+    for account in db.query(Account).all():
+        try:
+            balance += account.last_balance.balance
+        except KeyError:
+            balance += 0
+
+    return ReturnMonthlyOverviewSchema(
+        income=round(total_income, 2),
+        expenses=round(total_expenses, 2),
+        balance=round(balance, 2),
+        savings_rate=savings_rate
+    )

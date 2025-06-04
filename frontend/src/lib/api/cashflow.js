@@ -73,3 +73,25 @@ export const getMonthlyAccountSnapshot = async (accountId, startDate, endDate) =
     throw error;
   }
 }
+
+/**
+ * Fetches a snapshot of the monthly cash flow for all accounts
+ * @returns {Promise<ReturnMonthlyOverviewSchema>} Monthly overview data
+ * @param {string} startDate The start date in YYYY-MM-DD format
+ * @param {string} endDate The end date in YYYY-MM-DD format
+ * @throws {Error} If the API request fails
+ */
+export const getMonthlyOverview = async (startDate, endDate) => {
+  try {
+    const response = await api.get('/cash-flow/overview', {
+      params: {
+        start_date: startDate,
+        end_date: endDate
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching monthly overview:', error);
+    throw error;
+  }
+}

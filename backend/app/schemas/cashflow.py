@@ -21,3 +21,9 @@ class DailyExpenseComparison(BaseModel):
     day_of_month: int
     historical_average: float
     current_month: Optional[float] = None
+
+class ReturnMonthlyOverviewSchema(BaseModel):
+    income: float
+    expenses: float
+    balance: float
+    savings_rate: float
