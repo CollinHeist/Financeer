@@ -98,6 +98,19 @@ class Account(Base):
         return self.balances[0]
 
 
+    @property
+    def most_recent_transaction(self) -> 'Transaction | None':
+        """The most recent Transaction for the Account."""
+
+        try:
+            return max(
+                self.transactions,
+                key=lambda transaction: transaction.date,
+            )
+        except ValueError:
+            return None
+
+
     def get_card_balance(self, target_date: date, /) -> float:
         """
         Get the balance for the account on a specific date. This only

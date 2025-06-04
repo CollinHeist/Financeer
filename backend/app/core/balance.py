@@ -90,10 +90,13 @@ def get_projected_balance(
     target_dates = sorted(target_dates)
 
     # Get the starting balance and date
-    starting_balance, start_date = get_starting_balance(account_id, target_dates[0], db)
+    starting_balance, start_date = get_starting_balance(
+        account_id, target_dates[0], db
+    )
     log.info(f'Starting balance: {starting_balance} on {start_date}')
 
-    # If the first target date is before or equal to the start date, yield the starting balance
+    # If the first target date is before or equal to the start date,
+    # yield the starting balance
     if target_dates[0] <= start_date:
         yield target_dates[0], starting_balance
         current_balance = starting_balance
