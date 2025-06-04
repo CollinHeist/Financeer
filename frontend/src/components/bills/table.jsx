@@ -34,11 +34,10 @@ import BillDialog from '@/components/bills/dialog';
 import TransactionFilterDialog from '@/components/transactions/filter-dialog';
 import BillTransactionSummary from '@/components/bills/BillTransactionSummary';
 
-import { getAllAccountBills } from '@/lib/api/bills';
-import { deleteBill } from '@/lib/api/bills';
+import { getAllAccounts } from '@/lib/api/accounts';
+import { getAllBills, deleteBill } from '@/lib/api/bills';
 
-
-export default function BillTable({ accountId }) {
+export default function BillTable() {
   const queryClient = useQueryClient();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [billToDelete, setBillToDelete] = useState(null);
@@ -49,15 +48,20 @@ export default function BillTable({ accountId }) {
   const [expandedBillId, setExpandedBillId] = useState(null);
   const [newBillDialogOpen, setNewBillDialogOpen] = useState(false);
 
-  const { data: bills, isLoading, error } = useQuery({
-    queryKey: ['bills', accountId],
-    queryFn: () => getAllAccountBills(accountId)
+  const { data: accounts, isLoading: accountsLoading, error: accountsError } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: getAllAccounts
+  });
+
+  const { data: bills, isLoading: billsLoading, error: billsError } = useQuery({
+    queryKey: ['allBills'],
+    queryFn: getAllBills
   });
 
   const deleteBillMutation = useMutation({
     mutationFn: (billId) => deleteBill(billId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['bills', accountId]);
+      queryClient.invalidateQueries(['allBills']);
       setDeleteConfirmOpen(false);
       setBillToDelete(null);
     },
@@ -105,24 +109,43 @@ export default function BillTable({ accountId }) {
     setExpandedBillId(expandedBillId === bill.id ? null : bill.id);
   };
 
-  if (error) {
-    return <div className="text-left p-4 text-red-500">Error loading Bills: {error.message}</div>;
+  if (accountsLoading || billsLoading) {
+    return <div className="text-left p-4">Loading bills...</div>;
   }
 
-  if (!bills) {
-    return <div>Loading...</div>;
+  if (accountsError) {
+    return <div className="text-left p-4 text-red-500">Error loading accounts: {accountsError.message}</div>;
   }
+
+  if (billsError) {
+    return <div className="text-left p-4 text-red-500">Error loading bills: {billsError.message}</div>;
+  }
+
+  if (!accounts || accounts.length === 0) {
+    return (
+      <div className="text-left p-4">
+        <p className="text-gray-500">No accounts found.</p>
+      </div>
+    );
+  }
+
+  // Add account names to bills
+  const billsWithAccountNames = bills?.map(bill => ({
+    ...bill,
+    accountName: accounts.find(acc => acc.id === bill.account_id)?.name || 'Unknown Account'
+  })) || [];
 
   return (
-    <div className="w-full">
+    <div className="">
       <Table>
         <TableHeader>
           <TableRow>
-          <TableHead className="text-center">
+            <TableHead className="text-center">
               <BarChart2 className="h-4 w-4 mx-auto" />
             </TableHead>
             <TableHead className="text-left">Name</TableHead>
             <TableHead className="text-left">Description</TableHead>
+            <TableHead className="text-left">Account</TableHead>
             <TableHead className="text-left">Amount</TableHead>
             <TableHead className="text-left">Date</TableHead>
             <TableHead className="text-left">End Date</TableHead>
@@ -131,7 +154,7 @@ export default function BillTable({ accountId }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {bills.map((bill) => (
+          {billsWithAccountNames.map((bill) => (
             <React.Fragment key={bill.id}>
               <TableRow>
                 <TableCell className="text-center">
@@ -153,6 +176,11 @@ export default function BillTable({ accountId }) {
                   {bill.name}
                 </TableCell>
                 <TableCell className="text-left">{bill.description || '-'}</TableCell>
+                <TableCell className="text-left">
+                  <a href={`/accounts/${bill.account_id}`} className="hover:underline text-blue-600">
+                    {bill.accountName}
+                  </a>
+                </TableCell>
                 <TableCell className={`text-left ${bill.amount < 0 ? 'text-red-500' : 'text-green-500'}`}>
                   {bill.amount < 0 ? '-' : ''}${Math.abs(bill.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </TableCell>
@@ -214,7 +242,7 @@ export default function BillTable({ accountId }) {
               </TableRow>
               {expandedBillId === bill.id && (
                 <TableRow>
-                  <TableCell colSpan={8} className="p-4">
+                  <TableCell colSpan={9} className="p-4">
                     <BillTransactionSummary
                       isInline={true}
                       billId={bill.id}
@@ -254,14 +282,12 @@ export default function BillTable({ accountId }) {
       <BillDialog
         isOpen={editDialogOpen}
         onOpenChange={handleEditDialogClose}
-        accountId={accountId}
         billId={billToEdit?.id}
       />
 
       <BillDialog
         isOpen={newBillDialogOpen}
         onOpenChange={setNewBillDialogOpen}
-        accountId={accountId}
       />
 
       <TransactionFilterDialog

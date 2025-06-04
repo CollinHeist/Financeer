@@ -72,6 +72,21 @@ export const deleteBill = async (billId) => {
 }
 
 /**
+ * Fetches all bills from the API
+ * @returns {Promise<ReturnBillSchema[]>} Array of bill data
+ * @throws {Error} If the API request fails
+ */
+export const getAllBills = async () => {
+  try {
+    const response = await api.get('/bills/all');
+    return response.data;
+  } catch (error) {
+    console.error(error.response?.data?.detail || 'Error fetching all bills:', error);
+    throw error;
+  }
+}
+
+/**
  * Fetches all bills for an account from the API
  * @param {number} accountId The ID of the account to fetch bills for
  * @returns {Promise<ReturnBillSchema[]>} Array of bill data
